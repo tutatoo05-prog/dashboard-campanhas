@@ -1,0 +1,24 @@
+{
+  "name": "Tuzinho Ads · Tuzinho Academy",
+  "short_name": "Tuzinho Ads",
+  "description": "Dashboard de Meta Ads da Tuzinho Academy — performance, recomendações e comparação de períodos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070708",
+  "theme_color": "#070708",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

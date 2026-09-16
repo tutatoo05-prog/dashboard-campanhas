@@ -1,0 +1,272 @@
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { fetchPurchases } from '@/services/purchaseService.ts'
+import { formatCurrency, formatNumber } from '@/lib/format.ts'
+import { exportCsv } from '@/lib/csv.ts'
+import type { Purchase } from '@/types'
+
+interface GroupRow {
+  key: string
+  count: number
+  revenue: number
+  revenueCount: number
+}
+
+function groupBy(purchases: Purchase[], field: 'campanha' | 'curso'): GroupRow[] {
+  const map = new Map<string, GroupRow>()
+
+  for (const purchase of purchases) {
+    const raw = String(purchase[field] ?? '').trim()
+    const key = raw || 'Sem identificação'
+    const row = map.get(key) ?? { key, count: 0, revenue: 0, revenueCount: 0 }
+    row.count += 1
+    if (typeof purchase.valor === 'number') {
+      row.revenue += purchase.valor
+      row.revenueCount += 1
+    }
+    map.set(key, row)
+  }
+
+  return [...map.values()].sort((a, b) => b.count - a.count)
+}
+
+export default function PurchasesPage() {
+  const [search, setSearch] = useState('')
+
+  const purchasesQuery = useQuery({
+    queryKey: ['purchases'],
+    queryFn: fetchPurchases,
+    retry: false,
+  })
+
+  const purchases = purchasesQuery.data ?? []
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return purchases
+    return purchases.filter((purchase) =>
+      [purchase.nome, purchase.email, purchase.curso, purchase.campanha]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term)),
+    )
+  }, [purchases, search])
+
+  const totalRevenue = purchases.reduce(
+    (sum, purchase) => sum + (typeof purchase.valor === 'number' ? purchase.valor : 0),
+    0,
+  )
+  const withValue = purchases.filter((purchase) => typeof purchase.valor === 'number')
+  const avgTicket = withValue.length ? totalRevenue / withValue.length : 0
+
+  const byCampaign = useMemo(() => groupBy(purchases, 'campanha'), [purchases])
+  const byCourse = useMemo(() => groupBy(purchases, 'curso'), [purchases])
+
+  const error = purchasesQuery.error as Error | undefined
+
+  return (
+    <div className="space-y-6 sm:space-y-8">
+      <section className="hero-panel p-6 sm:p-8">
+        <p className="section-label">Leads &amp; vendas</p>
+        <h2 className="section-title mt-1">Compras</h2>
+        <p className="mt-2 max-w-2xl text-sm text-zinc-500">
+          Todas as vendas registradas, separadas por curso e por campanha de origem — a base
+          real de quem virou aluno, não só quem clicou no anúncio.
+        </p>
+      </section>
+
+      {error && (
+        <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">
+          {error.message === 'SESSION_EXPIRED'
+            ? 'Sua sessão expirou. Faça login novamente.'
+            : error.message || 'Não foi possível carregar as compras.'}
+        </section>
+      )}
+
+      {purchasesQuery.isLoading && !error && (
+        <section className="surface-card p-8 text-center text-sm text-zinc-500">
+          Carregando compras...
+        </section>
+      )}
+
+      {!purchasesQuery.isLoading && !error && (
+        <>
+          <section className="kpi-scroll">
+            <div className="kpi-card">
+              <p className="section-label">Total de vendas</p>
+              <p className="mt-0.5 text-lg font-semibold text-zinc-50">
+                {formatNumber(purchases.length)}
+              </p>
+            </div>
+            <div className="kpi-card">
+              <p className="section-label">Receita registrada</p>
+              <p className="mt-0.5 text-lg font-semibold text-zinc-50">
+                {withValue.length ? formatCurrency(totalRevenue) : '—'}
+              </p>
+            </div>
+            <div className="kpi-card">
+              <p className="section-label">Ticket médio</p>
+              <p className="mt-0.5 text-lg font-semibold text-zinc-50">
+                {withValue.length ? formatCurrency(avgTicket) : '—'}
+              </p>
+            </div>
+            <div className="kpi-card">
+              <p className="section-label">Vendas sem valor</p>
+              <p className="mt-0.5 text-lg font-semibold text-zinc-50">
+                {formatNumber(purchases.length - withValue.length)}
+              </p>
+            </div>
+          </section>
+
+          {!withValue.length && purchases.length > 0 && (
+            <section className="surface-card border-amber-500/20 p-4 text-sm text-amber-200/90">
+              Nenhuma venda tem valor registrado ainda, então a receita fica em branco. Assim
+              que o n8n passar o valor de cada venda (ou você preencher manualmente), o ticket
+              médio e a receita por campanha aparecem aqui automaticamente.
+            </section>
+          )}
+
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="surface-card p-4">
+              <p className="section-label">Por campanha</p>
+              <h3 className="section-title mt-1 mb-3">Vendas por campanha</h3>
+              <div className="space-y-2">
+                {byCampaign.map((row) => (
+                  <div
+                    key={row.key}
+                    className="flex items-center justify-between rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2"
+                  >
+                    <span className="truncate text-sm text-zinc-300" title={row.key}>
+                      {row.key}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
+                      <span>{formatNumber(row.count)} vendas</span>
+                      {row.revenueCount > 0 && (
+                        <span className="text-amber-200">{formatCurrency(row.revenue)}</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+                {!byCampaign.length && (
+                  <p className="py-6 text-center text-sm text-zinc-600">Nenhuma venda ainda.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="surface-card p-4">
+              <p className="section-label">Por curso</p>
+              <h3 className="section-title mt-1 mb-3">Vendas por curso</h3>
+              <div className="space-y-2">
+                {byCourse.map((row) => (
+                  <div
+                    key={row.key}
+                    className="flex items-center justify-between rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2"
+                  >
+                    <span className="truncate text-sm text-zinc-300" title={row.key}>
+                      {row.key}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
+                      <span>{formatNumber(row.count)} vendas</span>
+                      {row.revenueCount > 0 && (
+                        <span className="text-amber-200">{formatCurrency(row.revenue)}</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+                {!byCourse.length && (
+                  <p className="py-6 text-center text-sm text-zinc-600">Nenhuma venda ainda.</p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="surface-card overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="section-label">Lista</p>
+                <h3 className="section-title mt-1">Todas as vendas</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, e-mail, curso ou campanha..."
+                  className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    exportCsv(
+                      'compras.csv',
+                      ['Nome', 'Email', 'Telefone', 'Curso', 'Campanha', 'Data', 'Valor'],
+                      filtered.map((purchase) => [
+                        purchase.nome,
+                        purchase.email,
+                        purchase.telefone,
+                        purchase.curso,
+                        purchase.campanha,
+                        purchase.data,
+                        purchase.valor ?? '',
+                      ]),
+                    )
+                  }
+                  className="shrink-0 rounded-lg border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                >
+                  <i className="fa-solid fa-download mr-1.5" />
+                  CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[520px] overflow-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
+                  <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
+                    <th className="px-4 py-2 font-medium">Nome</th>
+                    <th className="px-4 py-2 font-medium">Contato</th>
+                    <th className="px-4 py-2 font-medium">Curso</th>
+                    <th className="px-4 py-2 font-medium">Campanha</th>
+                    <th className="px-4 py-2 font-medium">Data</th>
+                    <th className="px-4 py-2 text-right font-medium">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((purchase, index) => (
+                    <tr
+                      key={`${purchase.email}-${index}`}
+                      className="border-b border-zinc-900/80 last:border-0"
+                    >
+                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={purchase.nome}>
+                        {purchase.nome || '—'}
+                      </td>
+                      <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-400" title={purchase.email}>
+                        {purchase.email || purchase.telefone || '—'}
+                      </td>
+                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={purchase.curso}>
+                        {purchase.curso || '—'}
+                      </td>
+                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={purchase.campanha}>
+                        {purchase.campanha || '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-zinc-500">{purchase.data || '—'}</td>
+                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                        {typeof purchase.valor === 'number' ? formatCurrency(purchase.valor) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {!filtered.length && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-600">
+                        Nenhuma venda encontrada.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
