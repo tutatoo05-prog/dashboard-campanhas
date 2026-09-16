@@ -15,6 +15,16 @@ function isEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+function isStrongPassword(value) {
+  return (
+    value.length >= 8 &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /[0-9]/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  )
+}
+
 function sendJson(res, status, payload) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
@@ -156,8 +166,10 @@ export async function handleAuthRequest(req, res, env) {
         return sendJson(res, 400, { error: 'Informe um e-mail válido.' })
       }
 
-      if (!senha || senha.length < 6) {
-        return sendJson(res, 400, { error: 'A senha deve ter pelo menos 6 caracteres.' })
+      if (!isStrongPassword(senha)) {
+        return sendJson(res, 400, {
+          error: 'A senha precisa ter 8+ caracteres, maiúscula, minúscula, número e caractere especial.',
+        })
       }
 
       const existing = await query(env, 'select id from users where email = $1 or usuario = $1', [email])

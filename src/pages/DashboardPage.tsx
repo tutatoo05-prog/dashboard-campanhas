@@ -11,6 +11,7 @@ import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
 import { GoalCard } from '@/components/goals/GoalCard.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
+import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import type { CampaignItem, EnrichedCampaignItem, InsightCard, Level, Period, Purchase } from '@/types'
 
@@ -162,6 +163,9 @@ export default function DashboardPage() {
   const resolvedAccountId =
     accountId ?? accountsQuery.data?.defaultAccountId ?? accounts[0]?.id ?? null
 
+  const selectedAccountName = accounts.find((account) => account.id === resolvedAccountId)?.name
+  const accountTheme = getAccountTheme(selectedAccountName)
+
   const rangeReady = period !== 'custom' || Boolean(customRange.since && customRange.until)
 
   const insightsQuery = useQuery({
@@ -225,19 +229,25 @@ export default function DashboardPage() {
       </section>
 
       <section className="surface-card flex flex-wrap items-center gap-3 p-4">
-        <select
-          className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-          value={resolvedAccountId ?? ''}
-          onChange={(event) => handleAccountChange(event.target.value)}
-          disabled={!accounts.length}
-        >
-          {!accounts.length && <option value="">Nenhuma conta disponível</option>}
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
+            title={selectedAccountName ?? ''}
+          />
+          <select
+            className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+            value={resolvedAccountId ?? ''}
+            onChange={(event) => handleAccountChange(event.target.value)}
+            disabled={!accounts.length}
+          >
+            {!accounts.length && <option value="">Nenhuma conta disponível</option>}
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <select
           className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"

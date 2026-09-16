@@ -4,16 +4,51 @@ import { useAuthStore } from '@/store/authStore.ts'
 
 type Mode = 'login' | 'register'
 
+const PASSWORD_CRITERIA = [
+  { label: 'Pelo menos 8 caracteres', test: (value: string) => value.length >= 8 },
+  { label: 'Uma letra maiúscula', test: (value: string) => /[A-Z]/.test(value) },
+  { label: 'Uma letra minúscula', test: (value: string) => /[a-z]/.test(value) },
+  { label: 'Um número', test: (value: string) => /[0-9]/.test(value) },
+  { label: 'Um caractere especial', test: (value: string) => /[^A-Za-z0-9]/.test(value) },
+]
+
+function isPasswordValid(value: string) {
+  return PASSWORD_CRITERIA.every((criterion) => criterion.test(value))
+}
+
+function PasswordChecklist({ value }: { value: string }) {
+  return (
+    <ul className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+      {PASSWORD_CRITERIA.map((criterion) => {
+        const met = criterion.test(value)
+        return (
+          <li
+            key={criterion.label}
+            className={`flex items-center gap-1.5 text-xs transition-colors ${
+              met ? 'text-green-400' : 'text-red-400/80'
+            }`}
+          >
+            <i className={`fa-solid ${met ? 'fa-circle-check' : 'fa-circle-xmark'} text-[11px]`} />
+            {criterion.label}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function PasswordField({
   id,
   label,
   value,
   onChange,
+  showChecklist,
 }: {
   id: string
   label: string
   value: string
   onChange: (value: string) => void
+  showChecklist?: boolean
 }) {
   const [visible, setVisible] = useState(false)
 
@@ -27,7 +62,7 @@ function PasswordField({
           autoComplete="off"
           data-lpignore="true"
           required
-          minLength={6}
+          minLength={8}
           className="auth-input filter-input pr-10"
           placeholder="••••••••"
           value={value}
@@ -43,6 +78,7 @@ function PasswordField({
           <i className={`fa-regular ${visible ? 'fa-eye-slash' : 'fa-eye'} text-sm`} />
         </button>
       </div>
+      {showChecklist && <PasswordChecklist value={value} />}
     </label>
   )
 }
@@ -75,6 +111,9 @@ export default function LoginPage() {
 
     try {
       if (isRegister) {
+        if (!isPasswordValid(senha)) {
+          throw new Error('A senha não atende aos critérios exigidos.')
+        }
         if (senha !== senhaConfirm) {
           throw new Error('As senhas não coincidem.')
         }
@@ -174,7 +213,13 @@ export default function LoginPage() {
               />
             </label>
 
-            <PasswordField id="auth-senha" label="Senha" value={senha} onChange={setSenha} />
+            <PasswordField
+              id="auth-senha"
+              label="Senha"
+              value={senha}
+              onChange={setSenha}
+              showChecklist={isRegister}
+            />
             {isRegister && (
               <PasswordField
                 id="auth-senha-confirm"
