@@ -26,6 +26,20 @@ function toPublicUser(row) {
   return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario }
 }
 
+/** Avisa o n8n (WhatsApp) sobre um novo cadastro pendente de aprovação. Não bloqueia a resposta se falhar. */
+function notifyRegistration(env, { id, nome, email }) {
+  const webhookUrl = env.N8N_APPROVAL_WEBHOOK_URL
+  if (!webhookUrl) return
+
+  fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, nome, email }),
+  }).catch((error) => {
+    console.error('Erro ao avisar novo cadastro via n8n:', error)
+  })
+}
+
 export async function requireAuth(req, res, env) {
   const user = await getUserFromRequest(env, req)
 
@@ -153,11 +167,13 @@ export async function handleAuthRequest(req, res, env) {
 
       const senhaHash = await hashPassword(senha)
 
-      await query(
+      const inserted = await query(
         env,
-        'insert into users (nome, email, usuario, senha_hash, ativo) values ($1, $2, $2, $3, false)',
+        'insert into users (nome, email, usuario, senha_hash, ativo) values ($1, $2, $2, $3, false) returning id',
         [nome, email, senhaHash],
       )
+
+      notifyRegistration(env, { id: inserted.rows[0].id, nome, email })
 
       return sendJson(res, 200, {
         success: true,
