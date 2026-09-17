@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:server-libs": "esbuild src/lib/period.ts src/lib/format.ts src/lib/userName.ts --outdir=src/lib --format=esm --platform=node --target=node20",
+    "build": "tsc --noEmit -p tsconfig.json && vite build && npm run build:server-libs",
     "preview": "vite preview",
+    "prestart": "npm run build:server-libs",
     "start": "node server/production.js",
     "start:prod": "npm run build && node server/production.js"
   },
@@ -18,6 +20,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.2",
     "typescript": "^7.0.2",
     "vite": "^8.1.1"
