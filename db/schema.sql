@@ -38,6 +38,14 @@ create table if not exists sessions (
 );
 create index if not exists sessions_expires_at_idx on sessions (expires_at);
 
+create table if not exists password_resets (
+  token text primary key,
+  user_id uuid not null references users (id) on delete cascade,
+  expires_at timestamptz not null,
+  used_at timestamptz
+);
+create index if not exists password_resets_user_id_idx on password_resets (user_id);
+
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
   nome text not null default '',

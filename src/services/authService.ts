@@ -88,3 +88,42 @@ export async function logout(): Promise<void> {
     credentials: 'include',
   })
 }
+
+export interface SimpleResult {
+  success: boolean
+  message: string
+}
+
+export async function forgotPassword(email: string): Promise<SimpleResult> {
+  const response = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data.error ?? 'Não foi possível processar a solicitação.')
+  }
+
+  return data
+}
+
+export async function resetPassword(token: string, senha: string): Promise<SimpleResult> {
+  const response = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, senha }),
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data.error ?? 'Não foi possível redefinir a senha.')
+  }
+
+  return data
+}

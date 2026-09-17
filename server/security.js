@@ -6,6 +6,12 @@ const loginAttempts = new Map()
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 const LOGIN_MAX_ATTEMPTS = 15
 
+/** @type {Map<string, { count: number, resetAt: number }>} */
+const resetAttempts = new Map()
+
+const RESET_WINDOW_MS = 15 * 60 * 1000
+const RESET_MAX_ATTEMPTS = 5
+
 export function applySecurityHeaders(res, { isProduction = false } = {}) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('X-Frame-Options', 'DENY')
@@ -66,6 +72,27 @@ export function checkLoginRateLimit(req) {
 
 export function resetLoginRateLimit(req) {
   loginAttempts.delete(getClientIp(req))
+}
+
+export function checkResetRateLimit(req) {
+  const ip = getClientIp(req)
+  const now = Date.now()
+  const entry = resetAttempts.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    resetAttempts.set(ip, { count: 1, resetAt: now + RESET_WINDOW_MS })
+    return { allowed: true }
+  }
+
+  if (entry.count >= RESET_MAX_ATTEMPTS) {
+    return {
+      allowed: false,
+      retryAfterSec: Math.ceil((entry.resetAt - now) / 1000),
+    }
+  }
+
+  entry.count += 1
+  return { allowed: true }
 }
 
 export { MAX_BODY_BYTES }

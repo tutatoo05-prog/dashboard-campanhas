@@ -4,6 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { fetchSession } from '@/services/authService.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import LoginPage from '@/pages/LoginPage.tsx'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage.tsx'
+import ResetPasswordPage from '@/pages/ResetPasswordPage.tsx'
 import AppShell from '@/components/layout/AppShell.tsx'
 import DashboardPage from '@/pages/DashboardPage.tsx'
 import ComparePage from '@/pages/ComparePage.tsx'
@@ -84,6 +86,22 @@ function AppRoutes() {
         element={
           <RedirectIfAuthed>
             <LoginPage />
+          </RedirectIfAuthed>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthed>
+            <ForgotPasswordPage />
+          </RedirectIfAuthed>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <RedirectIfAuthed>
+            <ResetPasswordPage />
           </RedirectIfAuthed>
         }
       />

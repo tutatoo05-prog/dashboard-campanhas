@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { readRequestBody } from './readBody.js'
 import { query } from './db.js'
 import { hashPassword, verifyPassword } from './passwords.js'
@@ -9,7 +10,9 @@ import {
   getSessionToken,
   setSessionCookie,
 } from './session.js'
-import { checkLoginRateLimit, resetLoginRateLimit } from './security.js'
+import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
+
+const RESET_TOKEN_TTL_MS = 30 * 60 * 1000
 
 function isEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -48,6 +51,26 @@ function notifyRegistration(env, { id, nome, email }) {
   }).catch((error) => {
     console.error('Erro ao avisar novo cadastro via n8n:', error)
   })
+}
+
+/** Avisa o n8n (e-mail/WhatsApp) com o link de redefinição de senha. Não bloqueia a resposta se falhar. */
+function notifyPasswordReset(env, { nome, email, resetLink }) {
+  const webhookUrl = env.N8N_RESET_PASSWORD_WEBHOOK_URL
+  if (!webhookUrl) return
+
+  fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, email, resetLink }),
+  }).catch((error) => {
+    console.error('Erro ao avisar redefinição de senha via n8n:', error)
+  })
+}
+
+/** Link enviado ao usuário. Prioriza APP_URL (evita confiar no header Host em produção). */
+function buildResetLink(env, req, token) {
+  const base = env.APP_URL || `https://${req.headers.host}`
+  return `${base.replace(/\/$/, '')}/reset-password?token=${token}`
 }
 
 export async function requireAuth(req, res, env) {
@@ -197,6 +220,110 @@ export async function handleAuthRequest(req, res, env) {
       }
       console.error('Erro no registro:', error)
       return sendJson(res, 500, { error: 'Erro ao registrar conta.' })
+    }
+  }
+
+  if (pathname === '/api/auth/forgot-password' && req.method === 'POST') {
+    try {
+      const rate = checkResetRateLimit(req)
+      if (!rate.allowed) {
+        return sendJson(res, 429, {
+          error: `Muitas tentativas. Aguarde ${rate.retryAfterSec}s e tente novamente.`,
+        })
+      }
+
+      const rawBody = await readRequestBody(req)
+      let body = {}
+      try {
+        body = rawBody ? JSON.parse(rawBody) : {}
+      } catch {
+        return sendJson(res, 400, { error: 'JSON inválido.' })
+      }
+
+      const email = String(body.email ?? '').trim().toLowerCase()
+
+      // Resposta genérica sempre — não revela se o e-mail existe na base.
+      const genericResponse = {
+        success: true,
+        message: 'Se esse e-mail estiver cadastrado, você vai receber um link para redefinir a senha.',
+      }
+
+      if (!email || !isEmail(email)) {
+        return sendJson(res, 200, genericResponse)
+      }
+
+      const result = await query(env, 'select id, nome, email from users where email = $1', [email])
+      const user = result.rows[0]
+
+      if (user) {
+        const token = randomBytes(32).toString('hex')
+        const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS)
+
+        await query(
+          env,
+          'insert into password_resets (token, user_id, expires_at) values ($1, $2, $3)',
+          [token, user.id, expiresAt],
+        )
+
+        notifyPasswordReset(env, {
+          nome: user.nome,
+          email: user.email,
+          resetLink: buildResetLink(env, req, token),
+        })
+      }
+
+      return sendJson(res, 200, genericResponse)
+    } catch (error) {
+      console.error('Erro ao solicitar redefinição de senha:', error)
+      return sendJson(res, 500, { error: 'Erro ao processar a solicitação.' })
+    }
+  }
+
+  if (pathname === '/api/auth/reset-password' && req.method === 'POST') {
+    try {
+      const rawBody = await readRequestBody(req)
+      let body = {}
+      try {
+        body = rawBody ? JSON.parse(rawBody) : {}
+      } catch {
+        return sendJson(res, 400, { error: 'JSON inválido.' })
+      }
+
+      const token = String(body.token ?? '').trim()
+      const senha = String(body.senha ?? body.password ?? '')
+
+      if (!token) {
+        return sendJson(res, 400, { error: 'Link inválido.' })
+      }
+
+      if (!isStrongPassword(senha)) {
+        return sendJson(res, 400, {
+          error: 'A senha precisa ter 8+ caracteres, maiúscula, minúscula, número e caractere especial.',
+        })
+      }
+
+      const result = await query(
+        env,
+        'select user_id from password_resets where token = $1 and used_at is null and expires_at > now()',
+        [token],
+      )
+      const reset = result.rows[0]
+
+      if (!reset) {
+        return sendJson(res, 400, { error: 'Link inválido ou expirado. Solicite um novo.' })
+      }
+
+      const senhaHash = await hashPassword(senha)
+
+      await query(env, 'update users set senha_hash = $1 where id = $2', [senhaHash, reset.user_id])
+      await query(env, 'update password_resets set used_at = now() where token = $1', [token])
+      // Invalida sessões ativas — a troca de senha não deve deixar sessões antigas válidas.
+      await query(env, 'delete from sessions where user_id = $1', [reset.user_id])
+
+      return sendJson(res, 200, { success: true, message: 'Senha redefinida. Faça login novamente.' })
+    } catch (error) {
+      console.error('Erro ao redefinir senha:', error)
+      return sendJson(res, 500, { error: 'Erro ao redefinir a senha.' })
     }
   }
 
