@@ -11,6 +11,11 @@
     --gold-dark: #a67c2e;
     --gold-dim: rgba(212, 160, 84, 0.1);
     --gold-border: rgba(212, 160, 84, 0.22);
+    --gold-glow: rgba(212, 160, 84, 0.1);
+    --glass-bg: rgba(20, 20, 24, 0.55);
+    --glass-bg-strong: rgba(16, 16, 20, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.05);
     --color-bg: #070708;
     --color-surface: #0e0e11;
     --color-border: rgba(255, 255, 255, 0.06);
@@ -99,8 +104,9 @@
     max-width: 100%;
     overflow-x: hidden;
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 160, 84, 0.07) 0%, transparent 55%),
-      radial-gradient(ellipse 40% 30% at 100% 0%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 50% at 50% -20%, var(--gold-glow) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 0%, var(--gold-glow) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 0% 100%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
       var(--color-bg);
   }
 
@@ -551,10 +557,16 @@
     @apply text-xl tracking-tight text-zinc-50 sm:text-2xl;
   }
 
-  /* ── Cards ── */
+  /* ── Cards (glass) ── */
   .surface-card {
-    @apply rounded-2xl border border-zinc-800/50;
-    background: linear-gradient(145deg, rgba(18, 18, 22, 0.95) 0%, rgba(12, 12, 15, 0.98) 100%);
+    @apply rounded-2xl border;
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 8px 24px -12px rgba(0, 0, 0, 0.5);
   }
 
   .hero-panel {
@@ -563,8 +575,11 @@
     border-radius: 1.25rem;
     border: 1px solid var(--gold-border);
     background:
-      radial-gradient(ellipse 70% 80% at 0% 0%, rgba(212, 160, 84, 0.1) 0%, transparent 55%),
-      linear-gradient(145deg, rgba(16, 16, 20, 0.98) 0%, rgba(10, 10, 12, 0.99) 100%);
+      radial-gradient(ellipse 70% 80% at 0% 0%, var(--gold-glow) 0%, transparent 55%),
+      var(--glass-bg-strong);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight);
   }
 
   .hero-panel::after {
@@ -574,7 +589,7 @@
     right: 0;
     width: 40%;
     height: 100%;
-    background: radial-gradient(ellipse at 100% 0%, rgba(212, 160, 84, 0.04) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 100% 0%, var(--gold-glow) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -582,13 +597,22 @@
     border-radius: 1.25rem;
     border: 1px solid var(--gold-border);
     background:
-      radial-gradient(ellipse 60% 80% at 0% 50%, rgba(212, 160, 84, 0.08) 0%, transparent 60%),
-      linear-gradient(145deg, rgba(16, 16, 20, 0.95) 0%, rgba(10, 10, 12, 0.98) 100%);
+      radial-gradient(ellipse 60% 80% at 0% 50%, var(--gold-glow) 0%, transparent 60%),
+      var(--glass-bg-strong);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight);
   }
 
   .kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-zinc-800/50 p-4;
-    background: linear-gradient(160deg, rgba(16, 16, 20, 0.95) 0%, rgba(10, 10, 13, 0.98) 100%);
+    @apply relative overflow-hidden rounded-2xl border p-4;
+    border-color: var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 8px 24px -12px rgba(0, 0, 0, 0.5);
     min-width: 0;
   }
 
@@ -598,7 +622,7 @@
     inset: 0 auto auto 0;
     width: 100%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212, 160, 84, 0.15), transparent);
+    background: linear-gradient(90deg, transparent, var(--gold-border), transparent);
   }
 
   .kpi-icon {
