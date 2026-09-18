@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { query } from './db.js'
 
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const COOKIE_NAME = 'dash_session'
 
 export async function createSession(env, userId) {
