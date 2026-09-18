@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/lib/compare.js'
 import { pushRecentAccount, sortAccountsByRecent } from '@/lib/recentAccounts.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
+import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import type { CampaignItem, Period } from '@/types'
 
@@ -113,6 +114,11 @@ export default function ComparePage() {
 
   const selectedAccountName = accounts.find((account) => account.id === resolvedAccountId)?.name
   const accountTheme = getAccountTheme(selectedAccountName)
+
+  const setActiveAccountTheme = useAccountThemeStore((state) => state.setAccountName)
+  useEffect(() => {
+    if (selectedAccountName) setActiveAccountTheme(selectedAccountName)
+  }, [selectedAccountName, setActiveAccountTheme])
 
   const currentQuery = useQuery({
     queryKey: ['meta-insights', resolvedAccountId, preset.current],

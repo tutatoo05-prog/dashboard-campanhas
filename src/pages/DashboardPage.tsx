@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
@@ -13,6 +13,7 @@ import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { useAuthStore } from '@/store/authStore.ts'
+import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import type { CampaignItem, EnrichedCampaignItem, InsightCard, Level, Period, Purchase } from '@/types'
 
 interface CampaignSalesRow {
@@ -165,6 +166,11 @@ export default function DashboardPage() {
 
   const selectedAccountName = accounts.find((account) => account.id === resolvedAccountId)?.name
   const accountTheme = getAccountTheme(selectedAccountName)
+
+  const setActiveAccountTheme = useAccountThemeStore((state) => state.setAccountName)
+  useEffect(() => {
+    if (selectedAccountName) setActiveAccountTheme(selectedAccountName)
+  }, [selectedAccountName, setActiveAccountTheme])
 
   const rangeReady = period !== 'custom' || Boolean(customRange.since && customRange.until)
 
