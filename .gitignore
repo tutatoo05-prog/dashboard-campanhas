@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Gerados por `npm run build:server-libs` (espelho JS de src/lib/*.ts para o server)
+src/lib/period.js
+src/lib/format.js
+src/lib/userName.js
 .env
 .env.*
 !.env.example
