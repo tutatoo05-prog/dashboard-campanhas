@@ -30,8 +30,15 @@ function groupBy(purchases: Purchase[], field: 'campanha' | 'curso'): GroupRow[]
   return [...map.values()].sort((a, b) => b.count - a.count)
 }
 
+type StatusFilter = 'todos' | 'ativo' | 'cancelado'
+
+function isCanceled(purchase: Purchase): boolean {
+  return purchase.status === 'cancelado'
+}
+
 export default function PurchasesPage() {
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos')
 
   const purchasesQuery = useQuery({
     queryKey: ['purchases'],
@@ -40,16 +47,24 @@ export default function PurchasesPage() {
   })
 
   const purchases = purchasesQuery.data ?? []
+  const canceledCount = purchases.filter(isCanceled).length
+
+  const byStatus = useMemo(() => {
+    if (statusFilter === 'todos') return purchases
+    return purchases.filter((purchase) =>
+      statusFilter === 'cancelado' ? isCanceled(purchase) : !isCanceled(purchase),
+    )
+  }, [purchases, statusFilter])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return purchases
-    return purchases.filter((purchase) =>
+    if (!term) return byStatus
+    return byStatus.filter((purchase) =>
       [purchase.nome, purchase.email, purchase.curso, purchase.campanha]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(term)),
     )
-  }, [purchases, search])
+  }, [byStatus, search])
 
   const totalRevenue = purchases.reduce(
     (sum, purchase) => sum + (typeof purchase.valor === 'number' ? purchase.valor : 0),
@@ -113,6 +128,12 @@ export default function PurchasesPage() {
               <p className="section-label">Vendas sem valor</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">
                 {formatNumber(purchases.length - withValue.length)}
+              </p>
+            </div>
+            <div className="kpi-card">
+              <p className="section-label">Assinaturas canceladas</p>
+              <p className="mt-0.5 text-lg font-semibold text-zinc-50">
+                {formatNumber(canceledCount)}
               </p>
             </div>
           </section>
@@ -185,7 +206,16 @@ export default function PurchasesPage() {
                 <p className="section-label">Lista</p>
                 <h3 className="section-title mt-1">Todas as vendas</h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="ativo">Somente ativos</option>
+                  <option value="cancelado">Somente cancelados</option>
+                </select>
                 <input
                   type="text"
                   placeholder="Buscar por nome, e-mail, curso ou campanha..."
@@ -198,7 +228,7 @@ export default function PurchasesPage() {
                   onClick={() =>
                     exportCsv(
                       'compras.csv',
-                      ['Nome', 'Email', 'Telefone', 'Curso', 'Campanha', 'Data', 'Valor'],
+                      ['Nome', 'Email', 'Telefone', 'Curso', 'Campanha', 'Data', 'Valor', 'Status'],
                       filtered.map((purchase) => [
                         purchase.nome,
                         purchase.email,
@@ -207,6 +237,7 @@ export default function PurchasesPage() {
                         purchase.campanha,
                         purchase.data,
                         purchase.valor ?? '',
+                        isCanceled(purchase) ? 'Cancelado' : 'Ativo',
                       ]),
                     )
                   }
@@ -228,6 +259,7 @@ export default function PurchasesPage() {
                     <th className="px-4 py-2 font-medium">Campanha</th>
                     <th className="px-4 py-2 font-medium">Data</th>
                     <th className="px-4 py-2 text-right font-medium">Valor</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,11 +284,22 @@ export default function PurchasesPage() {
                       <td className="px-4 py-2.5 text-right text-zinc-300">
                         {typeof purchase.valor === 'number' ? formatCurrency(purchase.valor) : '—'}
                       </td>
+                      <td className="px-4 py-2.5">
+                        {isCanceled(purchase) ? (
+                          <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300">
+                            Cancelado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-300">
+                            Ativo
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {!filtered.length && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-600">
                         Nenhuma venda encontrada.
                       </td>
                     </tr>

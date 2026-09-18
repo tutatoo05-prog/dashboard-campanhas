@@ -25,11 +25,23 @@ create table if not exists purchases (
   liberacao text not null default '',
   data text not null default '',
   valor numeric,
+  status text not null default 'ativo',
+  subscriber_code text,
+  canceled_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists purchases_campanha_idx on purchases (campanha);
 create index if not exists purchases_curso_idx on purchases (curso);
 create index if not exists purchases_created_at_idx on purchases (created_at desc);
+create index if not exists purchases_email_idx on purchases (email);
+create index if not exists purchases_subscriber_code_idx on purchases (subscriber_code);
+
+-- Migração incremental: se a tabela já existia antes destas colunas, rode
+-- este bloco manualmente no SQL Editor do Supabase (create table acima não
+-- altera tabelas existentes).
+alter table purchases add column if not exists status text not null default 'ativo';
+alter table purchases add column if not exists subscriber_code text;
+alter table purchases add column if not exists canceled_at timestamptz;
 
 create table if not exists sessions (
   token text primary key,

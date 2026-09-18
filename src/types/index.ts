@@ -138,5 +138,7 @@ export interface Purchase {
   liberacao?: string
   data?: string
   valor?: number | null
+  status?: string
+  canceledAt?: string | null
   [key: string]: unknown
 }
