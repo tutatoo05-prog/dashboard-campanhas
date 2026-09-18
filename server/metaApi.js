@@ -122,20 +122,22 @@ export async function fetchAllPages(path, params, token) {
   return items
 }
 
-export async function getAdAccounts(token) {
+export async function getAdAccounts(token, { allowedIds } = {}) {
   const accounts = await fetchAllPages(
     '/me/adaccounts',
     { fields: 'id,name,account_status,currency', limit: '100' },
     token,
   )
 
-  return accounts
-    .filter((account) => account.account_status === 1)
-    .map((account) => ({
-      id: account.id,
-      name: account.name,
-      currency: account.currency ?? 'BRL',
-    }))
+  const filtered = allowedIds?.length
+    ? accounts.filter((account) => allowedIds.includes(account.id))
+    : accounts.filter((account) => account.account_status === 1)
+
+  return filtered.map((account) => ({
+    id: account.id,
+    name: account.name,
+    currency: account.currency ?? 'BRL',
+  }))
 }
 
 export async function getCampaignMetaMap(token, accountId) {
@@ -385,6 +387,14 @@ function groupDailyByCampaign(rows) {
 export function normalizeAccountId(accountId) {
   if (!accountId) return null
   return accountId.startsWith('act_') ? accountId : `act_${accountId}`
+}
+
+/** META_ALLOWED_ACCOUNT_IDS=act_a,act_b — contas que devem aparecer mesmo com account_status inativo. */
+export function parseAllowedAccountIds(env) {
+  const raw = env.META_ALLOWED_ACCOUNT_IDS
+  if (typeof raw !== 'string' || !raw.trim()) return null
+  const ids = raw.split(',').map((id) => normalizeAccountId(id.trim())).filter(Boolean)
+  return ids.length ? ids : null
 }
 
 export function resolveAccountId(accounts, preferredId) {

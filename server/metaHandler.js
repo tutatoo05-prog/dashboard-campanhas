@@ -2,6 +2,7 @@ import {
   getAdAccounts,
   getDashboardData,
   normalizeAccountId,
+  parseAllowedAccountIds,
   resolveAccountId,
 } from './metaApi.js'
 import { isKnownPeriod, validateCustomRange } from '../src/lib/period.js'
@@ -20,6 +21,7 @@ function readQuery(req) {
 function getDefaultAccountId(env) {
   return normalizeAccountId(env.META_AD_ACCOUNT_ID)
 }
+
 
 function findAccountAccess(accounts, accountId) {
   if (!accountId) {
@@ -61,10 +63,11 @@ export async function handleMetaRequest(req, res, env) {
 
   const { pathname } = new URL(req.url, 'http://localhost')
   const defaultAccountId = getDefaultAccountId(env)
+  const allowedIds = parseAllowedAccountIds(env)
 
   try {
     if (pathname === '/api/meta/config') {
-      const accounts = await getAdAccounts(token)
+      const accounts = await getAdAccounts(token, { allowedIds })
       const access = findAccountAccess(accounts, defaultAccountId)
 
       return sendJson(res, 200, {
@@ -76,7 +79,7 @@ export async function handleMetaRequest(req, res, env) {
     }
 
     if (pathname === '/api/meta/permissions') {
-      const accounts = await getAdAccounts(token)
+      const accounts = await getAdAccounts(token, { allowedIds })
       const access = findAccountAccess(accounts, defaultAccountId)
 
       return sendJson(res, 200, {
@@ -90,7 +93,7 @@ export async function handleMetaRequest(req, res, env) {
     }
 
     if (pathname === '/api/meta/adaccounts') {
-      const accounts = await getAdAccounts(token)
+      const accounts = await getAdAccounts(token, { allowedIds })
       const access = findAccountAccess(accounts, defaultAccountId)
 
       return sendJson(res, 200, {
@@ -108,7 +111,7 @@ export async function handleMetaRequest(req, res, env) {
       const period = query.period ?? 'last7'
       const since = query.since || null
       const until = query.until || null
-      const accounts = await getAdAccounts(token)
+      const accounts = await getAdAccounts(token, { allowedIds })
       const requestedId = normalizeAccountId(query.accountId ?? defaultAccountId)
       const access = findAccountAccess(accounts, requestedId)
 

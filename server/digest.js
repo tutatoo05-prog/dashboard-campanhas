@@ -2,6 +2,7 @@ import {
   getAdAccounts,
   getDashboardData,
   normalizeAccountId,
+  parseAllowedAccountIds,
 } from './metaApi.js'
 import { enrichItems } from '../src/lib/analysis.js'
 import { buildRecommendations } from '../src/lib/metrics.js'
@@ -10,11 +11,12 @@ import { formatCurrency, formatNumber, formatPercent } from '../src/lib/format.j
 const DEFAULT_WEBHOOK_URL =
   'https://n8n.tuzinho.app/webhook/relatorio-campanhas'
 
-/** Contas do boletim: academy 01 + 1855 + CON3CT - 03. */
+/** Contas do boletim: academy 01 + 1855 + CON3CT - 03 + Original SP. */
 const DEFAULT_DIGEST_ACCOUNT_IDS = [
   'act_328274720105539',
   'act_115097955921855',
   'act_630972797908360',
+  'act_1197249103808364',
 ]
 
 const PERIOD_LABELS = {
@@ -41,7 +43,7 @@ export function resolveDigestSlot(hour) {
 /**
  * Contas do digest:
  * - ?accountId= força uma só
- * - DIGEST_ACCOUNT_IDS=act_a,act_b (padrão: academy + 1855 + CON3CT - 03)
+ * - DIGEST_ACCOUNT_IDS=act_a,act_b (padrão: academy + 1855 + CON3CT - 03 + Original SP)
  */
 export function resolveDigestAccountIds(env, { accountId } = {}) {
   if (accountId) {
@@ -161,7 +163,7 @@ export async function buildDigest(env, { period, slot, accountId } = {}) {
   }
 
   const resolvedPeriod = period || resolveDigestPeriod(slot)
-  const accountsCatalog = await getAdAccounts(token)
+  const accountsCatalog = await getAdAccounts(token, { allowedIds: parseAllowedAccountIds(env) })
   const wantedIds = resolveDigestAccountIds(env, { accountId })
 
   if (!wantedIds.length) {
