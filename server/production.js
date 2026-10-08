@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { createApiMiddleware } from './middleware.js'
 import { applySecurityHeaders } from './security.js'
 import { startDigestScheduler } from './digestScheduler.js'
+import { startLiveScheduler } from './liveScheduler.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const distDir = join(__dirname, '../dist')
@@ -99,4 +100,5 @@ server.listen(port, '0.0.0.0', () => {
     console.warn('AVISO: DATABASE_URL não configurada (login, registro e compras não vão funcionar).')
   }
   startDigestScheduler(env)
+  startLiveScheduler(env)
 })

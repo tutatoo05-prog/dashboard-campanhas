@@ -12,6 +12,7 @@ import ComparePage from '@/pages/ComparePage.tsx'
 import PurchasesPage from '@/pages/PurchasesPage.tsx'
 import LeadsPage from '@/pages/LeadsPage.tsx'
 import RegistrosPage from '@/pages/RegistrosPage.tsx'
+import LivePage from '@/pages/LivePage.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,6 +120,7 @@ function AppRoutes() {
         <Route path="purchases" element={<PurchasesPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="registros" element={<RegistrosPage />} />
+        <Route path="live" element={<LivePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

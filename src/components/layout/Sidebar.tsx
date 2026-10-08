@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/leads', label: 'Leads', icon: 'fa-user-plus', end: false },
   { to: '/registros', label: 'Registros', icon: 'fa-table-list', end: false },
   { to: '/purchases', label: 'Compras', icon: 'fa-bag-shopping', end: false },
+  { to: '/live', label: 'Live', icon: 'fa-tower-broadcast', end: false },
 ]
 
 export default function Sidebar() {

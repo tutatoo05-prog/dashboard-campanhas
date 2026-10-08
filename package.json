@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "prestart": "npm run build:server-libs",
     "start": "node server/production.js",
-    "start:prod": "npm run build && node server/production.js"
+    "start:prod": "npm run build && node server/production.js",
+    "live:check": "node server/scripts/liveCheck.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

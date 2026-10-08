@@ -82,3 +82,29 @@ create table if not exists goals (
   cpl_target numeric,
   updated_at timestamptz not null default now()
 );
+
+-- Interruptor da Live do Essentials (ver server/live.js). Linha única (id = 1):
+-- ligação manual com prazo obrigatório + agenda semanal em America/Sao_Paulo.
+-- schedule: [{ "day": 0-6 (0 = domingo), "start": "HH:MM", "end": "HH:MM" }]
+create table if not exists live_settings (
+  id smallint primary key default 1 check (id = 1),
+  manual_on boolean not null default false,
+  manual_since timestamptz,
+  manual_until timestamptz,
+  manual_by text,
+  paused_until timestamptz,
+  schedule jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into live_settings (id) values (1) on conflict (id) do nothing;
+
+create table if not exists live_log (
+  id bigserial primary key,
+  action text not null,
+  source text not null,
+  user_email text,
+  detail text not null default '',
+  ok boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists live_log_created_at_idx on live_log (created_at desc);

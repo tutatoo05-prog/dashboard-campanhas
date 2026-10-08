@@ -6,6 +6,7 @@ const TITLES: Record<string, string> = {
   '/compare': 'Comparar períodos',
   '/leads': 'Leads',
   '/purchases': 'Compras',
+  '/live': 'Live do Essentials',
 }
 
 export default function TopBar() {

@@ -7,6 +7,7 @@ import { handlePurchasesRequest } from './purchasesHandler.js'
 import { handleLeadsRequest } from './leadsHandler.js'
 import { handleGoalsRequest } from './goalsHandler.js'
 import { handleRegistrosRequest } from './registrosHandler.js'
+import { handleLiveRequest } from './liveHandler.js'
 import { requireAuth } from './authHandler.js'
 import { applySecurityHeaders } from './security.js'
 
@@ -43,7 +44,8 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/purchases') ||
       req.url.startsWith('/api/leads') ||
       req.url.startsWith('/api/goals') ||
-      req.url.startsWith('/api/registros')
+      req.url.startsWith('/api/registros') ||
+      req.url.startsWith('/api/live')
     ) {
       const user = await requireAuth(req, res, env)
       if (!user) return
@@ -70,6 +72,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/registros')) {
         await handleRegistrosRequest(req, res)
+        return
+      }
+
+      if (req.url.startsWith('/api/live')) {
+        await handleLiveRequest(req, res, env, user)
         return
       }
 

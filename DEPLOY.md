@@ -30,6 +30,9 @@ Configuradas em **Plesk → Node.js → Custom environment variables**:
 | `DIGEST_ACCOUNT_IDS` | Contas incluídas no boletim automático via WhatsApp |
 | `HOTMART_HOTTOK` | Autentica o webhook `/api/hotmart/webhook` (cadastrado em Hotmart → Ferramentas → Webhook) |
 | `DATABASE_URL` | Conexão Postgres (Supabase) — usar porta `5432` (direta), não `6543` (pooler), pois o processo é persistente |
+| `LIVE_FLAG_PATH` | Caminho absoluto do `live.on` no site principal (`.../httpdocs/public/produtos/essentials/live.on`). Ver seção "Live do Essentials" |
+| `LIVE_ADMIN_EMAILS` | E-mails que podem ligar/desligar a Live e editar a agenda (separados por vírgula) |
+| `LIVE_MAX_HOURS` | Teto de emergência da ligação manual em horas (padrão `6`). Não corta horário da agenda mais longo que isso |
 | outras | ver `.env.example` na raiz do repo |
 
 Token do Meta expira (~60 dias mesmo estendido) — quando o dashboard começar a dar erro de permissão nas contas, repetir o processo de gerar/estender token no Graph API Explorer e atualizar `META_ACCESS_TOKEN`.
@@ -37,3 +40,20 @@ Token do Meta expira (~60 dias mesmo estendido) — quando o dashboard começar 
 ## Migrations de banco (Supabase)
 
 `db/schema.sql` tem `create table if not exists` (não altera tabela já existente) **e** um bloco de `alter table ... add column if not exists` logo abaixo, comentado como migração incremental. Depois de um `git pull`/deploy que mexeu em `db/schema.sql`, rodar esse bloco manualmente no **SQL Editor do Supabase** antes de restart, se a tabela já existir.
+
+## Live do Essentials (tela `/live`)
+
+O dash liga/desliga a página da Live em `tuzinho.academy/produtos/essentials/` criando ou apagando **um único arquivo**, `live.on`, na pasta do site principal (o `.htaccess` de lá, mantido no repositório "produtos", decide pela existência dele). Código: `server/live.js`, `server/liveHandler.js`, `server/liveScheduler.js`.
+
+- **Estado real** = o arquivo existe. É isso que a tela mostra.
+- **Estado desejado** (banco, tabelas `live_settings` e `live_log`) = ligada manualmente dentro do prazo **ou** dentro de uma janela da agenda semanal (fuso America/Sao_Paulo, calculado no Node).
+- O agendador (`liveScheduler.js`, junto do processo Node) confere a cada 30 s e na inicialização, e cria/apaga o arquivo quando real ≠ desejado.
+- Ligação manual sempre tem prazo (no máximo `LIVE_MAX_HOURS`, padrão 6 h, ou até o fim do horário da agenda em andamento, se for mais longo). Desligar no meio de uma janela da agenda pausa a agenda até o fim daquela janela.
+- Se não conseguir escrever o arquivo, nada é gravado no banco e a tela mostra o erro.
+
+Antes de usar pela primeira vez:
+
+1. Rodar no SQL Editor do Supabase o trecho de `live_settings`/`live_log` do final de `db/schema.sql`.
+2. Configurar `LIVE_FLAG_PATH`, `LIVE_ADMIN_EMAILS` (e, se quiser, `LIVE_MAX_HOURS`) nas variáveis do Node.js.
+3. Plesk → Node.js → **Run script** → `run live:check`. Ele mostra o usuário do processo e se ele pode escrever na pasta, **sem criar nada**. Se der erro de permissão, não abra 777: ajuste o dono/grupo da pasta (mesmo usuário de sistema da assinatura) ou fale com o suporte do Plesk.
+4. Rodar **só uma instância** do app: as duas convergiriam para o mesmo estado (é idempotente), mas não há motivo para duplicar.

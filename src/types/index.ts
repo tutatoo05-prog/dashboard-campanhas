@@ -170,3 +170,39 @@ export interface Purchase {
   canceledAt?: string | null
   [key: string]: unknown
 }
+
+export interface LiveWindow {
+  day: number
+  start: string
+  end: string
+}
+
+export interface LiveLogEntry {
+  id: string
+  action: string
+  source: string
+  userEmail: string | null
+  detail: string
+  ok: boolean
+  createdAt: string
+}
+
+export interface LiveStatus {
+  now: string
+  timezone: string
+  canEdit: boolean
+  configured: boolean
+  configError: string | null
+  maxHours: number
+  real: { on: boolean; since: string | null } | null
+  realError: string | null
+  writeError: string | null
+  desired: { on: boolean; sources: string[]; until: string | null } | null
+  inSync: boolean
+  manual: { active: boolean; since: string | null; until: string | null; by: string | null } | null
+  pausedUntil: string | null
+  schedule: LiveWindow[]
+  lastError: { message: string; at: string } | null
+  dbError: string | null
+  log: LiveLogEntry[]
+}
