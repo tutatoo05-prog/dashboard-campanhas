@@ -4,6 +4,8 @@ import { fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchGoal, saveGoal } from '@/services/goalService.ts'
 import { computeSummary } from '@/lib/analysis.js'
 import { formatCurrency, formatDecimal } from '@/lib/format.ts'
+import { isAdmin } from '@/lib/roles.ts'
+import { useAuthStore } from '@/store/authStore.ts'
 import type { CampaignItem } from '@/types'
 
 function currentMonthKey(): string {
@@ -27,6 +29,7 @@ const PACE_STYLES = {
 export function GoalCard({ accountId }: { accountId: string | null }) {
   const month = currentMonthKey()
   const queryClient = useQueryClient()
+  const canEdit = useAuthStore((state) => isAdmin(state.user))
   const [editing, setEditing] = useState(false)
   const [spendInput, setSpendInput] = useState('')
   const [cplInput, setCplInput] = useState('')
@@ -74,7 +77,16 @@ export function GoalCard({ accountId }: { accountId: string | null }) {
     })
   }
 
-  if (editing || (!goal?.spendTarget && !goalQuery.isLoading)) {
+  if (!canEdit && !goal?.spendTarget && !goalQuery.isLoading) {
+    return (
+      <section className="surface-card p-4">
+        <p className="section-label">Meta do mês</p>
+        <p className="mt-2 text-sm text-zinc-500">Nenhuma meta definida para {month}.</p>
+      </section>
+    )
+  }
+
+  if (canEdit && (editing || (!goal?.spendTarget && !goalQuery.isLoading))) {
     return (
       <section className="surface-card p-4">
         <p className="section-label">Meta do mês</p>
@@ -146,9 +158,11 @@ export function GoalCard({ accountId }: { accountId: string | null }) {
           <p className="section-label">Meta do mês</p>
           <h3 className="section-title mt-1">Ritmo de investimento — {month}</h3>
         </div>
-        <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300">
-          Editar
-        </button>
+        {canEdit && (
+          <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300">
+            Editar
+          </button>
+        )}
       </div>
 
       <div className="mt-4">

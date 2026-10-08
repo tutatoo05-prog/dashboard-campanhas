@@ -8,7 +8,9 @@ import { handleLeadsRequest } from './leadsHandler.js'
 import { handleGoalsRequest } from './goalsHandler.js'
 import { handleRegistrosRequest } from './registrosHandler.js'
 import { handleLiveRequest } from './liveHandler.js'
+import { handleUsersRequest } from './usersHandler.js'
 import { requireAuth } from './authHandler.js'
+import { isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
 
 export function createApiMiddleware(env, { isProduction = false } = {}) {
@@ -45,10 +47,29 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/leads') ||
       req.url.startsWith('/api/goals') ||
       req.url.startsWith('/api/registros') ||
-      req.url.startsWith('/api/live')
+      req.url.startsWith('/api/live') ||
+      req.url.startsWith('/api/users')
     ) {
       const user = await requireAuth(req, res, env)
       if (!user) return
+
+      // Cargos: "usuario" usa tudo, mas não altera nada. Gerar relatório (POST)
+      // não altera dados, então fica liberado; a gestão de usuários é só de admin.
+      const isWrite = req.method !== 'GET' && req.method !== 'HEAD'
+      if (
+        (req.url.startsWith('/api/users') || (isWrite && !req.url.startsWith('/api/report'))) &&
+        !isAdmin(user)
+      ) {
+        res.statusCode = 403
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: 'Apenas administradores podem fazer isso.', code: 'FORBIDDEN' }))
+        return
+      }
+
+      if (req.url.startsWith('/api/users')) {
+        await handleUsersRequest(req, res, env, user)
+        return
+      }
 
       if (req.url.startsWith('/api/report')) {
         await handleReportRequest(req, res, env)

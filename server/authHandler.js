@@ -36,7 +36,7 @@ function sendJson(res, status, payload) {
 
 function toPublicUser(row) {
   if (!row) return null
-  return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario }
+  return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario, cargo: row.cargo ?? 'usuario' }
 }
 
 /** Avisa o n8n (WhatsApp) sobre um novo cadastro pendente de aprovação. Não bloqueia a resposta se falhar. */
@@ -130,7 +130,7 @@ export async function handleAuthRequest(req, res, env) {
 
       const result = await query(
         env,
-        'select id, nome, email, usuario, senha_hash, ativo from users where usuario = $1 or email = $1',
+        'select id, nome, email, usuario, senha_hash, ativo, cargo from users where usuario = $1 or email = $1',
         [usuario],
       )
       const row = result.rows[0]

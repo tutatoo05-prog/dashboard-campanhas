@@ -7,6 +7,7 @@ const TITLES: Record<string, string> = {
   '/leads': 'Leads',
   '/purchases': 'Compras',
   '/live': 'Live do Essentials',
+  '/usuarios': 'Usuários',
 }
 
 export default function TopBar() {

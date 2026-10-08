@@ -31,7 +31,6 @@ Configuradas em **Plesk → Node.js → Custom environment variables**:
 | `HOTMART_HOTTOK` | Autentica o webhook `/api/hotmart/webhook` (cadastrado em Hotmart → Ferramentas → Webhook) |
 | `DATABASE_URL` | Conexão Postgres (Supabase) — usar porta `5432` (direta), não `6543` (pooler), pois o processo é persistente |
 | `LIVE_FLAG_PATH` | Caminho absoluto do `live.on` no site principal (`.../httpdocs/public/produtos/essentials/live.on`). Ver seção "Live do Essentials" |
-| `LIVE_ADMIN_EMAILS` | E-mails que podem ligar/desligar a Live e editar a agenda (separados por vírgula) |
 | `LIVE_MAX_HOURS` | Teto de emergência da ligação manual em horas (padrão `6`). Não corta horário da agenda mais longo que isso |
 | outras | ver `.env.example` na raiz do repo |
 
@@ -54,6 +53,10 @@ O dash liga/desliga a página da Live em `tuzinho.academy/produtos/essentials/` 
 Antes de usar pela primeira vez:
 
 1. Rodar no SQL Editor do Supabase o trecho de `live_settings`/`live_log` do final de `db/schema.sql`.
-2. Configurar `LIVE_FLAG_PATH`, `LIVE_ADMIN_EMAILS` (e, se quiser, `LIVE_MAX_HOURS`) nas variáveis do Node.js.
+2. Configurar `LIVE_FLAG_PATH` (e, se quiser, `LIVE_MAX_HOURS`) nas variáveis do Node.js. Quem pode habilitar/desabilitar é quem tem cargo **admin** (ver "Cargos").
 3. Plesk → Node.js → **Run script** → `run live:check`. Ele mostra o usuário do processo e se ele pode escrever na pasta, **sem criar nada**. Se der erro de permissão, não abra 777: ajuste o dono/grupo da pasta (mesmo usuário de sistema da assinatura) ou fale com o suporte do Plesk.
 4. Rodar **só uma instância** do app: as duas convergiriam para o mesmo estado (é idempotente), mas não há motivo para duplicar.
+
+## Cargos (tela `/usuarios`)
+
+Coluna `users.cargo`: **admin** tem acesso a tudo, inclusive alterações (metas, Live, cargos de outros usuários); **usuario** usa todas as telas e pode gerar relatório, mas não altera nada. A regra fica no `server/middleware.js`: qualquer requisição que não seja GET (exceto `/api/report`) e toda a rota `/api/users` exigem admin, e respondem 403 para os demais. O cargo é lido a cada requisição, então a mudança vale na hora, sem novo login. Cadastro novo entra como `usuario`. O sistema não deixa remover o último admin ativo.

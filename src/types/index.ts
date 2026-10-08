@@ -13,11 +13,14 @@ export type Level = 'campaigns' | 'adSets' | 'ads'
 
 export type Objective = string
 
+export type Cargo = 'admin' | 'usuario'
+
 export interface User {
   nome?: string | null
   nome_completo?: string | null
   email?: string | null
   usuario?: string | null
+  cargo?: Cargo | null
   [key: string]: unknown
 }
 
@@ -205,4 +208,14 @@ export interface LiveStatus {
   lastError: { message: string; at: string } | null
   dbError: string | null
   log: LiveLogEntry[]
+}
+
+export interface ManagedUser {
+  id: string
+  nome: string
+  email: string
+  usuario: string
+  ativo: boolean
+  cargo: Cargo
+  createdAt: string | null
 }

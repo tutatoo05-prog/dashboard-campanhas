@@ -1,4 +1,5 @@
 import { readRequestBody } from './readBody.js'
+import { isAdmin } from './roles.js'
 import {
   TIMEZONE,
   addLog,
@@ -8,7 +9,6 @@ import {
   findActiveWindow,
   getLastError,
   getLiveConfig,
-  isLiveAdmin,
   loadLog,
   loadSettings,
   nextOccurrence,
@@ -90,7 +90,7 @@ async function buildStatus(env, user) {
     success: true,
     now: now.toISOString(),
     timezone: TIMEZONE,
-    canEdit: isLiveAdmin(env, user),
+    canEdit: isAdmin(user),
     configured: Boolean(config.flagPath),
     configError: config.error,
     maxHours: config.maxHours,
@@ -167,7 +167,7 @@ async function commitChange(env, user, mutate) {
 async function handleChange(req, res, env, user, mutateFactory) {
   const config = getLiveConfig(env)
 
-  if (!isLiveAdmin(env, user)) {
+  if (!isAdmin(user)) {
     return sendJson(res, 403, { error: 'Você não tem permissão para alterar a Live.' })
   }
   if (!config.flagPath) {

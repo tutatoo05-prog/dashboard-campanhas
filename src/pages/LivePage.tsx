@@ -289,7 +289,7 @@ export default function LivePage() {
             {!status.canEdit && (
               <p className="mt-4 text-xs text-zinc-500">
                 <i className="fa-solid fa-lock mr-1.5" />
-                Modo leitura: só quem está na lista de administradores da Live pode habilitar e desabilitar.
+                Modo leitura: só administradores podem habilitar, desabilitar e mudar a agenda.
               </p>
             )}
 

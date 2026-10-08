@@ -18,7 +18,6 @@ const config = getLiveConfig(env)
 const user = userInfo()
 
 console.log(`Usuário do processo: ${user.username} (uid ${user.uid ?? '-'}, gid ${user.gid ?? '-'})`)
-console.log(`LIVE_ADMIN_EMAILS: ${config.adminEmails.length} e-mail(s) configurado(s)`)
 console.log(`LIVE_MAX_HOURS: ${config.maxHours} h`)
 
 if (!config.flagPath) {

@@ -3,6 +3,7 @@ import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
 import { logout } from '@/services/authService.ts'
+import { isAdmin } from '@/lib/roles.ts'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: 'fa-chart-line', end: true },
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/registros', label: 'Registros', icon: 'fa-table-list', end: false },
   { to: '/purchases', label: 'Compras', icon: 'fa-bag-shopping', end: false },
   { to: '/live', label: 'Live', icon: 'fa-tower-broadcast', end: false },
+  { to: '/usuarios', label: 'Usuários', icon: 'fa-users-gear', end: false, adminOnly: true },
 ]
 
 export default function Sidebar() {
@@ -55,7 +57,7 @@ export default function Sidebar() {
       <div className="sidebar-body flex flex-1 flex-col overflow-hidden p-3 xl:p-4">
         <p className="sidebar-fade section-label px-1">Navegação</p>
         <nav className="mt-3 space-y-1" aria-label="Menu principal">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin(user)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

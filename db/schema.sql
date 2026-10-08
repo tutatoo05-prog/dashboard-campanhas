@@ -12,8 +12,14 @@ create table if not exists users (
   usuario text not null unique,
   senha_hash text not null,
   ativo boolean not null default false,
+  cargo text not null default 'usuario' check (cargo in ('admin', 'usuario')),
   created_at timestamptz not null default now()
 );
+
+-- Migração incremental (cargos): admin altera tudo; usuario só usa, sem alterar.
+-- Depois de rodar, promova o primeiro admin à mão:
+--   update users set cargo = 'admin' where email = '...';
+alter table users add column if not exists cargo text not null default 'usuario' check (cargo in ('admin', 'usuario'));
 
 create table if not exists purchases (
   id uuid primary key default gen_random_uuid(),

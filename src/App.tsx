@@ -13,6 +13,8 @@ import PurchasesPage from '@/pages/PurchasesPage.tsx'
 import LeadsPage from '@/pages/LeadsPage.tsx'
 import RegistrosPage from '@/pages/RegistrosPage.tsx'
 import LivePage from '@/pages/LivePage.tsx'
+import UsersPage from '@/pages/UsersPage.tsx'
+import { isAdmin } from '@/lib/roles.ts'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +41,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
   if (status === 'loading') return <AppLoading />
   if (status === 'unauthenticated') return <Navigate to="/login" replace />
+
+  return <>{children}</>
+}
+
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user)
+
+  if (!isAdmin(user)) return <Navigate to="/" replace />
 
   return <>{children}</>
 }
@@ -121,6 +131,14 @@ function AppRoutes() {
         <Route path="leads" element={<LeadsPage />} />
         <Route path="registros" element={<RegistrosPage />} />
         <Route path="live" element={<LivePage />} />
+        <Route
+          path="usuarios"
+          element={
+            <RequireAdmin>
+              <UsersPage />
+            </RequireAdmin>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

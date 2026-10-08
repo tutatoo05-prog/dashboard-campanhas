@@ -36,17 +36,7 @@ export function getLiveConfig(env) {
   const hours = Number(env.LIVE_MAX_HOURS)
   const maxHours = Number.isFinite(hours) && hours > 0 && hours <= 24 ? hours : DEFAULT_MAX_HOURS
 
-  const adminEmails = String(env.LIVE_ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean)
-
-  return { flagPath, error, maxHours, adminEmails }
-}
-
-export function isLiveAdmin(env, user) {
-  const email = String(user?.email ?? '').trim().toLowerCase()
-  return Boolean(email) && getLiveConfig(env).adminEmails.includes(email)
+  return { flagPath, error, maxHours }
 }
 
 // ── Relógio de São Paulo ────────────────────────────────────────────────────
