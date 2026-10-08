@@ -1840,101 +1840,10 @@
   100% { transform: translateX(0) rotate(0deg); opacity: 1; }
 }
 
-/* Widget flutuante: fica espiando na borda, não cobre conteúdo */
-.mascot {
-  position: fixed;
-  right: 0;
-  bottom: 14px;
-  z-index: 35;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding-right: 10px;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(140px);
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
-}
-
-.mascot-in {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.mascot-in.mascot-peek {
-  transform: translateX(34px);
-}
-
-.mascot-in.mascot-peek:hover,
-.mascot-in.mascot-peek:focus-within {
-  transform: translateX(8px);
-}
-
-.mascot-body {
-  pointer-events: auto;
-  border-radius: 9999px;
-  padding: 0;
-  background: transparent;
-  line-height: 0;
-}
-
-.mascot-body:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
-}
-
-.mascot-bubble {
-  pointer-events: auto;
-  position: relative;
-  max-width: 230px;
-  margin-bottom: 14px;
-  padding: 9px 28px 9px 12px;
-  border: 1px solid var(--gold-border);
-  border-radius: 14px 14px 4px 14px;
-  background: rgba(16, 16, 20, 0.92);
-  backdrop-filter: blur(10px);
-  font-size: 12px;
-  line-height: 1.45;
-  color: #e4e4e7;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  animation: mascot-bubble-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.mascot-bubble-close {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  font-size: 9px;
-  color: #71717a;
-  border-radius: 6px;
-}
-
-.mascot-bubble-close:hover {
-  color: #e4e4e7;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-@keyframes mascot-bubble-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.92); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@media (max-width: 640px) {
-  .mascot-bubble { max-width: 190px; }
-}
-
-@media print {
-  .mascot { display: none; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .tatu-img,
   .tatu[data-mood] .tatu-img,
-  .tatu-auth,
-  .mascot-bubble {
+  .tatu-auth {
     animation: none !important;
   }
-  .mascot { transition: none; }
 }

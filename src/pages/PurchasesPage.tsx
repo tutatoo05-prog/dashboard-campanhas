@@ -4,6 +4,7 @@ import { fetchPurchases } from '@/services/purchaseService.ts'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Purchase } from '@/types'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 interface GroupRow {
   key: string
@@ -82,7 +83,7 @@ export default function PurchasesPage() {
     <div className="space-y-6 sm:space-y-8">
       <section className="hero-panel p-6 sm:p-8">
         <p className="section-label">Leads &amp; vendas</p>
-        <h2 className="section-title mt-1">Compras</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Compras" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Todas as vendas registradas, separadas por curso e por campanha de origem — a base
           real de quem virou aluno, não só quem clicou no anúncio.

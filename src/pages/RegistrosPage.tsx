@@ -4,6 +4,7 @@ import { fetchRegistros } from '@/services/registrosService.ts'
 import { formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Registro, RegistroTab } from '@/types'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 const NO_CAMPAIGN = 'Sem campanha'
 const PAGE_SIZE = 200
@@ -193,7 +194,7 @@ export default function RegistrosPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="section-label">Base completa</p>
-            <h2 className="section-title mt-1">Registros</h2>
+            <Typewriter as="h2" className="section-title mt-1" text="Registros" />
             <p className="mt-2 max-w-2xl text-sm text-zinc-500">
               Tudo o que está nas planilhas do Google, lido ao vivo: quantos registros existem no
               total, em cada planilha e em cada aba, de onde cada lead veio e de qual campanha.

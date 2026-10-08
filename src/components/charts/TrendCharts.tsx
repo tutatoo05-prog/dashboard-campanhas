@@ -21,7 +21,7 @@ const GRID = 'rgba(255,255,255,0.06)'
 const AXIS = '#71717a'
 const TOOLTIP_STYLE = {
   background: '#0c0c0f',
-  border: '1px solid rgba(212,160,84,0.2)',
+  border: '1px solid rgba(255,163,26,0.25)',
   borderRadius: 8,
   fontSize: 12,
 }

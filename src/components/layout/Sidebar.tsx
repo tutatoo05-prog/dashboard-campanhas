@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
+import { useMascotStore } from '@/store/mascotStore.ts'
 import { logout } from '@/services/authService.ts'
 import { canAccessPath, isAdmin } from '@/lib/roles.ts'
-import { useMascotStore } from '@/store/mascotStore.ts'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 const NAV_ITEMS = [
@@ -22,7 +22,7 @@ export default function Sidebar() {
   const setUser = useAuthStore((state) => state.setUser)
   const sidebarOpen = useUiStore((state) => state.sidebarOpen)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
-
+  const closeSidebarOnMobile = useUiStore((state) => state.closeSidebarOnMobile)
   const mascotEnabled = useMascotStore((state) => state.enabled)
   const setMascotEnabled = useMascotStore((state) => state.setEnabled)
 
@@ -39,19 +39,17 @@ export default function Sidebar() {
       id="sidebar"
       className={`sidebar ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'} fixed inset-y-0 left-0 flex flex-col`}
     >
-      <div className="sidebar-header flex h-16 shrink-0 items-center gap-2 border-b border-zinc-800/50 px-2 xl:gap-3 xl:px-3">
-        <div className="sidebar-header-inner flex min-w-0 flex-1 items-center gap-2 xl:gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold-border bg-gold-dim text-sm font-semibold text-gold">
-            {initial}
-          </div>
-          <div className="sidebar-fade min-w-0 flex-1 overflow-hidden">
-            <p className="truncate font-display text-base text-zinc-100">{userLabel}</p>
-            <p className="truncate text-[11px] text-zinc-500">{user?.email ?? user?.usuario ?? ''}</p>
+      <div className="sidebar-header flex shrink-0 items-center gap-2 px-3 pt-5 pb-3">
+        <div className="sidebar-brand flex min-w-0 flex-1 items-center gap-3">
+          <Tatu size={40} className="tatu-brand" />
+          <div className="sidebar-fade min-w-0">
+            <p className="truncate font-display text-xl leading-none text-zinc-50">Academy</p>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-gold">Labs</p>
           </div>
         </div>
         <button
           type="button"
-          className="sidebar-toggle-btn hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-zinc-800/80 text-zinc-500 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-200 xl:inline-flex"
+          className="sidebar-toggle-btn hidden h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-zinc-500 transition hover:border-white/25 hover:text-zinc-100 xl:inline-flex"
           aria-label={sidebarOpen ? 'Recolher menu' : 'Expandir menu'}
           onClick={toggleSidebar}
         >
@@ -59,56 +57,50 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className="sidebar-body flex flex-1 flex-col overflow-hidden p-3 xl:p-4">
-        <div className="sidebar-brand mb-4 flex items-center gap-2.5 px-1">
-          <Tatu size={34} className="tatu-brand" />
-          <div className="sidebar-fade min-w-0">
-            <p className="truncate font-display text-lg leading-none text-zinc-100">Academy</p>
-            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">Labs</p>
-          </div>
-        </div>
-        <p className="sidebar-fade section-label px-1">Navegação</p>
-        <nav className="mt-3 space-y-1" aria-label="Menu principal">
-          {NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin(user)) && canAccessPath(user, item.to)).map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `sidebar-nav-btn ${isActive ? 'sidebar-nav-btn-active' : ''}`
-              }
-              title={item.label}
-            >
-              <i className={`fa-solid ${item.icon}`} />
-              <span className="sidebar-fade">{item.label}</span>
-            </NavLink>
-          ))}
+      <div className="sidebar-body flex flex-1 flex-col overflow-hidden px-3 py-4">
+        <nav className="space-y-2" aria-label="Menu principal">
+          {NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin(user)) && canAccessPath(user, item.to)).map(
+            (item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={closeSidebarOnMobile}
+                className={({ isActive }) => `sidebar-nav-btn ${isActive ? 'sidebar-nav-btn-active' : ''}`}
+                title={item.label}
+              >
+                <i className={`fa-solid ${item.icon}`} />
+                <span className="sidebar-fade">{item.label}</span>
+              </NavLink>
+            ),
+          )}
         </nav>
       </div>
 
-      <div className="sidebar-footer shrink-0 border-t border-zinc-800/50 p-3">
+      <div className="sidebar-footer shrink-0 space-y-2 px-3 pt-3 pb-4">
         <button
           type="button"
-          className="sidebar-mascot-btn mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-200 xl:justify-start"
+          className="sidebar-nav-btn sidebar-mascot-btn"
           aria-pressed={mascotEnabled}
           title={mascotEnabled ? 'Desligar o Tatu' : 'Ligar o Tatu'}
           onClick={() => setMascotEnabled(!mascotEnabled)}
         >
-          <i className={`fa-solid ${mascotEnabled ? 'fa-toggle-on text-gold' : 'fa-toggle-off'} text-sm`} />
+          <i className={`fa-solid ${mascotEnabled ? 'fa-toggle-on' : 'fa-toggle-off'}`} />
           <span className="sidebar-fade">Mascote Tatu</span>
         </button>
-        <button
-          type="button"
-          className="sidebar-logout-btn flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 px-3 py-2.5 text-xs text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-200 xl:justify-start"
-          onClick={handleLogout}
-        >
-          <i className="fa-solid fa-right-from-bracket text-[10px]" />
+        <button type="button" className="sidebar-nav-btn" onClick={handleLogout} title="Sair">
+          <i className="fa-solid fa-right-from-bracket" />
           <span className="sidebar-fade">Sair</span>
         </button>
-        <p className="sidebar-fade mt-3 px-1 text-[10px] leading-relaxed text-zinc-600">
-          <i className="fa-solid fa-shield-halved mr-1 text-gold/50" />
-          Dados protegidos · Academy Labs
-        </p>
+        <div className="sidebar-user flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-dim text-sm font-semibold text-gold">
+            {initial}
+          </div>
+          <div className="sidebar-fade min-w-0">
+            <p className="truncate text-sm font-medium text-zinc-100">{userLabel}</p>
+            <p className="truncate text-[11px] text-zinc-500">{user?.email ?? user?.usuario ?? ''}</p>
+          </div>
+        </div>
       </div>
     </aside>
   )

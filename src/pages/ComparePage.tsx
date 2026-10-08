@@ -16,6 +16,7 @@ import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
 import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import type { CampaignItem, Period } from '@/types'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 interface CompareMetric {
   key: string
@@ -165,7 +166,7 @@ export default function ComparePage() {
     <div className="space-y-6 sm:space-y-8">
       <section className="hero-panel p-6 sm:p-8">
         <p className="section-label">Análise temporal</p>
-        <h2 className="section-title mt-1">Comparar períodos</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Comparar períodos" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Valor atual em destaque, variação em relação ao período anterior — veja rápido se a
           conta está melhorando ou piorando.

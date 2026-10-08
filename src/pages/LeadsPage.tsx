@@ -4,6 +4,7 @@ import { fetchLeads } from '@/services/leadService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
 import { formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 const ORIGIN_LABELS: Record<string, string> = {
   anuncio: 'Anúncio (formulário)',
@@ -87,7 +88,7 @@ export default function LeadsPage() {
     <div className="space-y-6 sm:space-y-8">
       <section className="hero-panel p-6 sm:p-8">
         <p className="section-label">Topo de funil</p>
-        <h2 className="section-title mt-1">Leads</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Leads" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Todo mundo que chegou pela Meta antes de virar aluno — separado por origem (anúncio,
           workshop gratuito, Essentials, Prompt), com a taxa real de conversão até a compra.
@@ -103,14 +104,29 @@ export default function LeadsPage() {
       )}
 
       {isLoading && !error && (
-        <section className="surface-card p-8 text-center text-sm text-zinc-500">
-          Carregando leads...
-        </section>
+        <div className="space-y-6" aria-busy="true" aria-label="Carregando leads">
+          <div className="kpi-grid">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="kpi2">
+                <div className="skeleton h-3 w-20" />
+                <div className="skeleton h-8 w-24" />
+              </div>
+            ))}
+          </div>
+          <div className="surface-card p-5">
+            <div className="skeleton mb-3 h-3 w-32" />
+            <div className="skeleton h-28 w-full" />
+          </div>
+        </div>
       )}
 
       {!isLoading && !error && (
         <>
-          <section className="kpi-scroll">
+          <section
+            className="kpi-scroll"
+            data-tour="Resumo dos leads"
+            data-tour-text="Total de leads, quantos já viraram aluno e a taxa de conversão. O cruzamento é feito pelo e-mail da compra."
+          >
             <div className="kpi-card">
               <p className="section-label">Total de leads</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(leads.length)}</p>
@@ -129,7 +145,11 @@ export default function LeadsPage() {
             </div>
           </section>
 
-          <section className="surface-card p-4">
+          <section
+            className="surface-card p-4"
+            data-tour="Por origem"
+            data-tour-text="De onde cada lead veio (anúncio, workshop, Essentials, Prompt) e quanto de cada origem converteu."
+          >
             <p className="section-label">Por origem</p>
             <h3 className="section-title mt-1 mb-3">Volume e conversão por origem</h3>
             <div className="space-y-2">
@@ -155,7 +175,11 @@ export default function LeadsPage() {
             </div>
           </section>
 
-          <section className="surface-card overflow-hidden">
+          <section
+            className="surface-card overflow-hidden"
+            data-tour="Lista de leads"
+            data-tour-text="Todos os leads em tabela. Use a busca por nome, e-mail, campanha ou origem e exporte em CSV."
+          >
             <div className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <p className="section-label">Lista</p>

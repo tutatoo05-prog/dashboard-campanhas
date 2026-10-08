@@ -4,6 +4,7 @@ import { fetchUsers, updateUserRole } from '@/services/usersService.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { formatNumber } from '@/lib/format.ts'
 import type { Cargo, ManagedUser } from '@/types'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 const CARGO_LABELS: Record<Cargo, string> = {
   admin: 'Administrador',
@@ -78,7 +79,7 @@ export default function UsersPage() {
     <div className="space-y-6 sm:space-y-8">
       <section className="hero-panel p-6 sm:p-8">
         <p className="section-label">Administração</p>
-        <h2 className="section-title mt-1">Usuários</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Usuários" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Todos os cadastrados no dash e o cargo de cada um. A mudança vale na hora, sem precisar sair e entrar
           de novo.

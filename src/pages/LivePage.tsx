@@ -8,6 +8,7 @@ import {
   turnLiveOn,
 } from '@/services/liveService.ts'
 import type { LiveStatus, LiveWindow } from '@/types'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 const DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 const NEW_WINDOW: LiveWindow = { day: 3, start: '20:00', end: '22:00' }
@@ -133,7 +134,7 @@ export default function LivePage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="section-label">Essentials</p>
-            <h2 className="section-title mt-1">Live</h2>
+            <Typewriter as="h2" className="section-title mt-1" text="Live" />
             <p className="mt-2 max-w-2xl text-sm text-zinc-500">
               Enquanto a Live estiver ligada, <b className="text-zinc-400">tuzinho.academy/produtos/essentials/</b>{' '}
               mostra a página da Live (com desconto) no lugar da página principal. Liga e desliga na mão ou

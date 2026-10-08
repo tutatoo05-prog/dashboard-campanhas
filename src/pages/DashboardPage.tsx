@@ -9,6 +9,9 @@ import { defaultCustomRange } from '@/lib/period.ts'
 import { aggregateDailySeries } from '@/lib/dailySeries.ts'
 import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
 import { GoalCard } from '@/components/goals/GoalCard.tsx'
+import { KpiCard, KpiSkeletons } from '@/components/dashboard/KpiCard.tsx'
+import { Reveal } from '@/components/mascot/Reveal.tsx'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
@@ -98,6 +101,14 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: 'custom', label: 'Personalizado' },
 ]
 
+/** Período usado como base de comparação nos KPIs. */
+const PREVIOUS_PERIOD: Partial<Record<Period, Period>> = {
+  today: 'yesterday',
+  last7: 'prev7',
+  last30: 'prev30',
+  this_month: 'last_month',
+}
+
 const LEVEL_OPTIONS: { value: Level; label: string }[] = [
   { value: 'campaigns', label: 'Campanhas' },
   { value: 'adSets', label: 'Conjuntos' },
@@ -116,22 +127,6 @@ const INSIGHT_VALUE_CLASSES: Record<InsightCard['tone'], string> = {
   danger: 'text-red-300',
   info: 'text-zinc-200',
   neutral: 'text-zinc-400',
-}
-
-function StatBadge({ label, value, icon }: { label: string; value: string; icon: string }) {
-  return (
-    <div className="kpi-card">
-      <div className="flex items-center gap-2.5">
-        <span className="kpi-icon">
-          <i className={`fa-solid ${icon}`} />
-        </span>
-        <div className="min-w-0">
-          <p className="section-label">{label}</p>
-          <p className="mt-0.5 truncate text-lg font-semibold text-zinc-50">{value}</p>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 function VerdictBadge({ item }: { item: EnrichedCampaignItem }) {
@@ -210,6 +205,20 @@ export default function DashboardPage() {
     [insightsQuery.data],
   )
 
+  const previousPeriod = PREVIOUS_PERIOD[period]
+  const previousQuery = useQuery({
+    queryKey: ['meta-insights', resolvedAccountId, previousPeriod],
+    queryFn: () => fetchMetaInsights(previousPeriod as Period, resolvedAccountId, {}),
+    enabled: isMeta && Boolean(resolvedAccountId) && Boolean(previousPeriod),
+    retry: false,
+  })
+
+  const previousTotals = useMemo(() => {
+    const prevItems = (previousQuery.data?.[level] ?? []) as CampaignItem[]
+    if (!previousQuery.data || !prevItems.length) return null
+    return computeSummary(prevItems, { dailyByCampaign: previousQuery.data.dailyByCampaign }).totals
+  }, [previousQuery.data, level])
+
   const purchasesQuery = useQuery({
     queryKey: ['purchases'],
     queryFn: fetchPurchases,
@@ -233,14 +242,18 @@ export default function DashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       <section className="hero-panel p-6 sm:p-8">
         <p className="section-label">{getGreeting()}, {getDisplayName(user)}</p>
-        <h2 className="section-title mt-1">Visão geral das campanhas</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Visão geral das campanhas" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Acompanhe performance, identifique a campanha que mais traz resultado e receba
           recomendações automáticas sobre onde investir mais, corrigir ou pausar.
         </p>
       </section>
 
-      <section className="surface-card flex flex-wrap items-center gap-3 p-4">
+      <section
+        className="surface-card filter-bar flex flex-wrap items-center gap-3 p-4"
+        data-tour="Filtros"
+        data-tour-text="Escolha a plataforma, a conta de anúncios, o período e o nível (campanhas, conjuntos ou anúncios). Tudo abaixo se ajusta na hora."
+      >
         <PlatformSelect />
 
         {isMeta && (
@@ -334,27 +347,97 @@ export default function DashboardPage() {
       )}
 
       {isMeta && isLoading && !loadError && (
-        <section className="surface-card p-8 text-center text-sm text-zinc-500">
-          Carregando dados da conta...
-        </section>
+        <div className="space-y-6" aria-busy="true" aria-label="Carregando dados da conta">
+          <KpiSkeletons />
+          <div className="surface-card p-5">
+            <div className="skeleton mb-4 h-3 w-32" />
+            <div className="skeleton h-40 w-full" />
+          </div>
+        </div>
       )}
 
       {isMeta && !isLoading && !loadError && insightsQuery.data && (
         <>
-          <section className="kpi-scroll">
-            <StatBadge label="Investimento" value={formatCurrency(summary.totals.spend)} icon="fa-coins" />
-            <StatBadge label="Cliques" value={formatNumber(summary.totals.clicks)} icon="fa-arrow-pointer" />
-            <StatBadge label="CTR" value={formatPercent(summary.totals.ctr)} icon="fa-bullseye" />
-            <StatBadge label="CPC médio" value={formatCurrency(summary.totals.cpc)} icon="fa-hand-pointer" />
-            <StatBadge label="Interessados (leads)" value={formatNumber(summary.totals.leads)} icon="fa-users" />
-            <StatBadge label="Custo por interessado" value={formatCurrency(summary.totals.cpl)} icon="fa-tag" />
-          </section>
+          <Reveal index={0}>
+            <section
+              className="kpi-grid"
+              data-tour="Números do período"
+              data-tour-text="Investimento, cliques, CTR, CPC, leads e custo por lead. A setinha compara com o período anterior (verde melhorou, vermelho piorou) e a linha mostra a evolução dia a dia."
+            >
+              <KpiCard
+                accent
+                label="Investimento"
+                icon="fa-coins"
+                value={summary.totals.spend}
+                format={formatCurrency}
+                previous={previousTotals?.spend}
+                higherIsBetter={null}
+                spark={dailySeries.map((d) => d.spend)}
+              />
+              <KpiCard
+                label="Leads"
+                icon="fa-users"
+                value={summary.totals.leads}
+                format={formatNumber}
+                previous={previousTotals?.leads}
+                spark={dailySeries.map((d) => d.leads)}
+              />
+              <KpiCard
+                label="Custo por lead"
+                icon="fa-tag"
+                value={summary.totals.cpl}
+                format={formatCurrency}
+                previous={previousTotals?.cpl}
+                higherIsBetter={false}
+                spark={dailySeries.filter((d) => d.cpl != null).map((d) => d.cpl as number)}
+              />
+              <KpiCard
+                label="Cliques"
+                icon="fa-arrow-pointer"
+                value={summary.totals.clicks}
+                format={formatNumber}
+                previous={previousTotals?.clicks}
+              />
+              <KpiCard
+                label="CTR"
+                icon="fa-bullseye"
+                value={summary.totals.ctr}
+                format={formatPercent}
+                previous={previousTotals?.ctr}
+              />
+              <KpiCard
+                label="CPC médio"
+                icon="fa-hand-pointer"
+                value={summary.totals.cpc}
+                format={formatCurrency}
+                previous={previousTotals?.cpc}
+                higherIsBetter={false}
+              />
+            </section>
+          </Reveal>
 
-          <GoalCard accountId={resolvedAccountId} />
+          <Reveal
+            index={1}
+            tour="Meta do mês"
+            tourText="Acompanhe quanto do orçamento e dos leads da meta já foi usado neste mês. Admins podem ajustar a meta."
+          >
+            <GoalCard accountId={resolvedAccountId} />
+          </Reveal>
 
-          <TrendCharts data={dailySeries} />
+          <Reveal
+            index={2}
+            tour="Tendência diária"
+            tourText="Investimento, leads e custo por lead dia a dia. Passe o mouse nos gráficos pra ver o valor de cada dia."
+          >
+            <TrendCharts data={dailySeries} />
+          </Reveal>
 
-          <section>
+          <Reveal
+            as="section"
+            index={3}
+            tour="Recomendações"
+            tourText="Leituras automáticas das campanhas: o que está funcionando, o que está caro e onde vale agir."
+          >
             <p className="section-label">Análise automática</p>
             <h3 className="section-title mt-1 mb-3">Recomendações da IA</h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -373,9 +456,15 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </Reveal>
 
-          <section className="surface-card overflow-hidden">
+          <Reveal
+            as="section"
+            index={4}
+            className="surface-card overflow-hidden"
+            tour="Ranking"
+            tourText="Cada campanha com nota, veredito e custo por lead. Clique nos cabeçalhos pra ordenar e exporte em CSV."
+          >
             <div className="flex items-center justify-between p-4">
               <div>
                 <p className="section-label">Ranking</p>
@@ -472,9 +561,15 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </Reveal>
 
-          <section className="surface-card overflow-hidden">
+          <Reveal
+            as="section"
+            index={5}
+            className="surface-card overflow-hidden"
+            tour="Vendas e ROI"
+            tourText="Vendas da Hotmart cruzadas com o investimento de cada campanha, pra você ver o retorno de verdade."
+          >
             <div className="p-4">
               <p className="section-label">Vendas &amp; ROI</p>
               <h3 className="section-title mt-1">Vendas por campanha</h3>
@@ -534,7 +629,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </Reveal>
         </>
       )}
     </div>
