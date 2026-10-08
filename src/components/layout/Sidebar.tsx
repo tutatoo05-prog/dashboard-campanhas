@@ -3,7 +3,9 @@ import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
 import { logout } from '@/services/authService.ts'
-import { isAdmin } from '@/lib/roles.ts'
+import { canAccessPath, isAdmin } from '@/lib/roles.ts'
+import { useMascotStore } from '@/store/mascotStore.ts'
+import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: 'fa-chart-line', end: true },
@@ -20,6 +22,9 @@ export default function Sidebar() {
   const setUser = useAuthStore((state) => state.setUser)
   const sidebarOpen = useUiStore((state) => state.sidebarOpen)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
+
+  const mascotEnabled = useMascotStore((state) => state.enabled)
+  const setMascotEnabled = useMascotStore((state) => state.setEnabled)
 
   const userLabel = getDisplayName(user)
   const initial = userLabel.charAt(0).toUpperCase()
@@ -55,9 +60,16 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-body flex flex-1 flex-col overflow-hidden p-3 xl:p-4">
+        <div className="sidebar-brand mb-4 flex items-center gap-2.5 px-1">
+          <Tatu size={34} className="tatu-brand" />
+          <div className="sidebar-fade min-w-0">
+            <p className="truncate font-display text-lg leading-none text-zinc-100">Academy</p>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">Labs</p>
+          </div>
+        </div>
         <p className="sidebar-fade section-label px-1">Navegação</p>
         <nav className="mt-3 space-y-1" aria-label="Menu principal">
-          {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin(user)).map((item) => (
+          {NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin(user)) && canAccessPath(user, item.to)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -77,6 +89,16 @@ export default function Sidebar() {
       <div className="sidebar-footer shrink-0 border-t border-zinc-800/50 p-3">
         <button
           type="button"
+          className="sidebar-mascot-btn mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-200 xl:justify-start"
+          aria-pressed={mascotEnabled}
+          title={mascotEnabled ? 'Desligar o Tatu' : 'Ligar o Tatu'}
+          onClick={() => setMascotEnabled(!mascotEnabled)}
+        >
+          <i className={`fa-solid ${mascotEnabled ? 'fa-toggle-on text-gold' : 'fa-toggle-off'} text-sm`} />
+          <span className="sidebar-fade">Mascote Tatu</span>
+        </button>
+        <button
+          type="button"
           className="sidebar-logout-btn flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 px-3 py-2.5 text-xs text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-200 xl:justify-start"
           onClick={handleLogout}
         >
@@ -85,7 +107,7 @@ export default function Sidebar() {
         </button>
         <p className="sidebar-fade mt-3 px-1 text-[10px] leading-relaxed text-zinc-600">
           <i className="fa-solid fa-shield-halved mr-1 text-gold/50" />
-          Dados protegidos · Tuzinho Academy
+          Dados protegidos · Academy Labs
         </p>
       </div>
     </aside>

@@ -314,7 +314,7 @@ export function formatDigestMessage(digest) {
   })
 
   lines.push('')
-  lines.push('_tuzinho Ads_')
+  lines.push('_Academy Labs_')
 
   return lines.join('\n')
 }

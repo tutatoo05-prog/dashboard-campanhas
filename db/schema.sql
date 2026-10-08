@@ -88,6 +88,8 @@ create table if not exists goals (
   cpl_target numeric,
   updated_at timestamptz not null default now()
 );
+-- Exigido pelo "on conflict (account_id, month)" de server/goalsHandler.js.
+create unique index if not exists goals_account_month_idx on goals (account_id, month);
 
 -- Interruptor da Live do Essentials (ver server/live.js). Linha única (id = 1):
 -- ligação manual com prazo obrigatório + agenda semanal em America/Sao_Paulo.

@@ -92,7 +92,7 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Tuzinho Ads · Tuzinho Academy em http://localhost:${port}`)
+  console.log(`Academy Labs em http://localhost:${port}`)
   if (!env.META_ACCESS_TOKEN) {
     console.warn('AVISO: META_ACCESS_TOKEN não configurado.')
   }

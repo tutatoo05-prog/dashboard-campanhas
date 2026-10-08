@@ -1,7 +1,7 @@
 {
-  "name": "Tuzinho Ads · Tuzinho Academy",
-  "short_name": "Tuzinho Ads",
-  "description": "Dashboard de Meta Ads da Tuzinho Academy — performance, recomendações e comparação de períodos.",
+  "name": "Academy Labs",
+  "short_name": "Academy Labs",
+  "description": "Dashboard de Meta Ads da Academy Labs — performance, recomendações e comparação de períodos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#070708",
@@ -15,7 +15,7 @@
       "purpose": "any"
     },
     {
-      "src": "/favicon.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"

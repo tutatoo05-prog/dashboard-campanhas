@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { forgotPassword } from '@/services/authService.ts'
+import { AuthBackdrop } from '@/components/auth/AuthBackdrop.tsx'
+import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -26,16 +28,16 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="auth-screen flex min-h-dvh w-full items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <AuthBackdrop />
+
+      <div className="auth-content w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="brand-logo brand-logo-lg mx-auto mb-4">
-            <i className="fa-solid fa-fire" />
-          </div>
-          <h1 className="font-display text-3xl text-zinc-50">Tuzinho Ads</h1>
+          <Tatu size={88} mood="idle" className="tatu-brand tatu-auth mx-auto mb-3" />
+          <h1 className="font-display text-3xl text-zinc-50">Academy Labs</h1>
           <p className="mt-1 text-sm text-zinc-500">Esqueci minha senha</p>
         </div>
 
-        <div className="surface-card p-6 sm:p-8">
+        <div className="auth-enter surface-card p-6 sm:p-8">
           {error && (
             <div className="mb-4 rounded-lg border border-red-500/25 bg-red-500/8 px-4 py-3 text-sm text-red-300">
               {error}

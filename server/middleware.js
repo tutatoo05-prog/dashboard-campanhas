@@ -10,7 +10,7 @@ import { handleRegistrosRequest } from './registrosHandler.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleUsersRequest } from './usersHandler.js'
 import { requireAuth } from './authHandler.js'
-import { isAdmin } from './roles.js'
+import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
 
 export function createApiMiddleware(env, { isProduction = false } = {}) {
@@ -53,8 +53,15 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       const user = await requireAuth(req, res, env)
       if (!user) return
 
-      // Cargos: "usuario" usa tudo, mas não altera nada. Gerar relatório (POST)
-      // não altera dados, então fica liberado; a gestão de usuários é só de admin.
+      // Cargos: "usuario" só acessa Leads (ver canAccessApi); admin acessa tudo.
+      // Gerar relatório (POST) não altera dados, então não conta como escrita.
+      if (!canAccessApi(user, req.method, req.url)) {
+        res.statusCode = 403
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: 'Seu cargo não tem acesso a este recurso.', code: 'FORBIDDEN' }))
+        return
+      }
+
       const isWrite = req.method !== 'GET' && req.method !== 'HEAD'
       if (
         (req.url.startsWith('/api/users') || (isWrite && !req.url.startsWith('/api/report'))) &&

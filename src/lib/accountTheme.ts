@@ -49,11 +49,11 @@ const THEMES: { match: RegExp; theme: AccountTheme }[] = [
       ring: 'focus:ring-amber-400/40 border-l-2 border-l-amber-400',
       text: 'text-amber-300',
       vars: {
-        '--gold': '#d4a054',
-        '--gold-light': '#e8c078',
-        '--gold-dark': '#a67c2e',
-        '--gold-dim': 'rgba(212, 160, 84, 0.1)',
-        '--gold-border': 'rgba(212, 160, 84, 0.22)',
+        '--gold': '#ffa31a',
+        '--gold-light': '#ffc04d',
+        '--gold-dark': '#d98200',
+        '--gold-dim': 'rgba(255, 163, 26, 0.1)',
+        '--gold-border': 'rgba(255, 163, 26, 0.22)',
       },
     },
   },
@@ -64,11 +64,11 @@ const DEFAULT_THEME: AccountTheme = {
   ring: 'focus:ring-zinc-500/40',
   text: 'text-zinc-400',
   vars: {
-    '--gold': '#d4a054',
-    '--gold-light': '#e8c078',
-    '--gold-dark': '#a67c2e',
-    '--gold-dim': 'rgba(212, 160, 84, 0.1)',
-    '--gold-border': 'rgba(212, 160, 84, 0.22)',
+    '--gold': '#ffa31a',
+    '--gold-light': '#ffc04d',
+    '--gold-dark': '#d98200',
+    '--gold-dim': 'rgba(255, 163, 26, 0.1)',
+    '--gold-border': 'rgba(255, 163, 26, 0.22)',
   },
 }
 

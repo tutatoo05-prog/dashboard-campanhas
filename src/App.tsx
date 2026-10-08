@@ -15,6 +15,7 @@ import RegistrosPage from '@/pages/RegistrosPage.tsx'
 import LivePage from '@/pages/LivePage.tsx'
 import UsersPage from '@/pages/UsersPage.tsx'
 import { isAdmin } from '@/lib/roles.ts'
+import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,7 +30,7 @@ function AppLoading() {
   return (
     <div className="app-loading">
       <div>
-        <div className="app-loading-spinner" />
+        <Tatu size={56} mood="spin" className="tatu-loading mx-auto" />
         <p className="app-loading-text">Carregando...</p>
       </div>
     </div>

@@ -16,7 +16,7 @@ import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { formatDateBr } from '@/lib/period.ts'
 import type { DailyPoint } from '@/lib/dailySeries.ts'
 
-const GOLD = '#d4a054'
+const GOLD = '#ffa31a'
 const GRID = 'rgba(255,255,255,0.06)'
 const AXIS = '#71717a'
 const TOOLTIP_STYLE = {
