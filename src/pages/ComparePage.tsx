@@ -11,6 +11,9 @@ import {
 import { pushRecentAccount, sortAccountsByRecent } from '@/lib/recentAccounts.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
+import { usePlatformStore } from '@/store/platformStore.ts'
+import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
+import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import type { CampaignItem, Period } from '@/types'
 
@@ -97,11 +100,14 @@ export default function ComparePage() {
   const [presetKey, setPresetKey] = useState('last7_prev7')
   const [accountId, setAccountId] = useState<string | null>(null)
   const preset = getComparePreset(presetKey)
+  const platform = usePlatformStore((state) => state.platform)
+  const isMeta = platform === 'meta'
 
   const accountsQuery = useQuery({
     queryKey: ['ad-accounts'],
     queryFn: fetchAdAccounts,
     retry: false,
+    enabled: isMeta,
   })
 
   const accounts = useMemo(
@@ -123,14 +129,14 @@ export default function ComparePage() {
   const currentQuery = useQuery({
     queryKey: ['meta-insights', resolvedAccountId, preset.current],
     queryFn: () => fetchMetaInsights(preset.current as Period, resolvedAccountId),
-    enabled: Boolean(resolvedAccountId),
+    enabled: isMeta && Boolean(resolvedAccountId),
     retry: false,
   })
 
   const previousQuery = useQuery({
     queryKey: ['meta-insights', resolvedAccountId, preset.previous],
     queryFn: () => fetchMetaInsights(preset.previous as Period, resolvedAccountId),
-    enabled: Boolean(resolvedAccountId),
+    enabled: isMeta && Boolean(resolvedAccountId),
     retry: false,
   })
 
@@ -167,40 +173,48 @@ export default function ComparePage() {
       </section>
 
       <section className="surface-card flex flex-wrap items-center gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <span
-            className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
-            title={selectedAccountName ?? ''}
-          />
+        <PlatformSelect />
+
+        {isMeta && (
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
+              title={selectedAccountName ?? ''}
+            />
+            <select
+              className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              value={resolvedAccountId ?? ''}
+              onChange={(event) => handleAccountChange(event.target.value)}
+              disabled={!accounts.length}
+            >
+              {!accounts.length && <option value="">Nenhuma conta disponível</option>}
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {isMeta && (
           <select
-            className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
-            value={resolvedAccountId ?? ''}
-            onChange={(event) => handleAccountChange(event.target.value)}
-            disabled={!accounts.length}
+            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            value={presetKey}
+            onChange={(event) => setPresetKey(event.target.value)}
           >
-            {!accounts.length && <option value="">Nenhuma conta disponível</option>}
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
+            {Object.entries(COMPARE_PRESETS).map(([key, item]) => (
+              <option key={key} value={key}>
+                {(item as { label: string }).label}
               </option>
             ))}
           </select>
-        </div>
-
-        <select
-          className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-          value={presetKey}
-          onChange={(event) => setPresetKey(event.target.value)}
-        >
-          {Object.entries(COMPARE_PRESETS).map(([key, item]) => (
-            <option key={key} value={key}>
-              {(item as { label: string }).label}
-            </option>
-          ))}
-        </select>
+        )}
       </section>
 
-      {loadError && (
+      {!isMeta && <PlatformComingSoon />}
+
+      {isMeta && loadError && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">
           {(loadError as Error).message === 'SESSION_EXPIRED'
             ? 'Sua sessão expirou. Faça login novamente.'
@@ -208,31 +222,33 @@ export default function ComparePage() {
         </section>
       )}
 
-      <div className="compare-period-bar">
-        <div className="compare-period-item">
-          <span className="compare-period-dot compare-period-dot-current" />
-          <div>
-            <p className="compare-period-caption">Período atual</p>
-            <p className="compare-period-value">{preset.currentLabel}</p>
+      {isMeta && (
+        <div className="compare-period-bar">
+          <div className="compare-period-item">
+            <span className="compare-period-dot compare-period-dot-current" />
+            <div>
+              <p className="compare-period-caption">Período atual</p>
+              <p className="compare-period-value">{preset.currentLabel}</p>
+            </div>
+          </div>
+          <div className="compare-period-vs">vs</div>
+          <div className="compare-period-item">
+            <span className="compare-period-dot compare-period-dot-previous" />
+            <div>
+              <p className="compare-period-caption">Período anterior</p>
+              <p className="compare-period-value">{preset.previousLabel}</p>
+            </div>
           </div>
         </div>
-        <div className="compare-period-vs">vs</div>
-        <div className="compare-period-item">
-          <span className="compare-period-dot compare-period-dot-previous" />
-          <div>
-            <p className="compare-period-caption">Período anterior</p>
-            <p className="compare-period-value">{preset.previousLabel}</p>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {isLoading && !loadError && (
+      {isMeta && isLoading && !loadError && (
         <section className="surface-card p-12 text-center text-sm text-zinc-500">
           Comparando períodos...
         </section>
       )}
 
-      {!isLoading && !loadError && (
+      {isMeta && !isLoading && !loadError && (
         <>
           <div className="kpi-scroll">
             {metrics.map((metric) => (

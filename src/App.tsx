@@ -11,6 +11,7 @@ import DashboardPage from '@/pages/DashboardPage.tsx'
 import ComparePage from '@/pages/ComparePage.tsx'
 import PurchasesPage from '@/pages/PurchasesPage.tsx'
 import LeadsPage from '@/pages/LeadsPage.tsx'
+import RegistrosPage from '@/pages/RegistrosPage.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +118,7 @@ function AppRoutes() {
         <Route path="compare" element={<ComparePage />} />
         <Route path="purchases" element={<PurchasesPage />} />
         <Route path="leads" element={<LeadsPage />} />
+        <Route path="registros" element={<RegistrosPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

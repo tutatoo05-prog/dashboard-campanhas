@@ -122,6 +122,14 @@ export async function fetchAllPages(path, params, token) {
   return items
 }
 
+// Mantenha em sincronia com os padrões de cor em src/lib/accountTheme.ts —
+// só as contas principais (com tema próprio) aparecem no seletor.
+const MAIN_ACCOUNT_PATTERNS = [/original/i, /con[e3]ct/i, /academy/i]
+
+function isMainAccount(name) {
+  return MAIN_ACCOUNT_PATTERNS.some((pattern) => pattern.test(name ?? ''))
+}
+
 export async function getAdAccounts(token, { allowedIds } = {}) {
   const accounts = await fetchAllPages(
     '/me/adaccounts',
@@ -131,7 +139,7 @@ export async function getAdAccounts(token, { allowedIds } = {}) {
 
   const filtered = allowedIds?.length
     ? accounts.filter((account) => allowedIds.includes(account.id))
-    : accounts.filter((account) => account.account_status === 1)
+    : accounts.filter((account) => account.account_status === 1 && isMainAccount(account.name))
 
   return filtered.map((account) => ({
     id: account.id,

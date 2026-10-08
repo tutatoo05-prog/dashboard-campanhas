@@ -128,6 +128,34 @@ export interface Lead {
   [key: string]: unknown
 }
 
+export interface RegistroTab {
+  planilha: string
+  aba: string
+  tipo: 'lead' | 'comprador'
+  url: string
+  count: number | null
+  error: string | null
+}
+
+export interface Registro {
+  planilha: string
+  aba: string
+  tipo: 'lead' | 'comprador'
+  nome: string
+  email: string
+  telefone: string
+  data: string
+  canal: string
+  campanha: string
+  criativo: string
+}
+
+export interface RegistrosResponse {
+  fetchedAt: string
+  tabs: RegistroTab[]
+  records: Registro[]
+}
+
 export interface Purchase {
   id: string
   nome?: string

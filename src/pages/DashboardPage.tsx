@@ -14,6 +14,9 @@ import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
+import { usePlatformStore } from '@/store/platformStore.ts'
+import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
+import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import type { CampaignItem, EnrichedCampaignItem, InsightCard, Level, Period, Purchase } from '@/types'
 
 interface CampaignSalesRow {
@@ -149,11 +152,14 @@ export default function DashboardPage() {
   const [level, setLevel] = useState<Level>('campaigns')
   const [accountId, setAccountId] = useState<string | null>(null)
   const [customRange, setCustomRange] = useState(defaultCustomRange())
+  const platform = usePlatformStore((state) => state.platform)
+  const isMeta = platform === 'meta'
 
   const accountsQuery = useQuery({
     queryKey: ['ad-accounts'],
     queryFn: fetchAdAccounts,
     retry: false,
+    enabled: isMeta,
   })
 
   const accounts = useMemo(
@@ -178,7 +184,7 @@ export default function DashboardPage() {
     queryKey: ['meta-insights', resolvedAccountId, period, customRange.since, customRange.until],
     queryFn: () =>
       fetchMetaInsights(period, resolvedAccountId, period === 'custom' ? customRange : {}),
-    enabled: Boolean(resolvedAccountId) && rangeReady,
+    enabled: isMeta && Boolean(resolvedAccountId) && rangeReady,
     retry: false,
   })
 
@@ -235,39 +241,45 @@ export default function DashboardPage() {
       </section>
 
       <section className="surface-card flex flex-wrap items-center gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <span
-            className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
-            title={selectedAccountName ?? ''}
-          />
+        <PlatformSelect />
+
+        {isMeta && (
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
+              title={selectedAccountName ?? ''}
+            />
+            <select
+              className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              value={resolvedAccountId ?? ''}
+              onChange={(event) => handleAccountChange(event.target.value)}
+              disabled={!accounts.length}
+            >
+              {!accounts.length && <option value="">Nenhuma conta disponível</option>}
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {isMeta && (
           <select
-            className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
-            value={resolvedAccountId ?? ''}
-            onChange={(event) => handleAccountChange(event.target.value)}
-            disabled={!accounts.length}
+            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as Period)}
           >
-            {!accounts.length && <option value="">Nenhuma conta disponível</option>}
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
-        </div>
+        )}
 
-        <select
-          className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-          value={period}
-          onChange={(event) => setPeriod(event.target.value as Period)}
-        >
-          {PERIOD_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        {period === 'custom' && (
+        {isMeta && period === 'custom' && (
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -291,25 +303,29 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 p-1">
-          {LEVEL_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setLevel(option.value)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                level === option.value
-                  ? 'bg-gold-dim text-gold'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        {isMeta && (
+          <div className="ml-auto flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 p-1">
+            {LEVEL_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setLevel(option.value)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  level === option.value
+                    ? 'bg-gold-dim text-gold'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
-      {loadError && (
+      {!isMeta && <PlatformComingSoon />}
+
+      {isMeta && loadError && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">
           {(loadError as Error).message === 'SESSION_EXPIRED'
             ? 'Sua sessão expirou. Faça login novamente.'
@@ -317,13 +333,13 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {isLoading && !loadError && (
+      {isMeta && isLoading && !loadError && (
         <section className="surface-card p-8 text-center text-sm text-zinc-500">
           Carregando dados da conta...
         </section>
       )}
 
-      {!isLoading && !loadError && insightsQuery.data && (
+      {isMeta && !isLoading && !loadError && insightsQuery.data && (
         <>
           <section className="kpi-scroll">
             <StatBadge label="Investimento" value={formatCurrency(summary.totals.spend)} icon="fa-coins" />
