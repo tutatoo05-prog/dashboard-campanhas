@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchUsers, updateUserRole } from '@/services/usersService.ts'
 import { useAuthStore } from '@/store/authStore.ts'
@@ -77,7 +78,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <p className="section-label">Administração</p>
         <Typewriter as="h2" className="section-title mt-1" text="Usuários" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
@@ -104,7 +105,7 @@ export default function UsersPage() {
             </p>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {error && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">

@@ -16,13 +16,15 @@ import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { formatDateBr } from '@/lib/period.ts'
 import type { DailyPoint } from '@/lib/dailySeries.ts'
 
-const GOLD = '#ffa31a'
-const GRID = 'rgba(255,255,255,0.06)'
-const AXIS = '#71717a'
+const GOLD = '#ff8a1f'
+const GRID = 'rgba(21,17,13,0.18)'
+const AXIS = '#54482f'
 const TOOLTIP_STYLE = {
-  background: '#0c0c0f',
-  border: '1px solid rgba(255,163,26,0.25)',
-  borderRadius: 8,
+  background: '#fcf6e6',
+  border: '3px solid #15110d',
+  borderRadius: 10,
+  boxShadow: '3px 3px 0 #15110d',
+  color: '#15110d',
   fontSize: 12,
 }
 
@@ -39,11 +41,11 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
   )
 }
 
-export function TrendCharts({ data }: { data: DailyPoint[] }) {
+export function TrendCharts({ data, stacked = false }: { data: DailyPoint[]; stacked?: boolean }) {
   if (data.length < 2) return null
 
   return (
-    <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+    <section className={`grid grid-cols-1 gap-3 ${stacked ? '' : 'lg:grid-cols-3'}`}>
       <ChartCard title="Investimento por dia">
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>

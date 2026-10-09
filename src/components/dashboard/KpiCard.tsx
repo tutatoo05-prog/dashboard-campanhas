@@ -6,7 +6,7 @@ interface SparklineProps {
 }
 
 /** Mini gráfico de linha sem eixos. Desenha a linha ao aparecer. */
-export function Sparkline({ values, stroke = '#ffa31a' }: SparklineProps) {
+export function Sparkline({ values, stroke = '#15110d' }: SparklineProps) {
   if (values.length < 2) return null
   const min = Math.min(...values)
   const max = Math.max(...values)
@@ -102,7 +102,7 @@ export function KpiCard({ label, icon, value, format, previous, higherIsBetter =
         ) : (
           <span className="delta-note">sem período anterior</span>
         )}
-        {spark && <Sparkline values={spark} stroke={accent ? '#1a0f00' : '#ffa31a'} />}
+        {spark && <Sparkline values={spark} stroke={accent ? '#15110d' : '#15110d'} />}
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
@@ -11,6 +12,7 @@ import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
 import { GoalCard } from '@/components/goals/GoalCard.tsx'
 import { KpiCard, KpiSkeletons } from '@/components/dashboard/KpiCard.tsx'
 import { Reveal } from '@/components/mascot/Reveal.tsx'
+import { CampaignDetail } from '@/components/campaign/CampaignDrawer.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
@@ -141,6 +143,42 @@ function VerdictBadge({ item }: { item: EnrichedCampaignItem }) {
   )
 }
 
+type SortKey = 'score' | 'name' | 'spend' | 'ctr' | 'leads' | 'cpl'
+type RankFilter = 'all' | 'active' | 'attention'
+
+const RANK_FILTERS: { value: RankFilter; label: string }[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'active', label: 'Ativas' },
+  { value: 'attention', label: 'Precisam de ação' },
+]
+
+function SortHeader({
+  label,
+  field,
+  sort,
+  onSort,
+  align = 'right',
+}: {
+  label: string
+  field: SortKey
+  sort: { key: SortKey; dir: 'asc' | 'desc' }
+  onSort: (key: SortKey) => void
+  align?: 'left' | 'right'
+}) {
+  const active = sort.key === field
+  return (
+    <th
+      className={`px-4 py-2 font-medium ${align === 'right' ? 'text-right' : ''}`}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button type="button" className={`th-sort ${active ? 'th-sort-active' : ''}`} onClick={() => onSort(field)}>
+        {label}
+        <i className={`fa-solid ${active ? (sort.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'}`} />
+      </button>
+    </th>
+  )
+}
+
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user)
   const [period, setPeriod] = useState<Period>('last7')
@@ -198,7 +236,48 @@ export default function DashboardPage() {
     [items, insightsQuery.data],
   )
 
-  const ranked = (summary.enriched ?? []) as EnrichedCampaignItem[]
+  const allRanked = (summary.enriched ?? []) as EnrichedCampaignItem[]
+
+  const [search, setSearch] = useState('')
+  const [rankFilter, setRankFilter] = useState<RankFilter>('all')
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'desc' })
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  function handleSort(key: SortKey) {
+    setSort((current) =>
+      current.key === key
+        ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'name' || key === 'cpl' ? 'asc' : 'desc' },
+    )
+  }
+
+  const ranked = useMemo(() => {
+    const term = normalizeName(search)
+    const list = allRanked.filter((item) => {
+      if (term && !normalizeName(item.name).includes(term)) return false
+      if (rankFilter === 'active') return item.status === 'Ativa'
+      if (rankFilter === 'attention') return ['pause', 'fix'].includes(item.analysis.verdict)
+      return true
+    })
+
+    const value = (item: EnrichedCampaignItem): number | string => {
+      if (sort.key === 'score') return item.analysis.score
+      if (sort.key === 'name') return item.name.toLowerCase()
+      // CPL sem leads vai para o fim, qualquer que seja a direção.
+      if (sort.key === 'cpl') return item.leads > 0 ? item.cpl : sort.dir === 'asc' ? Infinity : -Infinity
+      return item[sort.key] as number
+    }
+
+    return [...list].sort((a, b) => {
+      const va = value(a)
+      const vb = value(b)
+      if (va === vb) return 0
+      const result = typeof va === 'string' ? va.localeCompare(vb as string) : (va as number) < (vb as number) ? -1 : 1
+      return sort.dir === 'asc' ? result : -result
+    })
+  }, [allRanked, search, rankFilter, sort])
+
+  const selectedItem = selectedId ? (allRanked.find((item) => item.id === selectedId) ?? null) : null
 
   const dailySeries = useMemo(
     () => aggregateDailySeries(insightsQuery.data?.dailyByCampaign),
@@ -240,14 +319,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <p className="section-label">{getGreeting()}, {getDisplayName(user)}</p>
         <Typewriter as="h2" className="section-title mt-1" text="Visão geral das campanhas" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Acompanhe performance, identifique a campanha que mais traz resultado e receba
           recomendações automáticas sobre onde investir mais, corrigir ou pausar.
         </p>
-      </section>
+      </PageHero>
 
       <section
         className="surface-card filter-bar flex flex-wrap items-center gap-3 p-4"
@@ -473,7 +552,9 @@ export default function DashboardPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-zinc-600">{ranked.length} itens</span>
+                <span className="text-xs text-zinc-600">
+                  {ranked.length === allRanked.length ? `${ranked.length} itens` : `${ranked.length} de ${allRanked.length}`}
+                </span>
                 <button
                   type="button"
                   onClick={() =>
@@ -500,24 +581,59 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            <div className="rank-toolbar">
+              <div className="rank-search">
+                <i className="fa-solid fa-magnifying-glass" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar pelo nome…"
+                  aria-label="Buscar pelo nome"
+                />
+              </div>
+              <div className="seg" role="group" aria-label="Filtrar">
+                {RANK_FILTERS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`seg-btn ${rankFilter === option.value ? 'seg-btn-active' : ''}`}
+                    onClick={() => setRankFilter(option.value)}
+                    aria-pressed={rankFilter === option.value}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <span className="hidden text-xs text-zinc-600 md:inline">Clique numa linha para ver os detalhes</span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="px-4 py-2 font-medium">#</th>
-                    <th className="px-4 py-2 font-medium">Nome</th>
+                    <SortHeader label="Nome" field="name" sort={sort} onSort={handleSort} align="left" />
                     <th className="px-4 py-2 font-medium">Status</th>
                     <th className="px-4 py-2 font-medium">Veredito</th>
-                    <th className="px-4 py-2 text-right font-medium">Gasto</th>
-                    <th className="px-4 py-2 text-right font-medium">CTR</th>
-                    <th className="px-4 py-2 text-right font-medium">Leads</th>
-                    <th className="px-4 py-2 text-right font-medium">CPL</th>
-                    <th className="px-4 py-2 text-right font-medium">Nota</th>
+                    <SortHeader label="Gasto" field="spend" sort={sort} onSort={handleSort} />
+                    <SortHeader label="CTR" field="ctr" sort={sort} onSort={handleSort} />
+                    <SortHeader label="Leads" field="leads" sort={sort} onSort={handleSort} />
+                    <SortHeader label="CPL" field="cpl" sort={sort} onSort={handleSort} />
+                    <SortHeader label="Nota" field="score" sort={sort} onSort={handleSort} />
                   </tr>
                 </thead>
                 <tbody>
                   {ranked.map((item, index) => (
-                    <tr key={item.id} className="border-b border-zinc-900/80 last:border-0">
+                    <tr
+                      key={item.id}
+                      className="row-click border-b border-zinc-900/80 last:border-0"
+                      onClick={() => setSelectedId(item.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') setSelectedId(item.id)
+                      }}
+                      tabIndex={0}
+                    >
                       <td className="px-4 py-2.5 text-zinc-600">{index + 1}</td>
                       <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={item.name}>
                         {item.name}
@@ -554,7 +670,7 @@ export default function DashboardPage() {
                   {!ranked.length && (
                     <tr>
                       <td colSpan={9} className="px-4 py-8 text-center text-zinc-600">
-                        Nenhum dado para o período selecionado.
+                        {allRanked.length ? 'Nenhum resultado para esse filtro.' : 'Nenhum dado para o período selecionado.'}
                       </td>
                     </tr>
                   )}
@@ -631,6 +747,16 @@ export default function DashboardPage() {
             </div>
           </Reveal>
         </>
+      )}
+
+      {selectedItem && insightsQuery.data && (
+        <CampaignDetail
+          item={selectedItem}
+          level={level}
+          data={insightsQuery.data}
+          averages={summary.averages}
+          onClose={() => setSelectedId(null)}
+        />
       )}
     </div>
   )

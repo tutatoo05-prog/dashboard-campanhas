@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchLeads } from '@/services/leadService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
@@ -86,14 +87,14 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <p className="section-label">Topo de funil</p>
         <Typewriter as="h2" className="section-title mt-1" text="Leads" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Todo mundo que chegou pela Meta antes de virar aluno — separado por origem (anúncio,
           workshop gratuito, Essentials, Prompt), com a taxa real de conversão até a compra.
         </p>
-      </section>
+      </PageHero>
 
       {error && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">

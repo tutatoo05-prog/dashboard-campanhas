@@ -8,6 +8,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage.tsx'
 import ResetPasswordPage from '@/pages/ResetPasswordPage.tsx'
 import AppShell from '@/components/layout/AppShell.tsx'
 import DashboardPage from '@/pages/DashboardPage.tsx'
+import ActionsPage from '@/pages/ActionsPage.tsx'
 import ComparePage from '@/pages/ComparePage.tsx'
 import PurchasesPage from '@/pages/PurchasesPage.tsx'
 import LeadsPage from '@/pages/LeadsPage.tsx'
@@ -127,6 +128,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="acoes" element={<ActionsPage />} />
         <Route path="compare" element={<ComparePage />} />
         <Route path="purchases" element={<PurchasesPage />} />
         <Route path="leads" element={<LeadsPage />} />

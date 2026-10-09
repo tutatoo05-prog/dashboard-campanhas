@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.tsx'
 import TopBar from './TopBar.tsx'
 import { CommandPalette } from './CommandPalette.tsx'
+import { StickerLayer } from '@/components/flash/StickerLayer.tsx'
 import { MascotCompanion } from '@/components/mascot/MascotCompanion.tsx'
 import { canAccessPath, homePath } from '@/lib/roles.ts'
 import { useAuthStore } from '@/store/authStore.ts'
@@ -38,6 +39,7 @@ export default function AppShell() {
       <div className="main-content">
         <TopBar />
         <div className="page-inner space-y-6 sm:space-y-8">
+          <StickerLayer pathname={pathname} />
           <Outlet />
         </div>
       </div>

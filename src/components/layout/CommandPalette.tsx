@@ -17,6 +17,7 @@ interface Command {
 
 const PAGES = [
   { to: '/', label: 'Dashboard', hint: 'Visão geral das campanhas', icon: 'fa-chart-line' },
+  { to: '/acoes', label: 'Central de Ações', hint: 'O que fazer hoje', icon: 'fa-bolt' },
   { to: '/compare', label: 'Comparar períodos', hint: 'Antes x depois', icon: 'fa-chart-column' },
   { to: '/leads', label: 'Leads', hint: 'Quem se inscreveu', icon: 'fa-user-plus' },
   { to: '/registros', label: 'Registros', hint: 'Tabela de registros', icon: 'fa-table-list' },

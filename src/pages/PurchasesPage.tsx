@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPurchases } from '@/services/purchaseService.ts'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
@@ -81,14 +82,14 @@ export default function PurchasesPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <p className="section-label">Leads &amp; vendas</p>
         <Typewriter as="h2" className="section-title mt-1" text="Compras" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Todas as vendas registradas, separadas por curso e por campanha de origem — a base
           real de quem virou aluno, não só quem clicou no anúncio.
         </p>
-      </section>
+      </PageHero>
 
       {error && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">

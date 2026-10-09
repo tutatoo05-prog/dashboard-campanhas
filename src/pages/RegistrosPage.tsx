@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchRegistros } from '@/services/registrosService.ts'
 import { formatNumber, formatPercent } from '@/lib/format.ts'
@@ -190,7 +191,7 @@ export default function RegistrosPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="section-label">Base completa</p>
@@ -215,7 +216,7 @@ export default function RegistrosPage() {
             Lido do Google Sheets em {formatDate(registrosQuery.data.fetchedAt)}
           </p>
         )}
-      </section>
+      </PageHero>
 
       {error && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">

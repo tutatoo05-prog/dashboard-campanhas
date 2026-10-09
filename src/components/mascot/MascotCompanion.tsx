@@ -11,6 +11,7 @@ const MARGIN = 6
 
 const ROUTE_TIPS: Record<string, string[]> = {
   '/': ['De olho no CPL! Se ele subir, vale revisar o criativo.', 'Compare o investimento com os leads do período.'],
+  '/acoes': ['Comece pelo vermelho: o urgente é o que mais custa dinheiro.', 'Marque como feito o que já resolveu. A lista zera todo dia.'],
   '/compare': ['Comparar períodos mostra se a campanha melhora de verdade.'],
   '/leads': ['Leads novos chegando. Bora qualificar?'],
   '/registros': ['Use os filtros pra achar o registro que precisa.'],

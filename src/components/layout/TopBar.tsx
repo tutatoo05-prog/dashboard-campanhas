@@ -7,6 +7,7 @@ import { getDisplayName } from '@/lib/userDisplay.ts'
 
 const TITLES: Record<string, string> = {
   '/': 'Dashboard',
+  '/acoes': 'Central de Ações',
   '/compare': 'Comparar períodos',
   '/leads': 'Leads',
   '/registros': 'Registros',

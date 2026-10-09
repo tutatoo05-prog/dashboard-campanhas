@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import {
@@ -164,14 +165,14 @@ export default function ComparePage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="hero-panel p-6 sm:p-8">
+      <PageHero>
         <p className="section-label">Análise temporal</p>
         <Typewriter as="h2" className="section-title mt-1" text="Comparar períodos" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           Valor atual em destaque, variação em relação ao período anterior — veja rápido se a
           conta está melhorando ou piorando.
         </p>
-      </section>
+      </PageHero>
 
       <section className="surface-card flex flex-wrap items-center gap-3 p-4">
         <PlatformSelect />
