@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { TatuCharacter, type TatuPose } from './TatuCharacter.tsx'
-import { useMascotStore } from '@/store/mascotStore.ts'
+import { readDoneActions, useMascotInsights } from './useMascotInsights.ts'
+import { isMuted, useMascotStore, type MascotAction } from '@/store/mascotStore.ts'
 import { isTourDone, markTourDone, useTourStore } from '@/store/tourStore.ts'
 import { useAuthStore } from '@/store/authStore.ts'
+import { useUiStore } from '@/store/uiStore.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
+import { isAdmin } from '@/lib/roles.ts'
 
 const SIZE = 124
 const MARGIN = 6
+const TOP_MARGIN = 76
+const SLEEP_AFTER_MS = 60_000
+const MUTE_MS = 60 * 60 * 1000
+
+type Corner = 'br' | 'bl' | 'tr' | 'tl'
 
 const ROUTE_TIPS: Record<string, string[]> = {
   '/': ['De olho no CPL! Se ele subir, vale revisar o criativo.', 'Compare o investimento com os leads do período.'],
@@ -20,14 +28,9 @@ const ROUTE_TIPS: Record<string, string[]> = {
   '/usuarios': ['Aprove os novos cadastros por aqui.'],
 }
 
-const CLICK_TIPS = [
-  'Psiu! Aperte Ctrl+K pra ir a qualquer página rapidinho.',
-  'Se preferir, me desligo pelo menu lateral.',
-  'Quer um tour? É só me pedir pelo botão de ajuda lá em cima.',
-  'Tatu bom é tatu que acompanha métrica todo dia.',
-]
-
 const SEEN_KEY = 'dash-mascot-seen'
+const CORNER_KEY = 'dash-mascot-corner'
+const DAILY_KEY = 'dash-mascot-daily'
 
 function markSeen(key: string): boolean {
   let seen: string[] = []
@@ -45,8 +48,49 @@ function markSeen(key: string): boolean {
   return true
 }
 
-function dockPosition() {
-  return { left: window.innerWidth - SIZE - MARGIN, top: window.innerHeight - SIZE - MARGIN }
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function isFirstOfDay(): boolean {
+  try {
+    return localStorage.getItem(DAILY_KEY) !== todayKey()
+  } catch {
+    return false
+  }
+}
+
+function markDaily() {
+  try {
+    localStorage.setItem(DAILY_KEY, todayKey())
+  } catch {
+    /* ignore */
+  }
+}
+
+function readCorner(): Corner {
+  try {
+    const value = localStorage.getItem(CORNER_KEY)
+    if (value === 'br' || value === 'bl' || value === 'tr' || value === 'tl') return value
+  } catch {
+    /* ignore */
+  }
+  return 'br'
+}
+
+function dockPosition(corner: Corner) {
+  return {
+    left: corner.endsWith('r') ? window.innerWidth - SIZE - MARGIN : MARGIN,
+    top: corner.startsWith('b') ? window.innerHeight - SIZE - MARGIN : TOP_MARGIN,
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max))
+}
+
+function shorten(text: string, max = 70) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
 }
 
 function visibleTourTargets(): HTMLElement[] {
@@ -63,35 +107,68 @@ interface Spot {
   height: number
 }
 
+interface DragState {
+  id: number
+  startX: number
+  startY: number
+  originLeft: number
+  originTop: number
+  moved: boolean
+}
+
 /**
  * Tatu: personagem animado que mora no canto da tela. Escreve o que quer dizer num balão
  * (com a caneta se mexendo), acena, comemora e, no tour guiado, anda até cada bloco da página,
  * destaca o conteúdo e explica. Os olhos seguem o cursor. Só o corpo dele recebe cliques.
+ *
+ * Para admins ele também lê os números (mesma análise da Central de Ações): faz o resumo do dia,
+ * avisa do que é urgente e mostra uma bolinha vermelha com o total pendente. Clicar abre um menu
+ * rápido, duplo clique abre a busca (Ctrl+K) e dá pra arrastar pra qualquer canto da tela.
+ * Sem mexer em nada por 1 minuto ele dorme.
  */
 export function MascotCompanion() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const admin = isAdmin(user)
   const enabled = useMascotStore((s) => s.enabled)
   const speech = useMascotStore((s) => s.speech)
   const storePose = useMascotStore((s) => s.pose)
   const poseUntil = useMascotStore((s) => s.poseUntil)
   const say = useMascotStore((s) => s.say)
   const dismiss = useMascotStore((s) => s.dismiss)
-  const act = useMascotStore((s) => s.act)
   const tourActive = useTourStore((s) => s.active)
   const tourStep = useTourStore((s) => s.step)
+  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
+
+  const insights = useMascotInsights(enabled && admin)
 
   const [entered, setEntered] = useState(false)
   const [hover, setHover] = useState(false)
-  const [pos, setPos] = useState(() => dockPosition())
+  const [corner, setCorner] = useState<Corner>(readCorner)
+  const [pos, setPos] = useState(() => dockPosition(readCorner()))
   const [moving, setMoving] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [sleeping, setSleeping] = useState(false)
   const [spot, setSpot] = useState<Spot | null>(null)
   const [bubbleDown, setBubbleDown] = useState(false)
   const [typed, setTyped] = useState('')
   const [typing, setTyping] = useState(false)
   const [, force] = useState(0)
-  const tipIndex = useRef(0)
   const moveTimer = useRef<number | undefined>(undefined)
   const tourPrev = useRef(false)
+  const cornerRef = useRef(corner)
+  const drag = useRef<DragState | null>(null)
+  const suppressClick = useRef(false)
+  const lastActive = useRef(Date.now())
+  const insightsHandled = useRef(false)
+
+  // urgentes que ainda não foram marcados como feitos (relê ao trocar de página)
+  const pendingUrgent = useMemo(() => {
+    const done = readDoneActions(insights.accountId)
+    return insights.actions.filter((action) => action.priority === 'urgent' && !done.has(action.id))
+    // pathname só força a releitura do "feito" (que mora no localStorage) a cada navegação
+  },[insights.actions, insights.accountId, pathname])
 
   // ── digitação do balão ──
   useEffect(() => {
@@ -136,6 +213,26 @@ export function MascotCompanion() {
     const t = window.setTimeout(() => force((n) => n + 1), left + 20)
     return () => window.clearTimeout(t)
   }, [storePose, poseUntil])
+
+  // ── dorme depois de 1 minuto sem atividade ──
+  useEffect(() => {
+    if (!enabled) return
+    lastActive.current = Date.now()
+    function wake() {
+      lastActive.current = Date.now()
+      setSleeping(false)
+    }
+    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'scroll'] as const
+    events.forEach((name) => window.addEventListener(name, wake, { passive: true }))
+    const id = window.setInterval(() => {
+      const idle = Date.now() - lastActive.current > SLEEP_AFTER_MS
+      if (idle && !useMascotStore.getState().speech && !useTourStore.getState().active) setSleeping(true)
+    }, 5000)
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, wake))
+      window.clearInterval(id)
+    }
+  }, [enabled])
 
   // ── entrada e saudação ──
   useEffect(() => {
@@ -189,6 +286,90 @@ export function MascotCompanion() {
     return () => window.clearTimeout(t)
   }, [pathname, enabled, entered, tourActive, say])
 
+  // ── leitura dos números ──
+  const speakBriefing = useCallback(
+    (forced: boolean) => {
+      if (!insights.ready) {
+        say('Ainda estou lendo os números... já te conto!', { pose: 'think', afterPose: 'idle', important: true })
+        return
+      }
+      const lines = [insights.briefing[0], insights.briefing[insights.briefing.length - 1]].filter(
+        (line, index, all): line is string => Boolean(line) && all.indexOf(line) === index,
+      )
+      const urgent = pendingUrgent.length > 0
+      say(lines.join(' '), {
+        pose: urgent ? 'alert' : 'write',
+        afterPose: urgent ? 'alert' : 'point',
+        important: forced,
+        closable: true,
+        hold: 14_000,
+        actions: [
+          {
+            label: 'Ver ações',
+            primary: true,
+            run: () => {
+              dismiss()
+              navigate('/acoes')
+            },
+          },
+          { label: 'Fechar', run: dismiss },
+        ],
+      })
+    },
+    [insights.ready, insights.briefing, pendingUrgent.length, say, dismiss, navigate],
+  )
+
+  const speakUrgent = useCallback(
+    (forced: boolean) => {
+      if (!insights.ready) {
+        say('Ainda estou lendo os números... já te conto!', { pose: 'think', afterPose: 'idle', important: true })
+        return
+      }
+      if (!pendingUrgent.length) {
+        say('Nada urgente agora. Pode respirar!', { pose: 'cheer', afterPose: 'idle', important: true })
+        return
+      }
+      const count = pendingUrgent.length
+      const title = shorten(pendingUrgent[0].title)
+      say(count === 1 ? `Tem 1 coisa urgente: ${title}` : `Tem ${count} coisas urgentes. A primeira: ${title}`, {
+        pose: 'alert',
+        afterPose: 'alert',
+        important: forced,
+        closable: true,
+        hold: 14_000,
+        actions: [
+          {
+            label: 'Ver ações',
+            primary: true,
+            run: () => {
+              dismiss()
+              navigate('/acoes')
+            },
+          },
+          { label: 'Depois', run: dismiss },
+        ],
+      })
+    },
+    [insights.ready, pendingUrgent, say, dismiss, navigate],
+  )
+
+  // quando os números chegam: resumo do dia (1ª vez no dia) ou aviso de urgentes
+  useEffect(() => {
+    if (!enabled || !entered || tourActive || speech || !insights.ready || insightsHandled.current) return
+    const t = window.setTimeout(() => {
+      if (useMascotStore.getState().speech || useTourStore.getState().active) return
+      insightsHandled.current = true
+      if (isMuted()) return
+      if (isFirstOfDay()) {
+        markDaily()
+        speakBriefing(false)
+      } else if (pendingUrgent.length && pathname !== '/acoes') {
+        speakUrgent(false)
+      }
+    }, 1200)
+    return () => window.clearTimeout(t)
+  }, [enabled, entered, tourActive, speech, insights.ready, pendingUrgent.length, pathname, speakBriefing, speakUrgent])
+
   // ── posição: canto da tela ou ao lado do bloco do tour ──
   const goTo = useCallback((next: { left: number; top: number }) => {
     setPos(next)
@@ -199,7 +380,7 @@ export function MascotCompanion() {
 
   useEffect(() => {
     function onResize() {
-      if (!useTourStore.getState().active) setPos(dockPosition())
+      if (!useTourStore.getState().active) setPos(dockPosition(cornerRef.current))
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -209,7 +390,7 @@ export function MascotCompanion() {
   useEffect(() => {
     if (!tourActive) {
       setSpot(null)
-      if (tourPrev.current) goTo(dockPosition())
+      if (tourPrev.current) goTo(dockPosition(cornerRef.current))
       tourPrev.current = false
       return
     }
@@ -221,6 +402,7 @@ export function MascotCompanion() {
       say('Pronto! Esse foi o tour desta página. Me chama de novo quando quiser.', {
         pose: 'cheer',
         afterPose: 'idle',
+        important: true,
       })
       return
     }
@@ -256,6 +438,7 @@ export function MascotCompanion() {
       say(`${el.dataset.tour ?? ''}: ${el.dataset.tourText ?? ''}`.replace(/^: /, '').replace(/: $/, ''), {
         pose: 'write',
         afterPose: 'point',
+        important: true,
         actions: [
           { label: 'Sair', run: () => tourStore.stop() },
           {
@@ -296,24 +479,135 @@ export function MascotCompanion() {
     wasTouring.current = tourActive
   }, [tourActive, dismiss])
 
+  // ── menu rápido (clique) ──
+  const openMenu = useCallback(() => {
+    const muted = isMuted()
+    const items: MascotAction[] = []
+    if (admin) {
+      items.push({ label: 'Resumo do dia', primary: true, run: () => speakBriefing(true) })
+      items.push({ label: 'O que é urgente?', run: () => speakUrgent(true) })
+    }
+    items.push({
+      label: 'Fazer tour',
+      primary: !admin,
+      run: () => {
+        dismiss()
+        window.setTimeout(() => useTourStore.getState().start(), 250)
+      },
+    })
+    items.push(
+      muted
+        ? {
+            label: 'Voltar a falar',
+            run: () => {
+              useMascotStore.getState().unmute()
+              say('Voltei! Pode contar comigo.', { pose: 'wave', afterPose: 'idle', important: true })
+            },
+          }
+        : {
+            label: 'Silenciar 1h',
+            run: () => {
+              useMascotStore.getState().mute(MUTE_MS)
+              say('Beleza, fico quietinho por 1 hora. Me chama se precisar!', {
+                pose: 'wave',
+                afterPose: 'idle',
+                important: true,
+              })
+            },
+          },
+    )
+    say(muted ? 'Estou no silêncio. O que você precisa?' : 'Em que posso ajudar?', {
+      pose: 'wave',
+      afterPose: 'idle',
+      important: true,
+      closable: true,
+      hold: 14_000,
+      actions: items,
+    })
+  }, [admin, speakBriefing, speakUrgent, dismiss, say])
+
+  function handleClick() {
+    if (tourActive || suppressClick.current) return
+    if (speech?.closable && speech.actions) dismiss()
+    else openMenu()
+  }
+
+  function handleDoubleClick() {
+    if (tourActive) return
+    dismiss()
+    setPaletteOpen(true)
+  }
+
+  // ── arrastar pra outro canto ──
+  function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (tourActive || window.innerWidth <= 640 || event.button !== 0) return
+    drag.current = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originLeft: pos.left,
+      originTop: pos.top,
+      moved: false,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function onPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = drag.current
+    if (!state || state.id !== event.pointerId) return
+    const dx = event.clientX - state.startX
+    const dy = event.clientY - state.startY
+    if (!state.moved) {
+      if (Math.hypot(dx, dy) < 6) return
+      state.moved = true
+      setDragging(true)
+      dismiss()
+    }
+    setPos({
+      left: clamp(state.originLeft + dx, 0, window.innerWidth - SIZE),
+      top: clamp(state.originTop + dy, 0, window.innerHeight - SIZE),
+    })
+  }
+
+  function onPointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = drag.current
+    drag.current = null
+    if (!state || !state.moved) return
+    suppressClick.current = true
+    window.setTimeout(() => {
+      suppressClick.current = false
+    }, 80)
+    setDragging(false)
+    const next = `${event.clientY < window.innerHeight / 2 ? 't' : 'b'}${
+      event.clientX < window.innerWidth / 2 ? 'l' : 'r'
+    }` as Corner
+    cornerRef.current = next
+    setCorner(next)
+    try {
+      localStorage.setItem(CORNER_KEY, next)
+    } catch {
+      /* ignore */
+    }
+    goTo(dockPosition(next))
+  }
+
   if (!enabled) return null
 
   let pose: TatuPose = 'idle'
   if (moving) pose = 'walk'
+  else if (dragging) pose = 'wave'
   else if (speech && typing) pose = speech.pose ?? 'write'
   else if (speech) pose = speech.afterPose ?? 'idle'
   else if (storePose !== 'idle' && Date.now() < poseUntil) pose = storePose
+  else if (insights.loading && entered) pose = 'think'
+  else if (sleeping) pose = 'sleep'
 
-  const awake = Boolean(speech) || tourActive || hover || pose !== 'idle'
+  const awake = Boolean(speech) || tourActive || hover || dragging || (pose !== 'idle' && pose !== 'sleep' && pose !== 'think')
   const docked = !tourActive
   const bubbleRight = pos.left < 320
   const facing = bubbleRight ? 'right' : 'left'
-
-  function handleClick() {
-    if (tourActive) return
-    act('cheer', 1300)
-    say(CLICK_TIPS[tipIndex.current++ % CLICK_TIPS.length], { pose: 'cheer', afterPose: 'idle' })
-  }
+  const bubbleBelow = tourActive ? bubbleDown : corner.startsWith('t') && !dragging
+  const showBadge = pendingUrgent.length > 0 && pathname !== '/acoes' && !tourActive
 
   return (
     <>
@@ -327,7 +621,9 @@ export function MascotCompanion() {
       <div
         className={`mascot ${entered ? 'mascot-in' : ''} ${awake ? 'mascot-awake' : 'mascot-peek'} ${
           docked ? 'mascot-docked' : 'mascot-touring'
-        } ${bubbleRight ? 'bubble-right' : ''} ${tourActive && bubbleDown ? 'bubble-down' : ''}`}
+        } ${bubbleRight ? 'bubble-right' : ''} ${bubbleBelow ? 'bubble-down' : ''} ${
+          corner.endsWith('l') && docked ? 'dock-left' : ''
+        } ${dragging ? 'mascot-dragging' : ''}`}
         style={{ left: pos.left, top: pos.top, width: SIZE, height: SIZE }}
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
@@ -352,18 +648,28 @@ export function MascotCompanion() {
                 ))}
               </div>
             )}
-            {!speech.actions && (
+            {(!speech.actions || speech.closable) && (
               <button type="button" className="mascot-bubble-close" aria-label="Fechar" onClick={dismiss}>
                 <i className="fa-solid fa-xmark" />
               </button>
             )}
           </div>
         )}
+        {showBadge && (
+          <span className="mascot-badge" aria-label={`${pendingUrgent.length} ações urgentes`}>
+            {pendingUrgent.length}
+          </span>
+        )}
         <button
           type="button"
           className="mascot-body"
-          aria-label="Tatu, mascote da Academy Labs"
+          aria-label="Tatu, mascote da Academy Labs. Clique para o menu, duplo clique para buscar, arraste para mudar de canto."
           onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         >
           <TatuCharacter size={SIZE} pose={pose} talking={typing} facing={facing} />
         </button>

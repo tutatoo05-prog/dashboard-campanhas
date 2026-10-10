@@ -892,6 +892,69 @@ kbd {
   50% { transform: translateY(-5px); }
 }
 
+/* alerta: "!" vermelho sobre a cabeça */
+.tc-alert,
+.tc-think {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.tc[data-pose='alert'] .tc-alert {
+  animation: tc-alert-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both, tc-alert-wobble 1.1s ease-in-out 0.5s infinite;
+}
+
+.tc[data-pose='alert'] .tc-head {
+  transform: translateY(-3px);
+}
+
+.tc[data-pose='alert'] .tc-bob {
+  animation: tc-startle 0.45s ease-out 1;
+}
+
+@keyframes tc-alert-pop {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tc-alert-wobble {
+  0%, 100% { opacity: 1; transform: rotate(-6deg); }
+  50% { opacity: 1; transform: rotate(6deg) scale(1.06); }
+}
+
+@keyframes tc-startle {
+  0% { transform: translateY(0); }
+  35% { transform: translateY(-12px) scale(0.98, 1.04); }
+  100% { transform: translateY(0); }
+}
+
+/* pensando: cabeça inclinada e balão de pensamento */
+.tc[data-pose='think'] .tc-head {
+  transform: rotate(-5deg) translate(-1px, 1px);
+}
+
+.tc[data-pose='think'] .tc-think {
+  opacity: 1;
+}
+
+.tc-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+.tc[data-pose='think'] .tc-dot {
+  animation: tc-dot 1.5s ease-in-out infinite;
+}
+
+.tc[data-pose='think'] .tc-dot-2 { animation-delay: 0.25s; }
+.tc[data-pose='think'] .tc-dot-3 { animation-delay: 0.5s; }
+
+@keyframes tc-dot {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
 /* dormindo */
 .tc[data-pose='sleep'] .tc-lid {
   animation: none;
@@ -946,7 +1009,60 @@ kbd {
   transform: translateX(18%);
 }
 
+.mascot.dock-left:not(.mascot-in) {
+  transform: translateX(-170px);
+}
+
+.mascot-in.mascot-docked.mascot-peek.dock-left {
+  transform: translateX(-46%);
+}
+
+.mascot-in.mascot-docked.mascot-peek.dock-left:hover {
+  transform: translateX(-18%);
+}
+
+.mascot.mascot-dragging {
+  transition: opacity 0.4s ease;
+}
+
+.mascot-dragging .mascot-body {
+  cursor: grabbing;
+}
+
+.mascot-badge {
+  position: absolute;
+  top: 12%;
+  left: 14%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
+  border-radius: 9999px;
+  border: 2px solid #1a1308;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.dock-left .mascot-badge {
+  left: auto;
+  right: 14%;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+}
+
 .mascot-body {
+  touch-action: none;
+  cursor: grab;
   pointer-events: auto;
   display: block;
   width: 100%;

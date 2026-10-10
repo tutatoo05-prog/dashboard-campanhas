@@ -2,12 +2,22 @@ import { create } from 'zustand'
 import type { TatuPose } from '@/components/mascot/TatuCharacter.tsx'
 
 const ENABLED_KEY = 'dash-mascot-enabled'
+const MUTED_KEY = 'dash-mascot-muted-until'
 
 function readEnabled(): boolean {
   try {
     return localStorage.getItem(ENABLED_KEY) !== 'false'
   } catch {
     return true
+  }
+}
+
+function readMutedUntil(): number {
+  try {
+    const value = Number(localStorage.getItem(MUTED_KEY) ?? 0)
+    return Number.isFinite(value) ? value : 0
+  } catch {
+    return 0
   }
 }
 
@@ -30,6 +40,10 @@ export interface MascotSpeech {
   actions?: MascotAction[]
   /** Quanto tempo o balão fica depois de escrito (ms). 0 = fica até fechar. */
   hold?: number
+  /** Mostra o X de fechar mesmo quando há botões. */
+  closable?: boolean
+  /** Fala mesmo no modo silêncio (respostas a cliques, tour). */
+  important?: boolean
 }
 
 interface MascotState {
@@ -38,19 +52,33 @@ interface MascotState {
   /** Pose avulsa (sem balão), por exemplo "reveal" ao trocar de página. */
   pose: TatuPose
   poseUntil: number
+  /** Enquanto estiver no futuro, o Tatu só fala o que for "important". */
+  mutedUntil: number
   setEnabled: (value: boolean) => void
   say: (text: string, options?: Omit<MascotSpeech, 'id' | 'text'>) => void
   dismiss: () => void
   act: (pose: TatuPose, ms?: number) => void
+  mute: (ms: number) => void
+  unmute: () => void
 }
 
 let speechId = 0
 
-export const useMascotStore = create<MascotState>((set) => ({
+function persistMuted(value: number) {
+  try {
+    if (value > 0) localStorage.setItem(MUTED_KEY, String(value))
+    else localStorage.removeItem(MUTED_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export const useMascotStore = create<MascotState>((set, get) => ({
   enabled: readEnabled(),
   speech: null,
   pose: 'idle',
   poseUntil: 0,
+  mutedUntil: readMutedUntil(),
   setEnabled: (value) => {
     set({ enabled: value, speech: null, pose: 'idle' })
     try {
@@ -59,7 +87,23 @@ export const useMascotStore = create<MascotState>((set) => ({
       /* ignore */
     }
   },
-  say: (text, options = {}) => set({ speech: { id: ++speechId, text, ...options } }),
+  say: (text, options = {}) => {
+    if (!options.important && get().mutedUntil > Date.now()) return
+    set({ speech: { id: ++speechId, text, ...options } })
+  },
   dismiss: () => set({ speech: null }),
   act: (pose, ms = 1400) => set({ pose, poseUntil: Date.now() + ms }),
+  mute: (ms) => {
+    const until = Date.now() + ms
+    set({ mutedUntil: until })
+    persistMuted(until)
+  },
+  unmute: () => {
+    set({ mutedUntil: 0 })
+    persistMuted(0)
+  },
 }))
+
+export function isMuted(): boolean {
+  return useMascotStore.getState().mutedUntil > Date.now()
+}

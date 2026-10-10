@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 
-export type TatuPose = 'idle' | 'wave' | 'write' | 'point' | 'reveal' | 'cheer' | 'sleep' | 'walk'
+export type TatuPose = 'idle' | 'wave' | 'write' | 'point' | 'reveal' | 'cheer' | 'sleep' | 'walk' | 'alert' | 'think'
 
 interface TatuCharacterProps {
   pose?: TatuPose
@@ -15,7 +15,7 @@ const INK = '#2a1a05'
 
 /**
  * Tatu, mascote da Academy Labs, desenhado em SVG puro.
- * Poses via data-pose (CSS em premium.css): idle, wave, write, point, reveal, cheer, sleep, walk.
+ * Poses via data-pose (CSS em premium.css): idle, wave, write, point, reveal, cheer, sleep, walk, alert, think.
  * Os olhos seguem o cursor (variáveis --ex/--ey no <svg>).
  */
 export function TatuCharacter({
@@ -183,7 +183,17 @@ export function TatuCharacter({
             <path className="tc-spark tc-spark-2" d="M118 14 l2.5 6.5 6.5 2.5 -6.5 2.5 -2.5 6.5 -2.5 -6.5 -6.5 -2.5 6.5 -2.5 z" />
             <path className="tc-spark tc-spark-3" d="M168 56 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" />
           </g>
-          <g className="tc-zzz" fill="#ffd8a0" fontFamily="DM Sans, sans-serif" fontWeight="700">
+          <g className="tc-alert">
+            <circle cx="64" cy="20" r="13" fill="#ef4444" stroke={INK} strokeWidth="3" />
+            <path d="M64 12 V22" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
+            <circle cx="64" cy="28" r="2.4" fill="#fff" />
+          </g>
+          <g className="tc-think" fill="#fff8e7" stroke={INK} strokeWidth="2">
+            <circle className="tc-dot tc-dot-1" cx="104" cy="54" r="3.5" />
+            <circle className="tc-dot tc-dot-2" cx="116" cy="42" r="5" />
+            <circle className="tc-dot tc-dot-3" cx="134" cy="26" r="8" />
+          </g>
+          <g className="tc-zzz"fill="#ffd8a0" fontFamily="DM Sans, sans-serif" fontWeight="700">
             <text className="tc-z tc-z-1" x="100" y="46" fontSize="20">z</text>
             <text className="tc-z tc-z-2" x="120" y="30" fontSize="15">z</text>
             <text className="tc-z tc-z-3" x="136" y="18" fontSize="11">z</text>
