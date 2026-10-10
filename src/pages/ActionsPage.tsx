@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchGoal } from '@/services/goalService.ts'
 import { computeSummary } from '@/lib/analysis.js'
@@ -39,6 +39,22 @@ import { Reveal } from '@/components/mascot/Reveal.tsx'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
+import {
+  ActionsApiError,
+  assignAction,
+  fetchActionsState,
+  recordActionDone,
+  snoozeAction,
+  type ActionsState,
+  type RuleAlert,
+} from '@/services/actionsService.ts'
+import { AssigneePicker } from '@/components/actions/AssigneePicker.tsx'
+import { AutomationPanel } from '@/components/actions/AutomationPanel.tsx'
+import { MetaActionDialog, type MetaActionKind } from '@/components/actions/MetaActionDialog.tsx'
+import { ResultsSection } from '@/components/actions/ResultsSection.tsx'
+import { SnoozeMenu, formatSnoozeDate } from '@/components/actions/SnoozeMenu.tsx'
+import { computeResults } from '@/lib/actionResults.ts'
+import { saveSnoozed } from '@/lib/actionsProgress.ts'
 import type { CampaignItem, EnrichedCampaignItem, InsightsData, Period } from '@/types'
 
 const PERIODS: { value: Period; label: string; previous: Period }[] = [
@@ -89,16 +105,54 @@ function comparePlan(a: PlanItem, b: PlanItem): number {
   return (b.campaign?.spend ?? 0) - (a.campaign?.spend ?? 0)
 }
 
+const ALERT_STEPS: Record<RuleAlert['ruleType'], string[]> = {
+  cpl_above_avg: [
+    'Abra o Gerenciador de Anúncios e localize a campanha.',
+    'Compare os anúncios dela: o mais caro costuma puxar o custo para cima.',
+    'Pause ou reduza o anúncio mais caro e crie uma variação do melhor.',
+    'Confira de novo em 48h.',
+  ],
+  spend_no_leads: [
+    'Abra a página do link e faça um cadastro de teste.',
+    'Confirme que o lead aparece em Leads/Registros aqui no painel.',
+    'Se o cadastro funciona, a campanha é fraca: pause ou troque criativo e público.',
+  ],
+  budget_used: [
+    'Veja quais campanhas têm o pior custo por lead.',
+    'Reduza os orçamentos diários delas ou aumente a meta do mês no Dashboard.',
+  ],
+}
+
+/** Transforma um alerta de regra automática numa ação da lista. */
+function alertToAction(alert: RuleAlert, enriched: EnrichedCampaignItem[]): ActionItem {
+  return {
+    id: `rule:${alert.id}`,
+    priority: alert.ruleType === 'budget_used' ? 'today' : 'urgent',
+    kind: 'alert',
+    icon: 'fa-bell',
+    title: alert.title,
+    why: alert.detail,
+    steps: ALERT_STEPS[alert.ruleType],
+    moneyAtStake: alert.money ?? undefined,
+    reasoning: `Regra automática disparada: ${alert.detail}`,
+    campaign: alert.campaignId ? enriched.find((item) => item.id === alert.campaignId) : undefined,
+  }
+}
+
 function monthKey(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
 /** Feito e passos marcados de cada ação, por conta, guardados no navegador (zeram todo dia). */
-function useActionProgress(accountIds: string[]) {
+function useActionProgress(accountIds: string[], onDoneChange?: (accountId: string, id: string, value: boolean) => void) {
   const idsKey = accountIds.join(',')
   const [done, setDone] = useState<Record<string, Set<string>>>({})
   const [steps, setSteps] = useState<Record<string, Record<string, number[]>>>({})
+  const doneRef = useRef(done)
+  doneRef.current = done
+  const onChangeRef = useRef(onDoneChange)
+  onChangeRef.current = onDoneChange
 
   useEffect(() => {
     const nextDone: Record<string, Set<string>> = {}
@@ -115,14 +169,15 @@ function useActionProgress(accountIds: string[]) {
   const isDone = useCallback((item: { accountId: string; id: string }) => done[item.accountId]?.has(item.id) ?? false, [done])
 
   const setDoneFlag = useCallback((accountId: string, id: string, value?: boolean) => {
+    const next = value ?? !(doneRef.current[accountId]?.has(id) ?? false)
     setDone((current) => {
       const set = new Set(current[accountId] ?? [])
-      const next = value ?? !set.has(id)
       if (next) set.add(id)
       else set.delete(id)
       saveDone(accountId, set)
       return { ...current, [accountId]: set }
     })
+    onChangeRef.current?.(accountId, id, next)
   }, [])
 
   const stepsDone = useCallback(
@@ -213,6 +268,8 @@ function ActionCard({
   onToggle,
   onToggleStep,
   onOpen,
+  tools,
+  assignee,
 }: {
   action: PlanItem
   done: boolean
@@ -221,6 +278,10 @@ function ActionCard({
   onToggle: () => void
   onToggleStep: (index: number) => void
   onOpen?: () => void
+  /** Adiar e ações na Meta (botões extras). */
+  tools?: ReactNode
+  /** Seletor de responsável. */
+  assignee?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [why, setWhy] = useState(false)
@@ -287,8 +348,10 @@ function ActionCard({
                 Ver detalhes
               </button>
             )}
+            {tools}
           </div>
         </div>
+        {assignee && <div className="action-owner">{assignee}</div>}
       </div>
     </article>
   )
@@ -306,6 +369,8 @@ function FocusCard({
   onNext,
   onOpen,
   onExplain,
+  tools,
+  assignee,
 }: {
   action: PlanItem
   position: number
@@ -317,6 +382,8 @@ function FocusCard({
   onNext: () => void
   onOpen?: () => void
   onExplain: () => void
+  tools?: ReactNode
+  assignee?: ReactNode
 }) {
   const meta = PRIORITY_META[action.priority]
   return (
@@ -362,6 +429,8 @@ function FocusCard({
             <i className="fa-solid fa-paw" /> TaTuzinho explica
           </button>
         )}
+        {tools}
+        {assignee}
         <span className="focus-count">
           {position} de {total} pendentes
         </span>
@@ -499,6 +568,30 @@ export default function ActionsPage() {
     }
   }, [goalQuery.data, monthQuery.data])
 
+  // estado do servidor: adiadas, responsáveis, histórico, regras e alertas (precisa da migração do banco)
+  const queryClient = useQueryClient()
+  const stateQuery = useQuery({
+    queryKey: ['actions-state', allMode ? 'all' : resolvedAccountId],
+    queryFn: () => fetchActionsState(allMode ? null : resolvedAccountId),
+    enabled: allMode || Boolean(resolvedAccountId),
+    retry: false,
+    refetchInterval: 5 * 60_000,
+  })
+  const actionsState: ActionsState | undefined = stateQuery.data
+  const needsMigration = stateQuery.error instanceof ActionsApiError && stateQuery.error.code === 'MIGRATION_NEEDED'
+  const refreshState = useCallback(() => void queryClient.invalidateQueries({ queryKey: ['actions-state'] }), [queryClient])
+
+  // para comparar o antes e o depois, sempre com os últimos 7 dias da conta
+  const last7Query = useQuery({
+    queryKey: ['meta-insights', resolvedAccountId, 'last7', undefined, undefined],
+    queryFn: () => fetchMetaInsights('last7', resolvedAccountId, {}),
+    enabled: Boolean(resolvedAccountId) && !allMode,
+    retry: false,
+  })
+
+  const [metaDialog, setMetaDialog] = useState<{ item: PlanItem; kind: MetaActionKind } | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
   const days = periodDays(period)
   const insightStamp = insightQueries.map((query) => query.dataUpdatedAt).join(',')
   const previousStamp = previousQueries.map((query) => query.dataUpdatedAt).join(',')
@@ -556,28 +649,94 @@ export default function ActionsPage() {
   )
   const tip = useMemo(() => dailyTip(bundle?.actions ?? []), [bundle])
 
-  const items = useMemo<PlanItem[]>(
+  const allItems = useMemo<PlanItem[]>(
     () =>
       bundles
-        .flatMap((b) =>
-          b.actions.map((action) => ({ ...action, key: `${b.id}::${action.id}`, accountId: b.id, accountName: b.name })),
-        )
+        .flatMap((b) => {
+          // alerta de regra só entra se a campanha ainda não tem uma ação urgente (evita cartão repetido)
+          const urgentCampaigns = new Set(b.actions.filter((a) => a.priority === 'urgent').map((a) => a.campaign?.id))
+          const fromRules = (actionsState?.alerts ?? [])
+            .filter((alert) => alert.accountId === b.id && !(alert.campaignId && urgentCampaigns.has(alert.campaignId)))
+            .map((alert) => alertToAction(alert, b.enriched))
+          return [...b.actions, ...fromRules].map((action) => ({
+            ...action,
+            key: `${b.id}::${action.id}`,
+            accountId: b.id,
+            accountName: b.name,
+          }))
+        })
         .sort(comparePlan),
-    [bundles],
+    [bundles, actionsState?.alerts],
   )
 
-  const { isDone, setDoneFlag, stepsDone, toggleStep } = useActionProgress(targetIds)
+  const itemIndex = useMemo(() => new Map(allItems.map((item) => [item.key, item])), [allItems])
+
+  // marcar/desmarcar "feito" também grava o histórico (foto dos números) no servidor
+  const handleDoneChange = useCallback(
+    (accountId: string, actionId: string, value: boolean) => {
+      const item = itemIndex.get(`${accountId}::${actionId}`)
+      void recordActionDone({
+        accountId,
+        actionId,
+        done: value,
+        campaignId: item?.campaign?.id ?? null,
+        title: item?.title,
+        kind: item?.kind,
+        snapshot: item?.campaign
+          ? {
+              spend: item.campaign.spend,
+              leads: item.campaign.leads,
+              cpl: item.campaign.cpl,
+              ctr: item.campaign.ctr,
+              periodDays: days,
+              moneyAtStake: item.moneyAtStake,
+            }
+          : undefined,
+      })
+        .then(refreshState)
+        .catch(() => undefined)
+    },
+    [itemIndex, days, refreshState],
+  )
+
+  const { isDone, setDoneFlag, stepsDone, toggleStep } = useActionProgress(targetIds, handleDoneChange)
+
+  // adiadas e responsáveis (vêm do servidor)
+  const snoozeMap = useMemo(
+    () => new Map((actionsState?.snoozes ?? []).map((snooze) => [`${snooze.accountId}::${snooze.actionId}`, snooze.until])),
+    [actionsState?.snoozes],
+  )
+  const assignMap = useMemo(
+    () => new Map((actionsState?.assignments ?? []).map((a) => [`${a.accountId}::${a.actionId}`, a])),
+    [actionsState?.assignments],
+  )
+  const items = useMemo(() => allItems.filter((item) => !snoozeMap.has(item.key)), [allItems, snoozeMap])
+  const snoozedItems = useMemo(() => allItems.filter((item) => snoozeMap.has(item.key)), [allItems, snoozeMap])
+
+  // o TaTuzinho lê isto pra não contar ação adiada como pendente
+  useEffect(() => {
+    if (!actionsState) return
+    for (const id of targetIds) {
+      saveSnoozed(id, actionsState.snoozes.filter((snooze) => snooze.accountId === id))
+    }
+  }, [actionsState, targetIds])
+
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'mine' | 'none'>('all')
+  const myEmail = String(user?.email ?? '').toLowerCase()
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase()
     return items.filter((item) => {
+      const owner = assignMap.get(item.key)
+      if (ownerFilter === 'mine' && owner?.userEmail?.toLowerCase() !== myEmail) return false
+      if (ownerFilter === 'none' && owner) return false
       if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false
       if (kindFilter !== 'all' && item.kind !== kindFilter) return false
       if (hideDone && isDone(item)) return false
       if (term && !`${item.title} ${item.campaign?.name ?? ''} ${item.accountName}`.toLowerCase().includes(term)) return false
       return true
     })
-  }, [items, priorityFilter, kindFilter, hideDone, search, isDone])
+  }, [items, priorityFilter, kindFilter, hideDone, search, isDone, assignMap, ownerFilter, myEmail])
 
   const groups = useMemo(() => {
     if (groupMode === 'impact') {
@@ -683,6 +842,61 @@ export default function ActionsPage() {
     })
   }
 
+  async function guarded(task: () => Promise<unknown>) {
+    setNotice(null)
+    try {
+      await task()
+      refreshState()
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Não foi possível concluir.')
+    }
+  }
+
+  const results = useMemo(
+    () => computeResults(actionsState?.history ?? [], (last7Query.data?.campaigns ?? []) as CampaignItem[]),
+    [actionsState?.history, last7Query.data],
+  )
+
+  /** Ações na Meta: só onde há campanha ativa de verdade (anúncio solto e alerta da conta ficam de fora). */
+  function metaKindsFor(item: PlanItem): { kind: MetaActionKind; label: string; icon: string }[] {
+    if (!item.campaign || item.campaign.status !== 'Ativa' || item.kind === 'creative' || item.kind === 'wait') return []
+    if (item.kind === 'scale') return [{ kind: 'plus20', label: 'Aumentar 20%', icon: 'fa-arrow-up-right-dots' }]
+    return [
+      { kind: 'pause', label: 'Pausar na Meta', icon: 'fa-circle-pause' },
+      { kind: 'half', label: 'Reduzir 50%', icon: 'fa-scale-unbalanced-flip' },
+    ]
+  }
+
+  function renderTools(item: PlanItem): ReactNode {
+    const metaButtons = metaKindsFor(item)
+    return (
+      <>
+        {actionsState && (
+          <SnoozeMenu
+            onSnooze={(until) => void guarded(() => snoozeAction(item.accountId, item.id, until.toISOString()))}
+          />
+        )}
+        {metaButtons.map((button) => (
+          <button key={button.kind} type="button" className="action-link action-link-meta" onClick={() => setMetaDialog({ item, kind: button.kind })}>
+            <i className={`fa-solid ${button.icon}`} /> {button.label}
+          </button>
+        ))}
+      </>
+    )
+  }
+
+  function renderAssignee(item: PlanItem): ReactNode {
+    if (!actionsState) return null
+    const owner = assignMap.get(item.key)
+    return (
+      <AssigneePicker
+        users={actionsState.users}
+        assignee={owner ? { userId: owner.userId, userName: owner.userName } : null}
+        onAssign={(userId) => void guarded(() => assignAction(item.accountId, item.id, userId))}
+      />
+    )
+  }
+
   function renderCard(action: PlanItem) {
     return (
       <ActionCard
@@ -696,6 +910,8 @@ export default function ActionsPage() {
         onOpen={
           action.campaign && !allMode ? () => setSelectedId(action.campaign!.id) : undefined
         }
+        tools={renderTools(action)}
+        assignee={renderAssignee(action)}
       />
     )
   }
@@ -751,6 +967,26 @@ export default function ActionsPage() {
           ))}
         </div>
       </section>
+
+      {needsMigration && (
+        <section className="surface-card migration-note" role="status">
+          <i className="fa-solid fa-database" />
+          <div>
+            <b>Faltam os recursos novos do banco.</b> Para usar adiar, responsável, histórico e regras, rode o bloco
+            "Central de Ações v2" de <code>db/schema.sql</code> no SQL Editor do Supabase. O resto da tela já funciona.
+          </div>
+        </section>
+      )}
+
+      {notice && (
+        <section className="surface-card migration-note" role="alert">
+          <i className="fa-solid fa-triangle-exclamation" />
+          <div>{notice}</div>
+          <button type="button" className="chip-btn" onClick={() => setNotice(null)}>
+            Fechar
+          </button>
+        </section>
+      )}
 
       {loadError && (
         <section className="surface-card border-red-500/30 p-4 text-sm text-red-300">
@@ -983,6 +1219,8 @@ export default function ActionsPage() {
                 onNext={() => setFocusIndex((index) => index + 1)}
                 onOpen={focus.campaign && !allMode ? () => setSelectedId(focus.campaign!.id) : undefined}
                 onExplain={() => explain(focus)}
+                tools={renderTools(focus)}
+                assignee={renderAssignee(focus)}
               />
             )}
 
@@ -1024,6 +1262,18 @@ export default function ActionsPage() {
                   <option value="campaign">Agrupar: campanha</option>
                   <option value="impact">Ordenar: maior impacto</option>
                 </select>
+                {actionsState && (
+                  <select
+                    className="plan-select"
+                    value={ownerFilter}
+                    onChange={(event) => setOwnerFilter(event.target.value as 'all' | 'mine' | 'none')}
+                    aria-label="Responsável"
+                  >
+                    <option value="all">Responsável: todos</option>
+                    <option value="mine">Só as minhas</option>
+                    <option value="none">Sem dono</option>
+                  </select>
+                )}
                 <input
                   className="plan-search"
                   type="search"
@@ -1085,7 +1335,32 @@ export default function ActionsPage() {
                 </div>
               </Reveal>
             ))}
+
+            {snoozedItems.length > 0 && (
+              <details className="snoozed-box">
+                <summary>
+                  <i className="fa-solid fa-clock" /> Adiadas ({snoozedItems.length})
+                </summary>
+                <ul>
+                  {snoozedItems.map((item) => (
+                    <li key={item.key}>
+                      <span className="snoozed-title">{item.title}</span>
+                      <small>volta {formatSnoozeDate(snoozeMap.get(item.key) ?? '')}</small>
+                      <button
+                        type="button"
+                        className="chip-btn"
+                        onClick={() => void guarded(() => snoozeAction(item.accountId, item.id, null))}
+                      >
+                        Voltar agora
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </section>
+
+          {!allMode && <ResultsSection results={results} />}
 
           {!allMode && (
             <Reveal index={7}>
@@ -1138,7 +1413,27 @@ export default function ActionsPage() {
               </section>
             </Reveal>
           )}
+
+          {actionsState && <AutomationPanel state={actionsState} onChanged={refreshState} />}
         </>
+      )}
+
+      {metaDialog && (
+        <MetaActionDialog
+          kind={metaDialog.kind}
+          campaign={{ id: metaDialog.item.campaign!.id, name: metaDialog.item.campaign!.name }}
+          accountName={metaDialog.item.accountName}
+          onClose={() => setMetaDialog(null)}
+          onApplied={() => {
+            // a alteração foi feita: conta como ação feita e os números são relidos
+            setDoneFlag(metaDialog.item.accountId, metaDialog.item.id, true)
+            void queryClient.invalidateQueries({ queryKey: ['meta-insights'] })
+          }}
+          onUndone={() => {
+            setDoneFlag(metaDialog.item.accountId, metaDialog.item.id, false)
+            void queryClient.invalidateQueries({ queryKey: ['meta-insights'] })
+          }}
+        />
       )}
 
       {selected && data && bundle && (

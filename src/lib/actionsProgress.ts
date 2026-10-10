@@ -76,3 +76,17 @@ export function currentStreak(accountId: string): number {
   }
   return streak
 }
+
+const snoozedKey = (accountId: string) => `dash-actions-snoozed:${accountId}`
+
+/** Espelho local das ações adiadas (a fonte é o servidor): o TaTuzinho usa pra não contar como pendente. */
+export function saveSnoozed(accountId: string, snoozes: { actionId: string; until: string }[]) {
+  writeJson(snoozedKey(accountId), Object.fromEntries(snoozes.map((snooze) => [snooze.actionId, snooze.until])))
+}
+
+/** Ids adiados e ainda dentro do prazo. */
+export function loadSnoozedIds(accountId: string): Set<string> {
+  const map = readJson<Record<string, string>>(snoozedKey(accountId), {})
+  const now = Date.now()
+  return new Set(Object.entries(map).filter(([, until]) => new Date(until).getTime() > now).map(([id]) => id))
+}

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchGoal } from '@/services/goalService.ts'
 import { computeSummary } from '@/lib/analysis.js'
+import { loadSnoozedIds } from '@/lib/actionsProgress.ts'
 import { buildActions, buildBriefing, type ActionItem, type GoalPace, type Totals } from '@/lib/actions.ts'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import { sortAccountsByRecent } from '@/lib/recentAccounts.ts'
@@ -13,7 +14,9 @@ export function readDoneActions(accountId: string | null): Set<string> {
   const day = new Date().toISOString().slice(0, 10)
   try {
     const raw = JSON.parse(localStorage.getItem(`dash-actions-done:${accountId ?? 'none'}:${day}`) || '[]')
-    return new Set(Array.isArray(raw) ? raw.map(String) : [])
+    const done = new Set<string>(Array.isArray(raw) ? raw.map(String) : [])
+    for (const id of loadSnoozedIds(accountId ?? "none")) done.add(id)
+    return done
   } catch {
     return new Set()
   }
