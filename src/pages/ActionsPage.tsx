@@ -940,16 +940,24 @@ export default function ActionsPage() {
                 )}
               </div>
 
-              {actionable.length > 0 && (
+              {ready && (
                 <div className="daily-card" aria-label="Progresso do dia">
                   <p className="section-label">Seu dia</p>
-                  <p className="daily-count">
-                    {actionableDone} de {actionable.length}
-                    <span> resolvidas</span>
-                  </p>
-                  <div className="daily-bar" role="progressbar" aria-valuemin={0} aria-valuemax={actionable.length} aria-valuenow={actionableDone}>
-                    <i style={{ width: `${(actionableDone / actionable.length) * 100}%` }} />
-                  </div>
+                  {actionable.length > 0 ? (
+                    <>
+                      <p className="daily-count">
+                        {actionableDone} de {actionable.length}
+                        <span> resolvidas</span>
+                      </p>
+                      <div className="daily-bar" role="progressbar" aria-valuemin={0} aria-valuemax={actionable.length} aria-valuenow={actionableDone}>
+                        <i style={{ width: `${(actionableDone / actionable.length) * 100}%` }} />
+                      </div>
+                    </>
+                  ) : (
+                    <p className="daily-count">
+                      Tudo em dia<span> · nada pendente</span>
+                    </p>
+                  )}
                   <p className="daily-streak">
                     {streak > 0 ? (
                       <>
