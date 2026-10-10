@@ -1,0 +1,180 @@
+/*
+ * Central de Ações v2: progresso do dia, modo foco, filtros, passos, dinheiro em jogo, tendência e previsão.
+ * Só usa os tokens do tema (--card, --line, --shade, --ink...), então vale para o claro e o escuro.
+ */
+
+/* ── Saúde + previsão de verba ── */
+.plan-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: stretch;
+}
+
+@media (max-width: 960px) {
+  .plan-top { grid-template-columns: 1fr; }
+}
+
+.forecast { padding: 1.4rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.forecast-title { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; line-height: 1.05; color: var(--ink); }
+.small-note { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.small-note b { color: var(--ink); }
+
+.forecast-meter {
+  position: relative;
+  height: 16px;
+  border: 2.5px solid var(--line);
+  border-radius: 9px;
+  background: var(--white);
+  overflow: hidden;
+  margin-top: 0.3rem;
+}
+.forecast-fill { position: absolute; inset: 0 auto 0 0; display: block; }
+.forecast-ok { background: linear-gradient(90deg, var(--t), var(--y)); }
+.forecast-ahead { background: linear-gradient(90deg, var(--y), var(--o)); }
+.forecast-over { background: var(--r); }
+.forecast-meter u { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--r); }
+
+.trend-box { margin-top: 1rem; padding-top: 0.8rem; border-top: 2px dashed var(--line); }
+.trend-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem 0.8rem; margin-bottom: 0.3rem; }
+.trend-head > span:last-child { font-size: 0.75rem; font-weight: 800; }
+.trend-good { color: var(--good, #0f7a49); }
+.trend-bad { color: var(--bad, #b3261e); }
+.mini-trend { display: block; width: 100%; height: 44px; }
+
+.account-health-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.account-health-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1rem 1.15rem;
+  text-align: left;
+  color: var(--ink);
+}
+.account-health-card b { font-size: 0.95rem; font-weight: 800; }
+
+/* ── Plano: dinheiro, progresso do dia ── */
+.plan-money { margin-top: 0.4rem; font-size: 0.8rem; font-weight: 800; color: var(--bad, #b3261e); }
+
+.daily-card {
+  min-width: 15rem;
+  padding: 0.8rem 1rem;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--shade);
+}
+.daily-count { margin-top: 0.15rem; font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--ink); }
+.daily-count span { font-family: var(--font-body, inherit); font-size: 0.75rem; font-weight: 700; color: var(--muted); }
+.daily-bar { height: 12px; margin: 0.5rem 0 0.4rem; border: 2.5px solid var(--line); border-radius: 8px; background: var(--white); overflow: hidden; }
+.daily-bar i { display: block; height: 100%; background: var(--o); transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.daily-streak { font-size: 0.74rem; font-weight: 800; color: var(--muted); }
+.daily-streak i { color: var(--o); }
+
+/* ── Modo foco ── */
+.focus-card {
+  position: relative;
+  padding: 1.4rem 1.5rem;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-left-width: 8px;
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--shade);
+}
+.focus-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.8rem 1.2rem; }
+.focus-title { margin: 0.5rem 0 0.2rem; font-family: var(--font-display); font-weight: 400; font-size: 1.9rem; line-height: 1.05; color: var(--ink); }
+.focus-side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; text-align: right; max-width: 22rem; }
+.focus-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 1rem; }
+.focus-count { margin-left: auto; font-size: 0.76rem; font-weight: 700; color: var(--muted); }
+
+/* ── Passos com caixinha ── */
+.step-list { display: grid; gap: 0.45rem; margin-top: 0.9rem; padding: 0; list-style: none; }
+.step-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--white);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.step-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  color: transparent;
+  background: var(--card);
+}
+.step-check:hover { background: var(--y); }
+.step-check[aria-pressed='true'] { background: var(--t); border-color: var(--line); color: #fff; }
+.step-done span { opacity: 0.6; text-decoration: line-through; }
+
+.step-progress { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 800; color: var(--muted); }
+.step-progress-bar { display: inline-block; width: 72px; height: 8px; border: 2px solid var(--line); border-radius: 6px; background: var(--white); overflow: hidden; }
+.step-progress-bar i { display: block; height: 100%; background: var(--t); }
+
+/* ── Chips dos cartões ── */
+.action-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; margin-top: 0.6rem; }
+.action-chips:empty { display: none; }
+.money-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 3px 10px;
+  border: 2px solid var(--r);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--r) 14%, transparent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--bad, #b3261e);
+}
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 9px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.why-box {
+  margin-top: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border: 2px dashed var(--line);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.why-box b { color: var(--ink); }
+
+/* ── Filtros do plano ── */
+.plan-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.75rem 0.9rem; }
+.plan-select,
+.plan-search {
+  border: 2.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--shade);
+}
+.plan-search { flex: 1; min-width: 12rem; }
+.plan-search::placeholder { color: var(--muted); }
+.group-label { font-family: var(--font-display); font-size: 1.35rem; line-height: 1; color: var(--ink); }

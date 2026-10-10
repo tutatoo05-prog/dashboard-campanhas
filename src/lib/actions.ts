@@ -22,6 +22,19 @@ export interface ActionItem {
   /** Frase curta sobre o dinheiro/resultado em jogo. */
   impact?: string
   campaign?: EnrichedCampaignItem
+  /** Estimativa de dinheiro perdido por semana se nada for feito (R$). Só quando dá pra calcular com segurança. */
+  moneyAtStake?: number
+  /** Por que o painel sugeriu isso, com os números da própria campanha. */
+  reasoning?: string
+}
+
+/** Dias de cada período, pra normalizar o dinheiro em jogo para "por semana". */
+export function periodDays(period: string, now = new Date()): number {
+  if (period === 'today' || period === 'yesterday') return 1
+  if (period === 'last30' || period === 'prev30') return 30
+  if (period === 'this_month') return Math.max(1, now.getDate())
+  if (period === 'last_month') return 30
+  return 7
 }
 
 export const PRIORITY_META: Record<ActionPriority, { label: string; hint: string; tone: string }> = {
@@ -52,11 +65,58 @@ interface BuildOptions {
   previousTotals?: Totals | null
   ads?: CampaignItem[]
   goal?: GoalPace | null
+  /** Dias do período analisado (padrão 7), usado pra estimar o dinheiro em jogo por semana. */
+  periodDays?: number
 }
 
 function change(current: number, previous?: number | null): number | null {
   if (previous == null || previous <= 0) return null
   return ((current - previous) / previous) * 100
+}
+
+/** Arredonda pra cima de 5 em 5 reais; abaixo de R$ 10 não vale mostrar. */
+function roundMoney(value: number): number | undefined {
+  if (!Number.isFinite(value) || value < 10) return undefined
+  return Math.round(value / 5) * 5
+}
+
+interface ActionContext {
+  averageCpl: number
+  totalSpend: number
+  /** Multiplica o valor do período para chegar em "por semana". */
+  weekly: number
+}
+
+/** Quanto do gasto de uma campanha não se pagou, comparando com o custo por lead médio da conta. */
+function wasteOf(item: CampaignItem, averageCpl: number): number {
+  if (item.leads > 0 && averageCpl > 0) return Math.max(0, item.spend - item.leads * averageCpl)
+  return item.leads === 0 ? item.spend : 0
+}
+
+/** Explicação em linguagem simples, com os números da campanha. */
+function reasoningFor(item: EnrichedCampaignItem, ctx: ActionContext): string {
+  const parts: string[] = []
+  if (item.leads > 0 && ctx.averageCpl > 0) {
+    const ratio = item.cpl / ctx.averageCpl
+    if (ratio >= 1.15) {
+      parts.push(
+        `O custo por lead (${formatCurrency(item.cpl)}) está ${formatDecimal(ratio, 1)}× acima da média da conta (${formatCurrency(ctx.averageCpl)}).`,
+      )
+    } else if (ratio <= 0.85) {
+      parts.push(
+        `O custo por lead (${formatCurrency(item.cpl)}) está bem abaixo da média da conta (${formatCurrency(ctx.averageCpl)}).`,
+      )
+    }
+  } else if (item.leads === 0 && item.spend > 0) {
+    parts.push(`Gastou ${formatCurrency(item.spend)} e não trouxe nenhum lead.`)
+  }
+  if (ctx.totalSpend > 0) {
+    const share = (item.spend / ctx.totalSpend) * 100
+    if (share >= 10) parts.push(`Ela consome ${formatDecimal(share, 0)}% da verba do período.`)
+  }
+  if (item.frequency >= 3) parts.push(`Cada pessoa viu o anúncio ${formatDecimal(item.frequency, 1)} vezes.`)
+  if (item.leads > 0 && item.ctr > 0) parts.push(`O CTR é ${formatDecimal(item.ctr)}% e o volume é de ${formatNumber(item.leads)} leads.`)
+  return parts.join(' ') || item.analysis.notes[0] || 'Os números da campanha pedem atenção.'
 }
 
 /** Passo a passo específico para cada tipo de problema. */
@@ -199,13 +259,20 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
 
 /** Gera as ações da conta, já ordenadas por prioridade e dinheiro em jogo. */
 export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOptions): ActionItem[] {
-  const { totals, previousTotals, ads = [], goal } = options
+  const { totals, previousTotals, ads = [], goal, periodDays: days = 7 } = options
   const active = enriched.filter((item) => item.status === 'Ativa')
   const actions: ActionItem[] = []
+  const ctx: ActionContext = { averageCpl: totals.cpl, totalSpend: totals.spend, weekly: 7 / Math.max(1, days) }
 
   for (const item of active) {
-    const action = campaignAction(item, totals.cpl)
-    if (action) actions.push(action)
+    const base = campaignAction(item, totals.cpl)
+    if (!base) continue
+    const waste = base.kind === 'pause' || base.kind === 'fix' ? wasteOf(item, ctx.averageCpl) : 0
+    actions.push({
+      ...base,
+      reasoning: reasoningFor(item, ctx),
+      moneyAtStake: waste ? roundMoney(waste * ctx.weekly) : undefined,
+    })
   }
 
   // Campanha ativa gastando sem nenhum lead (mesmo sem veredito de "pausar").
@@ -226,6 +293,8 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
           'Se o cadastro funciona, a campanha é fraca: pause ou troque criativo e público.',
         ],
         campaign: item,
+        moneyAtStake: roundMoney(item.spend * ctx.weekly),
+        reasoning: `${formatNumber(item.clicks)} cliques e ${formatCurrency(item.spend)} gastos sem nenhum lead. Com esse volume de cliques, o mais provável é um problema no formulário, no pixel ou na oferta.`,
       })
     }
   }
@@ -259,6 +328,8 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
           'Deixe a variação rodar 48h antes de julgar.',
         ],
         campaign,
+        moneyAtStake: roundMoney(Math.max(0, worst.spend - worst.leads * best.cpl) * ctx.weekly),
+        reasoning: `Na mesma campanha, "${worst.name}" custa ${formatDecimal(worst.cpl / best.cpl, 1)}× mais por lead que "${best.name}", e já consumiu ${formatCurrency(worst.spend)}.`,
       })
     }
   }
@@ -278,6 +349,8 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         'Pause ou reduza a campanha mais cara e mande a verba para a mais barata.',
         'Se for geral, pode ser cansaço de público: renove os criativos.',
       ],
+      moneyAtStake: roundMoney(((totals.cpl - (previousTotals?.cpl ?? totals.cpl)) * totals.leads) * ctx.weekly),
+      reasoning: `Com ${formatNumber(totals.leads)} leads no período, a alta de ${formatCurrency(previousTotals?.cpl)} para ${formatCurrency(totals.cpl)} por lead é dinheiro a mais saindo pelo mesmo resultado.`,
     })
   }
 
@@ -313,6 +386,7 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         analysis: { ...item.analysis, verdict: 'fix', tags: [{ emoji: '🔄', label: 'Anúncio cansado', tone: 'warning' }] },
       }),
       campaign: item,
+      reasoning: `Frequência de ${formatDecimal(item.frequency, 1)}: acima de 3 o público já viu demais, o clique cai e o custo por lead tende a subir.`,
     })
   }
 
@@ -350,8 +424,46 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
   const rank: Record<ActionPriority, number> = { urgent: 0, today: 1, later: 2, good: 3 }
   return deduped.sort((a, b) => {
     if (rank[a.priority] !== rank[b.priority]) return rank[a.priority] - rank[b.priority]
+    const money = (b.moneyAtStake ?? 0) - (a.moneyAtStake ?? 0)
+    if (money !== 0) return money
     return (b.campaign?.spend ?? 0) - (a.campaign?.spend ?? 0)
   })
+}
+
+/** Soma do dinheiro em jogo por semana (só das ações que têm estimativa). */
+export function totalMoneyAtStake(actions: ActionItem[]): number {
+  return actions.reduce((sum, action) => sum + (action.moneyAtStake ?? 0), 0)
+}
+
+export interface BudgetForecast {
+  target: number
+  spent: number
+  /** Quanto já era esperado ter gastado até hoje, se o ritmo fosse parelho. */
+  expected: number
+  /** Gasto previsto no fim do mês, no ritmo atual. */
+  projected: number
+  /** Dia do mês em que a verba acaba no ritmo atual (null se dura até o fim do mês). */
+  exhaustDay: number | null
+  daysInMonth: number
+  today: number
+  state: 'over' | 'ahead' | 'ok'
+}
+
+/** Previsão de verba do mês a partir da meta de investimento e do gasto até hoje. */
+export function budgetForecast(goal: GoalPace | null | undefined, now = new Date()): BudgetForecast | null {
+  if (!goal?.spendTarget || goal.spendTarget <= 0) return null
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const today = now.getDate()
+  const rate = goal.monthSpend / today
+  const projected = rate * daysInMonth
+  const expected = goal.spendTarget * (today / daysInMonth)
+  let exhaustDay: number | null = null
+  if (rate > 0 && goal.monthSpend < goal.spendTarget) {
+    const day = Math.ceil(goal.spendTarget / rate)
+    if (day <= daysInMonth) exhaustDay = Math.max(today, day)
+  }
+  const state = goal.monthSpend > goal.spendTarget ? 'over' : goal.monthSpend > expected * 1.2 ? 'ahead' : 'ok'
+  return { target: goal.spendTarget, spent: goal.monthSpend, expected, projected, exhaustDay, daysInMonth, today, state }
 }
 
 export interface Health {
