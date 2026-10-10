@@ -116,3 +116,112 @@ create table if not exists live_log (
   created_at timestamptz not null default now()
 );
 create index if not exists live_log_created_at_idx on live_log (created_at desc);
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Central de Ações v2 (adiar, atribuir, histórico, regras e avisos).
+-- Rode este bloco no SQL Editor do Supabase antes de usar os recursos novos da tela /acoes.
+-- Tudo é "if not exists": pode rodar de novo sem problema.
+-- ───────────────────────────────────────────────────────────────────────────────
+
+-- Ações adiadas ("lembrar amanhã / em 48h / na segunda"): somem da lista até a data.
+create table if not exists action_snoozes (
+  account_id text not null,
+  action_id text not null,
+  until timestamptz not null,
+  by_email text,
+  created_at timestamptz not null default now(),
+  primary key (account_id, action_id)
+);
+
+-- Responsável por cada ação.
+create table if not exists action_assignments (
+  account_id text not null,
+  action_id text not null,
+  user_id uuid references users (id) on delete set null,
+  user_name text not null default '',
+  user_email text not null default '',
+  assigned_by text,
+  updated_at timestamptz not null default now(),
+  primary key (account_id, action_id)
+);
+
+-- Ações marcadas como feitas, com uma "foto" dos números na hora (snapshot) para mostrar o resultado depois.
+-- snapshot: { spend, leads, cpl, ctr, periodDays, moneyAtStake }. Uma linha por ação por dia (day = AAAA-MM-DD).
+create table if not exists action_history (
+  id bigserial primary key,
+  account_id text not null,
+  action_id text not null,
+  campaign_id text,
+  title text not null default '',
+  kind text not null default '',
+  done_by text,
+  day text not null,
+  done_at timestamptz not null default now(),
+  snapshot jsonb not null default '{}'::jsonb,
+  unique (account_id, action_id, day)
+);
+create index if not exists action_history_account_idx on action_history (account_id, done_at desc);
+
+-- Regras automáticas. type: cpl_above_avg {pct, days} · spend_no_leads {amount} · budget_used {pct}
+create table if not exists automation_rules (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('cpl_above_avg', 'spend_no_leads', 'budget_used')),
+  params jsonb not null default '{}'::jsonb,
+  enabled boolean not null default true,
+  created_by text,
+  created_at timestamptz not null default now()
+);
+
+-- Regras de partida (só se a tabela estiver vazia). A de verba nasce desligada.
+insert into automation_rules (type, params, enabled)
+select * from (values
+  ('cpl_above_avg', '{"pct": 30, "days": 2}'::jsonb, true),
+  ('spend_no_leads', '{"amount": 50}'::jsonb, true),
+  ('budget_used', '{"pct": 90}'::jsonb, false)
+) as seed (type, params, enabled)
+where not exists (select 1 from automation_rules);
+
+-- Alertas gerados pelas regras (um por regra, conta, campanha e dia). cleared = a condição passou.
+create table if not exists rule_alerts (
+  id uuid primary key default gen_random_uuid(),
+  rule_id uuid not null references automation_rules (id) on delete cascade,
+  account_id text not null,
+  campaign_key text not null default '',
+  campaign_id text,
+  campaign_name text,
+  day text not null,
+  title text not null,
+  detail text not null default '',
+  money numeric,
+  cleared boolean not null default false,
+  notified_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (rule_id, account_id, campaign_key, day)
+);
+create index if not exists rule_alerts_day_idx on rule_alerts (day, account_id);
+
+-- Avisos fora do painel (linha única). Entrega via webhook n8n (N8N_ALERT_WEBHOOK_URL).
+create table if not exists notification_settings (
+  id smallint primary key default 1 check (id = 1),
+  email_daily boolean not null default false,
+  email_hour smallint not null default 8 check (email_hour between 0 and 23),
+  email_last_day text,
+  whatsapp_urgent boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+insert into notification_settings (id) values (1) on conflict (id) do nothing;
+
+-- Registro de tudo que o painel alterou na Meta (pausar, reativar, mudar orçamento).
+create table if not exists meta_action_log (
+  id bigserial primary key,
+  user_email text,
+  account_id text,
+  campaign_id text,
+  campaign_name text,
+  action text not null,
+  detail jsonb not null default '{}'::jsonb,
+  ok boolean not null default true,
+  error text,
+  created_at timestamptz not null default now()
+);
+create index if not exists meta_action_log_created_at_idx on meta_action_log (created_at desc);

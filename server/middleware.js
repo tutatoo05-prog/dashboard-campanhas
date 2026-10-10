@@ -9,6 +9,8 @@ import { handleGoalsRequest } from './goalsHandler.js'
 import { handleRegistrosRequest } from './registrosHandler.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleUsersRequest } from './usersHandler.js'
+import { handleActionsRequest } from './actionsHandler.js'
+import { handleMetaWriteRequest } from './metaWrite.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
@@ -48,6 +50,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/goals') ||
       req.url.startsWith('/api/registros') ||
       req.url.startsWith('/api/live') ||
+      req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
     ) {
       const user = await requireAuth(req, res, env)
@@ -70,6 +73,16 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
         res.statusCode = 403
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ error: 'Apenas administradores podem fazer isso.', code: 'FORBIDDEN' }))
+        return
+      }
+
+      if (req.url.startsWith('/api/meta/campaigns/')) {
+        await handleMetaWriteRequest(req, res, env, user)
+        return
+      }
+
+      if (req.url.startsWith('/api/actions')) {
+        await handleActionsRequest(req, res, env, user)
         return
       }
 
