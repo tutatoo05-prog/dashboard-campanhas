@@ -9,6 +9,8 @@ interface TatuCharacterProps {
   facing?: 'left' | 'right'
   /** Chapéu de festa (marcos e comemorações). */
   party?: boolean
+  /** Capelo de formatura (conta Academy). */
+  cap?: boolean
   followCursor?: boolean
   className?: string
 }
@@ -26,6 +28,7 @@ export function TatuCharacter({
   size = 120,
   facing = 'left',
   party = false,
+  cap = false,
   followCursor = true,
   className = '',
 }: TatuCharacterProps) {
@@ -71,6 +74,7 @@ export function TatuCharacter({
       data-talking={talking ? 'true' : 'false'}
       data-facing={facing}
       data-party={party ? 'true' : 'false'}
+      data-cap={cap ? 'true' : 'false'}
       width={size}
       height={size}
       viewBox="0 0 200 200"
@@ -167,6 +171,16 @@ export function TatuCharacter({
             {/* boca */}
             <path className="tc-smile" d="M33 109 Q43 117 53 110" stroke={INK} strokeWidth="2.6" strokeLinecap="round" fill="none" />
             <ellipse className="tc-mouth" cx="43" cy="111" rx="6.5" ry="5.5" fill="#7a2a1a" stroke={INK} strokeWidth="2.2" />
+
+            {/* capelo de formatura (conta Academy) */}
+            <g className="tc-cap" transform="rotate(-7 72 58)">
+              <path d="M56 60 Q72 72 90 60 L90 52 L56 52 Z" fill="#2b2b3a" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+              <path d="M36 50 L74 36 L110 50 L74 66 Z" fill="#3a3a4d" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+              <path d="M74 36 L110 50 L74 66 Z" fill="rgba(0,0,0,0.18)" />
+              <circle cx="74" cy="50" r="3.2" fill="#ffd23f" stroke={INK} strokeWidth="1.8" />
+              <path d="M74 50 L104 54 L104 70" fill="none" stroke="#ffd23f" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M104 66 L101 78 L107 78 Z" fill="#ffd23f" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
+            </g>
 
             {/* chapéu de festa */}
             <g className="tc-hat">

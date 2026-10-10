@@ -1016,6 +1016,16 @@ kbd {
   to { transform: rotate(360deg); }
 }
 
+/* capelo de formatura: só na conta Academy, e cede lugar ao chapéu de festa */
+.tc-cap {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.tc[data-cap='true'][data-party='false'] .tc-cap {
+  opacity: 1;
+}
+
 /* chapéu de festa */
 .tc-hat {
   opacity: 0;

@@ -7,6 +7,7 @@ import { isMuted, useMascotStore, type MascotAction } from '@/store/mascotStore.
 import { isTourDone, markTourDone, useTourStore } from '@/store/tourStore.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
+import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { isAdmin } from '@/lib/roles.ts'
 
@@ -145,6 +146,7 @@ export function MascotCompanion() {
   const tourActive = useTourStore((s) => s.active)
   const tourStep = useTourStore((s) => s.step)
   const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
+  const accountName = useAccountThemeStore((s) => s.accountName)
   const confettiId = useMascotStore((s) => s.confettiId)
   const partyUntil = useMascotStore((s) => s.partyUntil)
 
@@ -744,6 +746,7 @@ export function MascotCompanion() {
   const bubbleBelow = tourActive ? bubbleDown : corner.startsWith('t') && !dragging
   const showBadge = pendingUrgent.length > 0 && pathname !== '/acoes' && !tourActive
   const party = Date.now() < partyUntil
+  const graduate = /academy/i.test(accountName ?? '')
 
   return (
     <>
@@ -825,7 +828,7 @@ export function MascotCompanion() {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <TatuCharacter size={SIZE} pose={pose} talking={typing} facing={facing} party={party} />
+          <TatuCharacter size={SIZE} pose={pose} talking={typing} facing={facing} party={party} cap={graduate} />
         </button>
       </div>
     </>
