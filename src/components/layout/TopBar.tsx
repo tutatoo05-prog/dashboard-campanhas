@@ -3,6 +3,7 @@ import { useUiStore } from '@/store/uiStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
 import { useAuthStore } from '@/store/authStore.ts'
+import { useThemeStore } from '@/store/themeStore.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 
 const TITLES: Record<string, string> = {
@@ -24,6 +25,8 @@ export default function TopBar() {
   const startTour = useTourStore((state) => state.start)
   const mascotEnabled = useMascotStore((state) => state.enabled)
   const setMascotEnabled = useMascotStore((state) => state.setEnabled)
+  const theme = useThemeStore((state) => state.theme)
+  const toggleTheme = useThemeStore((state) => state.toggle)
   const title = TITLES[location.pathname] ?? 'Dashboard'
   const name = getDisplayName(user)
 
@@ -63,9 +66,19 @@ export default function TopBar() {
         <button
           type="button"
           className="topbar-icon-btn"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          aria-label={theme === 'dark' ? 'Mudar para o tema claro' : 'Mudar para o tema escuro'}
+          aria-pressed={theme === 'dark'}
+        >
+          <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-xs`} />
+        </button>
+        <button
+          type="button"
+          className="topbar-icon-btn"
           onClick={handleTour}
-          title="Tour com o Tatu"
-          aria-label="Tour com o Tatu"
+          title="Tour com o TaTuzinho"
+          aria-label="Tour com o TaTuzinho"
         >
           <i className="fa-solid fa-wand-magic-sparkles text-xs" />
         </button>

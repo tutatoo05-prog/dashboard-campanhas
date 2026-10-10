@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
+import { useThemeStore } from '@/store/themeStore.ts'
 import { logout } from '@/services/authService.ts'
 
 interface Command {
@@ -36,6 +37,8 @@ export function CommandPalette() {
   const mascotEnabled = useMascotStore((s) => s.enabled)
   const setMascotEnabled = useMascotStore((s) => s.setEnabled)
   const startTour = useTourStore((s) => s.start)
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggle)
 
   const [term, setTerm] = useState('')
   const [active, setActive] = useState(0)
@@ -53,7 +56,7 @@ export function CommandPalette() {
       ...pages,
       {
         id: 'tour',
-        label: 'Tour com o Tatu',
+        label: 'Tour com o TaTuzinho',
         hint: 'Mostra os blocos desta página',
         icon: 'fa-wand-magic-sparkles',
         run: () => {
@@ -62,8 +65,15 @@ export function CommandPalette() {
         },
       },
       {
+        id: 'theme',
+        label: theme === 'dark' ? 'Tema claro' : 'Tema escuro',
+        hint: 'Alternar entre papel claro e noite',
+        icon: theme === 'dark' ? 'fa-sun' : 'fa-moon',
+        run: toggleTheme,
+      },
+      {
         id: 'mascot',
-        label: mascotEnabled ? 'Desligar o Tatu' : 'Ligar o Tatu',
+        label: mascotEnabled ? 'Desligar o TaTuzinho' : 'Ligar o TaTuzinho',
         hint: 'Mascote na tela',
         icon: 'fa-paw',
         run: () => setMascotEnabled(!mascotEnabled),
@@ -79,7 +89,7 @@ export function CommandPalette() {
         },
       },
     ]
-  }, [navigate, user, mascotEnabled, setMascotEnabled, startTour, setUser])
+  }, [navigate, user, mascotEnabled, setMascotEnabled, startTour, setUser, theme, toggleTheme])
 
   const filtered = useMemo(() => {
     const q = term.trim().toLowerCase()

@@ -314,7 +314,7 @@ export function MascotCompanion() {
       if (isTourDone()) {
         say(`Oi, ${name}! Bom te ver de novo.`, { pose: 'wave', afterPose: 'idle' })
       } else {
-        say(`Oi, ${name}! Eu sou o Tatu, mascote da Academy Labs. Quer um tour rápido pelo painel?`, {
+        say(`Oi, ${name}! Eu sou o TaTuzinho, mascote da Academy Labs. Quer um tour rápido pelo painel?`, {
           pose: 'wave',
           afterPose: 'wave',
           actions: [
@@ -820,7 +820,7 @@ export function MascotCompanion() {
         <button
           type="button"
           className="mascot-body"
-          aria-label="Tatu, mascote da Academy Labs. Clique para o menu, duplo clique para buscar, arraste para mudar de canto."
+          aria-label="TaTuzinho, mascote da Academy Labs. Clique para o menu, duplo clique para buscar, arraste para mudar de canto."
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           onPointerDown={onPointerDown}

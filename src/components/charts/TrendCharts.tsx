@@ -17,14 +17,14 @@ import { formatDateBr } from '@/lib/period.ts'
 import type { DailyPoint } from '@/lib/dailySeries.ts'
 
 const GOLD = '#ff8a1f'
-const GRID = 'rgba(21,17,13,0.18)'
-const AXIS = '#54482f'
+const GRID = 'var(--chart-grid)'
+const AXIS = 'var(--muted)'
 const TOOLTIP_STYLE = {
-  background: '#fcf6e6',
-  border: '3px solid #15110d',
+  background: 'var(--card)',
+  border: '3px solid var(--line)',
   borderRadius: 10,
-  boxShadow: '3px 3px 0 #15110d',
-  color: '#15110d',
+  boxShadow: '3px 3px 0 var(--shade)',
+  color: 'var(--ink)',
   fontSize: 12,
 }
 

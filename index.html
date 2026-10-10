@@ -12,7 +12,16 @@
     <meta name="author" content="Academy Labs" />
     <meta name="application-name" content="Academy Labs" />
     <meta name="theme-color" content="#efe2c4" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      /* aplica o tema salvo antes da 1ª pintura, pra não piscar claro */
+      try {
+        if (localStorage.getItem('dash-theme') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark')
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#14100b')
+        }
+      } catch (e) {}
+    </script>
 
     <!-- Dashboard interno: não indexar -->
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />

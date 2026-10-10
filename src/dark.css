@@ -1,0 +1,200 @@
+/*
+ * Academy Labs · Flash Sheet, versão noite
+ * Mesmo visual de estúdio de tatuagem, agora com papel escuro: contorno creme apagado, sombra chapada preta e
+ * cores vivas só nos adesivos e botões. Ativado por <html data-theme="dark"> (ver store/themeStore.ts).
+ * Importado depois de flash.css: só troca tokens e corrige as poucas cores fixas do tema claro.
+ */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ink: #f1e6cd;
+  --paper: #14100b;
+  --card: #1f1912;
+  --white: #2a2217;
+  --muted: #a99d80;
+  --line: #8d7e5f;
+  --shade: #050403;
+  --on-accent: #15110d;
+  --chart-grid: rgba(241, 230, 205, 0.14);
+
+  --gold-border: rgba(241, 230, 205, 0.35);
+  --color-bg: #14100b;
+  --color-surface: #1f1912;
+  --color-border: rgba(241, 230, 205, 0.18);
+  --card-bg: #1f1912;
+  --card-border: #8d7e5f;
+  --card-shadow: 5px 5px 0 #050403;
+  --good: #34d399;
+  --bad: #f87171;
+
+  /* escala "zinc" do Tailwind: volta ao sentido normal (claro = texto, escuro = fundo) */
+  --color-zinc-50: #f1e6cd;
+  --color-zinc-100: #e8dcc0;
+  --color-zinc-200: #d8cba9;
+  --color-zinc-300: #c4b794;
+  --color-zinc-400: #a99d80;
+  --color-zinc-500: #8c8168;
+  --color-zinc-600: #6f6550;
+  --color-zinc-700: #4a4132;
+  --color-zinc-800: #352d22;
+  --color-zinc-900: #2a2217;
+  --color-zinc-950: #1f1912;
+  --color-white: #f1e6cd;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-yellow-200: #fde68a;
+  --color-yellow-300: #fcd34d;
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+  --color-amber-200: #fde68a;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+}
+
+/* ───── Base ───── */
+:root[data-theme='dark'] body {
+  background-image:
+    radial-gradient(rgba(241, 230, 205, 0.07) 1.2px, transparent 1.7px),
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 138, 31, 0.07), transparent 70%);
+}
+
+:root[data-theme='dark'] body::before {
+  opacity: 0.2;
+  mix-blend-mode: screen;
+}
+
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb { background: rgba(241, 230, 205, 0.28); }
+:root[data-theme='dark'] .auth-screen {
+  background-image: radial-gradient(rgba(241, 230, 205, 0.07) 1.2px, transparent 1.7px);
+}
+
+/* adesivos e bichos mantêm a arte clara: contorno escuro, miolo creme e borda branca de adesivo */
+:root[data-theme='dark'] .stk,
+:root[data-theme='dark'] .animal,
+:root[data-theme='dark'] .tatu-brand,
+:root[data-theme='dark'] .tatu {
+  --ink: #15110d;
+  --white: #fffaf0;
+}
+
+:root[data-theme='dark'] .fx-brand .tatu-brand { filter: drop-shadow(3px 3px 0 #050403); }
+:root[data-theme='dark'] .mistdot { fill: #f1e6cd; }
+
+/* ───── Texto escuro sobre fundos vivos (laranja, amarelo, vermelho, verde) ───── */
+:root[data-theme='dark'] ::selection { color: var(--on-accent); }
+:root[data-theme='dark'] .kpi2-icon,
+:root[data-theme='dark'] .kpi2-accent .kpi2-label,
+:root[data-theme='dark'] .kpi2-accent .kpi2-value,
+:root[data-theme='dark'] .seg-btn-active,
+:root[data-theme='dark'] .seg-btn-active:hover,
+:root[data-theme='dark'] .chip-btn:hover,
+:root[data-theme='dark'] .chip-btn[aria-pressed='true'],
+:root[data-theme='dark'] .btn-gold,
+:root[data-theme='dark'] .badge-meta,
+:root[data-theme='dark'] .account-tile-active,
+:root[data-theme='dark'] .account-tile-active .account-tile-name,
+:root[data-theme='dark'] .account-tile-initial,
+:root[data-theme='dark'] .fx-ticket[aria-pressed='true'],
+:root[data-theme='dark'] .fx-ticket[aria-pressed='true'] b,
+:root[data-theme='dark'] .fx-ticket[aria-pressed='true'] span,
+:root[data-theme='dark'] .fx-av,
+:root[data-theme='dark'] .cmdk-trigger:hover,
+:root[data-theme='dark'] .topbar-icon-btn,
+:root[data-theme='dark'] .topbar-user,
+:root[data-theme='dark'] .cmdk-item-active,
+:root[data-theme='dark'] .cmdk-item-active small,
+:root[data-theme='dark'] .mascot-btn:hover,
+:root[data-theme='dark'] .mascot-btn-primary,
+:root[data-theme='dark'] .mascot-btn-primary:hover,
+:root[data-theme='dark'] .action-badge,
+:root[data-theme='dark'] .action-check:hover,
+:root[data-theme='dark'] .auth-tabs-indicator {
+  color: var(--on-accent);
+}
+
+:root[data-theme='dark'] .fx-mi-active .fx-lb { color: var(--ink); background: linear-gradient(transparent 80%, var(--y) 80%, var(--y) 94%, transparent 94%); }
+:root[data-theme='dark'] .kpi2-accent .kpi2-icon,
+:root[data-theme='dark'] .kpi2-accent .delta-chip { color: var(--ink); }
+:root[data-theme='dark'] .kpi2-accent .delta-note { color: rgba(21, 17, 13, 0.75); }
+:root[data-theme='dark'] .kpi2-accent .kpi2-spark { --spark: #15110d; }
+:root[data-theme='dark'] .kpi2:not(.kpi2-accent) .kpi2-spark { --spark: #f1e6cd; }
+:root[data-theme='dark'] .tip-card > i,
+:root[data-theme='dark'] .tip-card { color: #f9e2a6; }
+:root[data-theme='dark'] .fx-ticket[aria-pressed='true'] { color: var(--on-accent); }
+:root[data-theme='dark'] .fx-brand small { color: #fff; }
+:root[data-theme='dark'] .action-badge-later { color: var(--ink); }
+
+/* ───── Cores que o tema claro fixava em hex ───── */
+:root[data-theme='dark'] .text-gold { color: #ffa94d; }
+:root[data-theme='dark'] .kpi2-label { color: var(--muted); }
+:root[data-theme='dark'] .delta-chip-good { background: rgba(52, 211, 153, 0.18); color: #6ee7b7; }
+:root[data-theme='dark'] .delta-chip-bad { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+:root[data-theme='dark'] .skeleton {
+  background: linear-gradient(100deg, rgba(241, 230, 205, 0.05) 30%, rgba(241, 230, 205, 0.13) 50%, rgba(241, 230, 205, 0.05) 70%);
+  background-size: 220% 100%;
+}
+:root[data-theme='dark'] .seg-btn:not(.seg-btn-active) { color: var(--muted); }
+:root[data-theme='dark'] .seg-btn:not(.seg-btn-active):hover { color: var(--ink); background: rgba(241, 230, 205, 0.08); }
+:root[data-theme='dark'] .row-click:hover,
+:root[data-theme='dark'] .row-click:focus-visible { background: rgba(255, 138, 31, 0.14); }
+:root[data-theme='dark'] .table-sort-btn:hover { background: rgba(241, 230, 205, 0.1); }
+:root[data-theme='dark'] .mascot-bubble-close:hover { background: rgba(241, 230, 205, 0.12); }
+:root[data-theme='dark'] ::placeholder { color: #8c8168; }
+:root[data-theme='dark'] .action-later { border-left-color: #8c8168; }
+:root[data-theme='dark'] .fx-sec::after { border-top-color: rgba(241, 230, 205, 0.3); }
+:root[data-theme='dark'] .sidebar.fx-menu::before { border-right-color: rgba(241, 230, 205, 0.2); }
+:root[data-theme='dark'] .sidebar.fx-menu { box-shadow: 6px 0 0 rgba(0, 0, 0, 0.35); }
+:root[data-theme='dark'] .cmdk-overlay,
+:root[data-theme='dark'] .drawer-backdrop { background: rgba(0, 0, 0, 0.62); }
+:root[data-theme='dark'] .drawer-panel { box-shadow: -8px 0 0 rgba(0, 0, 0, 0.4); }
+
+/* Central de Ações, saúde e gaveta */
+:root[data-theme='dark'] .health-text-good { color: #34d399; }
+:root[data-theme='dark'] .health-text-warn { color: #fbbf24; }
+:root[data-theme='dark'] .health-text-bad { color: #f87171; }
+:root[data-theme='dark'] .tip-card,
+:root[data-theme='dark'] .drawer-verdict { background: #3a2d12; }
+:root[data-theme='dark'] .drawer-verdict,
+:root[data-theme='dark'] .drawer-verdict-title { color: #f9e2a6; }
+:root[data-theme='dark'] .action-why { color: var(--muted); }
+:root[data-theme='dark'] .action-impact i,
+:root[data-theme='dark'] .action-link { color: #ffa94d; }
+:root[data-theme='dark'] .action-badge-good { background: #6fc18f; }
+:root[data-theme='dark'] .drawer-vs-good { color: #34d399; }
+:root[data-theme='dark'] .drawer-vs-bad { color: #f87171; }
+:root[data-theme='dark'] .drawer-close:hover,
+:root[data-theme='dark'] .fx-me > button:hover { color: #fff; }
+
+/* comparar */
+:root[data-theme='dark'] .compare-kpi-prev-value,
+:root[data-theme='dark'] .compare-metric-was { color: var(--muted); }
+:root[data-theme='dark'] .compare-period-vs { color: #8c8168; }
+:root[data-theme='dark'] .compare-period-dot-previous { background: #8c8168; }
+:root[data-theme='dark'] .compare-kpi-prev { border-top-color: rgba(241, 230, 205, 0.25); }
+:root[data-theme='dark'] .compare-metric-side-prev { border-left-color: rgba(241, 230, 205, 0.25); }
+:root[data-theme='dark'] .compare-delta-up { color: #6ee7b7; background: rgba(52, 211, 153, 0.16); }
+:root[data-theme='dark'] .compare-delta-down { color: #fca5a5; background: rgba(248, 113, 113, 0.16); }
+:root[data-theme='dark'] .compare-delta-neutral { color: var(--muted); }
+
+/* login */
+:root[data-theme='dark'] .auth-rotator > span { color: #ffa94d; -webkit-text-fill-color: #ffa94d; }
+:root[data-theme='dark'] .auth-input:-webkit-autofill,
+:root[data-theme='dark'] .auth-input:-webkit-autofill:hover,
+:root[data-theme='dark'] .auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #2a2217 inset;
+}
+:root[data-theme='dark'] .app-loading-spinner { border-color: rgba(241, 230, 205, 0.2); border-top-color: var(--o); }
+
+/* campos de data/seleção e tabelas herdam o esquema escuro */
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] .filter-input[type='date'] { color-scheme: dark; }

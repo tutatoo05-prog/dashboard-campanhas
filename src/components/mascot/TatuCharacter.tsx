@@ -79,7 +79,7 @@ export function TatuCharacter({
       height={size}
       viewBox="0 0 200 200"
       role="img"
-      aria-label="Tatu, mascote da Academy Labs"
+      aria-label="TaTuzinho, mascote da Academy Labs"
     >
       <defs>
         <linearGradient id={shell} x1="0" y1="0" x2="1" y2="1">

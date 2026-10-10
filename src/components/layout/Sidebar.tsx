@@ -102,10 +102,10 @@ export default function Sidebar() {
           type="button"
           className="fx-ticket"
           aria-pressed={mascotEnabled}
-          title={mascotEnabled ? 'Desligar o Tatu' : 'Ligar o Tatu'}
+          title={mascotEnabled ? 'Desligar o TaTuzinho' : 'Ligar o TaTuzinho'}
           onClick={() => setMascotEnabled(!mascotEnabled)}
         >
-          <b>Mascote Tatu</b>
+          <b>Mascote TaTuzinho</b>
           <span>{mascotEnabled ? 'Ligado — clique para desligar' : 'Desligado — clique para ligar'}</span>
         </button>
         <div className="fx-me">
