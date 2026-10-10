@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { TatuCharacter, type TatuPose } from './TatuCharacter.tsx'
-import { readDoneActions, useMascotInsights } from './useMascotInsights.ts'
+import { monthKey, readDoneActions, useMascotInsights } from './useMascotInsights.ts'
+import { useMascotEvents } from './useMascotEvents.ts'
 import { isMuted, useMascotStore, type MascotAction } from '@/store/mascotStore.ts'
 import { isTourDone, markTourDone, useTourStore } from '@/store/tourStore.ts'
 import { useAuthStore } from '@/store/authStore.ts'
@@ -14,6 +15,10 @@ const MARGIN = 6
 const TOP_MARGIN = 76
 const SLEEP_AFTER_MS = 60_000
 const MUTE_MS = 60 * 60 * 1000
+/** Leads no mês que merecem festa. */
+const MILESTONES = [50, 100, 250, 500, 1000, 2500, 5000, 10000]
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+const CONFETTI_COLORS = ['#ff5d8f', '#ffd23f', '#4ade80', '#60a5fa', '#c084fc', '#fb923c']
 
 type Corner = 'br' | 'bl' | 'tr' | 'tl'
 
@@ -140,8 +145,11 @@ export function MascotCompanion() {
   const tourActive = useTourStore((s) => s.active)
   const tourStep = useTourStore((s) => s.step)
   const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
+  const confettiId = useMascotStore((s) => s.confettiId)
+  const partyUntil = useMascotStore((s) => s.partyUntil)
 
   const insights = useMascotInsights(enabled && admin)
+  useMascotEvents({ active: enabled, admin })
 
   const [entered, setEntered] = useState(false)
   const [hover, setHover] = useState(false)
@@ -162,6 +170,20 @@ export function MascotCompanion() {
   const suppressClick = useRef(false)
   const lastActive = useRef(Date.now())
   const insightsHandled = useRef(false)
+  const clickTimes = useRef<number[]>([])
+  const paletteTimer = useRef<number | undefined>(undefined)
+  const [confetti, setConfetti] = useState(0)
+  const confettiPieces = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, i) => ({
+        dx: Math.round((Math.random() - 0.5) * 190),
+        up: -Math.round(40 + Math.random() * 70),
+        rot: Math.round((Math.random() - 0.5) * 900),
+        delay: Math.round(Math.random() * 160),
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      })),
+    [confetti],
+  )
 
   // urgentes que ainda não foram marcados como feitos (relê ao trocar de página)
   const pendingUrgent = useMemo(() => {
@@ -213,6 +235,49 @@ export function MascotCompanion() {
     const t = window.setTimeout(() => force((n) => n + 1), left + 20)
     return () => window.clearTimeout(t)
   }, [storePose, poseUntil])
+
+  // chapéu de festa expira
+  useEffect(() => {
+    const left = partyUntil - Date.now()
+    if (left <= 0) return
+    const t = window.setTimeout(() => force((n) => n + 1), left + 20)
+    return () => window.clearTimeout(t)
+  }, [partyUntil])
+
+  // confete: mostra por ~2,7s a cada comemoração
+  useEffect(() => {
+    if (!confettiId) return
+    setConfetti(confettiId)
+    const t = window.setTimeout(() => setConfetti(0), 2700)
+    return () => window.clearTimeout(t)
+  }, [confettiId])
+
+  // código Konami (↑↑↓↓←→←→BA), fora de campos de texto
+  useEffect(() => {
+    if (!enabled) return
+    let index = 0
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
+      if (key !== KONAMI[index]) {
+        index = key === KONAMI[0] ? 1 : 0
+        return
+      }
+      index += 1
+      if (index < KONAMI.length) return
+      index = 0
+      const store = useMascotStore.getState()
+      store.celebrate({ party: true })
+      store.say('Código Konami! Você ganhou 30 vidas e meu respeito.', {
+        pose: 'cheer',
+        afterPose: 'idle',
+        important: true,
+      })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [enabled])
 
   // ── dorme depois de 1 minuto sem atividade ──
   useEffect(() => {
@@ -293,9 +358,7 @@ export function MascotCompanion() {
         say('Ainda estou lendo os números... já te conto!', { pose: 'think', afterPose: 'idle', important: true })
         return
       }
-      const lines = [insights.briefing[0], insights.briefing[insights.briefing.length - 1]].filter(
-        (line, index, all): line is string => Boolean(line) && all.indexOf(line) === index,
-      )
+      const lines = insights.summary.length ? insights.summary : insights.briefing.slice(0, 2)
       const urgent = pendingUrgent.length > 0
       say(lines.join(' '), {
         pose: urgent ? 'alert' : 'write',
@@ -316,7 +379,7 @@ export function MascotCompanion() {
         ],
       })
     },
-    [insights.ready, insights.briefing, pendingUrgent.length, say, dismiss, navigate],
+    [insights.ready, insights.summary, insights.briefing, pendingUrgent.length, say, dismiss, navigate],
   )
 
   const speakUrgent = useCallback(
@@ -369,6 +432,57 @@ export function MascotCompanion() {
     }, 1200)
     return () => window.clearTimeout(t)
   }, [enabled, entered, tourActive, speech, insights.ready, pendingUrgent.length, pathname, speakBriefing, speakUrgent])
+
+  // falha ao ler a Meta: o Tatu avisa (uma vez por sessão) em vez de a tela ficar vazia
+  useEffect(() => {
+    if (!enabled || !entered || tourActive || speech || !insights.error) return
+    if (!markSeen('insights-error')) return
+    say(`Não consegui ler os números da Meta: ${shorten(insights.error, 110)}`, {
+      pose: 'sad',
+      afterPose: 'sad',
+      closable: true,
+      hold: 12_000,
+      actions: [
+        {
+          label: 'Tentar de novo',
+          primary: true,
+          run: () => {
+            dismiss()
+            window.location.reload()
+          },
+        },
+        { label: 'Fechar', run: dismiss },
+      ],
+    })
+  }, [enabled, entered, tourActive, speech, insights.error, say, dismiss])
+
+  // marcos de leads no mês: a 1ª leitura vira base; passou de um marco novo, é festa
+  useEffect(() => {
+    const leads = insights.monthLeads
+    if (!enabled || !entered || tourActive || leads == null || !insights.accountId || isMuted()) return
+    const reached = MILESTONES.filter((value) => leads >= value).pop() ?? 0
+    const key = `dash-mascot-milestone:${insights.accountId}:${monthKey()}`
+    let stored: number | null = null
+    try {
+      const raw = localStorage.getItem(key)
+      stored = raw == null ? null : Number(raw)
+    } catch {
+      /* ignore */
+    }
+    if (stored != null && reached <= stored) return
+    try {
+      localStorage.setItem(key, String(reached))
+    } catch {
+      /* ignore */
+    }
+    if (stored == null || !reached) return
+    useMascotStore.getState().celebrate({ party: true })
+    say(`${new Intl.NumberFormat('pt-BR').format(reached)} leads no mês! Isso merece chapéu de festa.`, {
+      pose: 'cheer',
+      afterPose: 'idle',
+      hold: 9000,
+    })
+  }, [enabled, entered, tourActive, insights.monthLeads, insights.accountId, say])
 
   // ── posição: canto da tela ou ao lado do bloco do tour ──
   const goTo = useCallback((next: { left: number; top: number }) => {
@@ -528,14 +642,35 @@ export function MascotCompanion() {
 
   function handleClick() {
     if (tourActive || suppressClick.current) return
+    window.clearTimeout(paletteTimer.current)
+
+    // cutucou 5 vezes em 2,5s: ele se enrola numa bolinha
+    const now = Date.now()
+    clickTimes.current = [...clickTimes.current.filter((t) => now - t < 2500), now]
+    if (clickTimes.current.length >= 5) {
+      clickTimes.current = []
+      useMascotStore.getState().act('curl', 3000)
+      say('Ai! Para de me cutucar, vou virar bolinha!', {
+        pose: 'curl',
+        afterPose: 'curl',
+        hold: 2400,
+        important: true,
+      })
+      return
+    }
+
     if (speech?.closable && speech.actions) dismiss()
     else openMenu()
   }
 
+  // o duplo clique espera um instante: se vier um 3º clique, é cutucada e não busca
   function handleDoubleClick() {
     if (tourActive) return
-    dismiss()
-    setPaletteOpen(true)
+    window.clearTimeout(paletteTimer.current)
+    paletteTimer.current = window.setTimeout(() => {
+      dismiss()
+      setPaletteOpen(true)
+    }, 280)
   }
 
   // ── arrastar pra outro canto ──
@@ -608,6 +743,7 @@ export function MascotCompanion() {
   const facing = bubbleRight ? 'right' : 'left'
   const bubbleBelow = tourActive ? bubbleDown : corner.startsWith('t') && !dragging
   const showBadge = pendingUrgent.length > 0 && pathname !== '/acoes' && !tourActive
+  const party = Date.now() < partyUntil
 
   return (
     <>
@@ -655,6 +791,24 @@ export function MascotCompanion() {
             )}
           </div>
         )}
+        {confetti > 0 && (
+          <div className="mascot-confetti" key={confetti} aria-hidden="true">
+            {confettiPieces.map((piece, i) => (
+              <i
+                key={i}
+                style={
+                  {
+                    '--dx': `${piece.dx}px`,
+                    '--up': `${piece.up}px`,
+                    '--rot': `${piece.rot}deg`,
+                    '--c': piece.color,
+                    animationDelay: `${piece.delay}ms`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        )}
         {showBadge && (
           <span className="mascot-badge" aria-label={`${pendingUrgent.length} ações urgentes`}>
             {pendingUrgent.length}
@@ -671,7 +825,7 @@ export function MascotCompanion() {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <TatuCharacter size={SIZE} pose={pose} talking={typing} facing={facing} />
+          <TatuCharacter size={SIZE} pose={pose} talking={typing} facing={facing} party={party} />
         </button>
       </div>
     </>

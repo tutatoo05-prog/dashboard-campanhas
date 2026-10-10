@@ -54,12 +54,17 @@ interface MascotState {
   poseUntil: number
   /** Enquanto estiver no futuro, o Tatu só fala o que for "important". */
   mutedUntil: number
+  /** Sobe a cada comemoração (confete). */
+  confettiId: number
+  /** Chapéu de festa até este instante. */
+  partyUntil: number
   setEnabled: (value: boolean) => void
   say: (text: string, options?: Omit<MascotSpeech, 'id' | 'text'>) => void
   dismiss: () => void
   act: (pose: TatuPose, ms?: number) => void
   mute: (ms: number) => void
   unmute: () => void
+  celebrate: (options?: { party?: boolean }) => void
 }
 
 let speechId = 0
@@ -79,6 +84,8 @@ export const useMascotStore = create<MascotState>((set, get) => ({
   pose: 'idle',
   poseUntil: 0,
   mutedUntil: readMutedUntil(),
+  confettiId: 0,
+  partyUntil: 0,
   setEnabled: (value) => {
     set({ enabled: value, speech: null, pose: 'idle' })
     try {
@@ -102,6 +109,11 @@ export const useMascotStore = create<MascotState>((set, get) => ({
     set({ mutedUntil: 0 })
     persistMuted(0)
   },
+  celebrate: ({ party = false } = {}) =>
+    set((state) => ({
+      confettiId: state.confettiId + 1,
+      partyUntil: party ? Date.now() + 10_000 : state.partyUntil,
+    })),
 }))
 
 export function isMuted(): boolean {

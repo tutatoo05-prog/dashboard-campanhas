@@ -1,12 +1,14 @@
 import { useEffect, useId, useRef } from 'react'
 
-export type TatuPose = 'idle' | 'wave' | 'write' | 'point' | 'reveal' | 'cheer' | 'sleep' | 'walk' | 'alert' | 'think'
+export type TatuPose = 'idle' | 'wave' | 'write' | 'point' | 'reveal' | 'cheer' | 'sleep' | 'walk' | 'alert' | 'think' | 'sad' | 'curl'
 
 interface TatuCharacterProps {
   pose?: TatuPose
   talking?: boolean
   size?: number
   facing?: 'left' | 'right'
+  /** Chapéu de festa (marcos e comemorações). */
+  party?: boolean
   followCursor?: boolean
   className?: string
 }
@@ -23,6 +25,7 @@ export function TatuCharacter({
   talking = false,
   size = 120,
   facing = 'left',
+  party = false,
   followCursor = true,
   className = '',
 }: TatuCharacterProps) {
@@ -67,6 +70,7 @@ export function TatuCharacter({
       data-pose={pose}
       data-talking={talking ? 'true' : 'false'}
       data-facing={facing}
+      data-party={party ? 'true' : 'false'}
       width={size}
       height={size}
       viewBox="0 0 200 200"
@@ -121,6 +125,15 @@ export function TatuCharacter({
             <ellipse cx="94" cy="152" rx="32" ry="28" fill="#ffe2b0" stroke={INK} strokeWidth="3" />
           </g>
 
+          {/* cachecol na cor da conta ativa (--gold) */}
+          <g className="tc-scarf" strokeLinejoin="round" strokeLinecap="round">
+            <path d="M98 70 Q122 96 96 124" fill="none" stroke={INK} strokeWidth="14" />
+            <path d="M98 70 Q122 96 96 124" fill="none" strokeWidth="9" style={{ stroke: 'var(--gold, #ffa31a)' }} />
+            <path d="M104 80 Q113 96 103 112" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2.6" />
+            <path d="M94 116 L108 150 L96 154 L86 124 Z" stroke={INK} strokeWidth="3" style={{ fill: 'var(--gold, #ffa31a)' }} />
+            <path d="M92 134 L101 132" stroke="rgba(255,255,255,0.6)" strokeWidth="2.6" />
+          </g>
+
           {/* pé da frente */}
           <ellipse className="tc-foot tc-foot-f" cx="86" cy="182" rx="15" ry="8" fill="#ffc266" stroke={INK} strokeWidth="3" />
 
@@ -154,6 +167,14 @@ export function TatuCharacter({
             {/* boca */}
             <path className="tc-smile" d="M33 109 Q43 117 53 110" stroke={INK} strokeWidth="2.6" strokeLinecap="round" fill="none" />
             <ellipse className="tc-mouth" cx="43" cy="111" rx="6.5" ry="5.5" fill="#7a2a1a" stroke={INK} strokeWidth="2.2" />
+
+            {/* chapéu de festa */}
+            <g className="tc-hat">
+              <path d="M56 64 L70 22 L88 64 Z" fill="#ff5d8f" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+              <path d="M62 48 L80 52" stroke="#ffd23f" strokeWidth="4" strokeLinecap="round" />
+              <path d="M58 58 L84 62" stroke="#ffd23f" strokeWidth="4" strokeLinecap="round" />
+              <circle cx="70" cy="21" r="5" fill="#ffd23f" stroke={INK} strokeWidth="2.5" />
+            </g>
           </g>
 
           {/* bloco de notas (pose write) */}
@@ -182,6 +203,9 @@ export function TatuCharacter({
             <path className="tc-spark tc-spark-1" d="M20 40 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" />
             <path className="tc-spark tc-spark-2" d="M118 14 l2.5 6.5 6.5 2.5 -6.5 2.5 -2.5 6.5 -2.5 -6.5 -6.5 -2.5 6.5 -2.5 z" />
             <path className="tc-spark tc-spark-3" d="M168 56 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" />
+          </g>
+          <g className="tc-tear">
+            <path d="M55 99 Q51 106 55 109 Q59 106 55 99 Z" fill="#7dd3fc" stroke={INK} strokeWidth="1.8" strokeLinejoin="round" />
           </g>
           <g className="tc-alert">
             <circle cx="64" cy="20" r="13" fill="#ef4444" stroke={INK} strokeWidth="3" />

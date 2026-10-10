@@ -955,6 +955,81 @@ kbd {
   50% { opacity: 1; transform: scale(1.1); }
 }
 
+/* triste: cabeça baixa, pálpebras caídas e uma lágrima */
+.tc-tear {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+}
+
+.tc[data-pose='sad'] .tc-head {
+  transform: translateY(4px) rotate(-6deg);
+}
+
+.tc[data-pose='sad'] .tc-lid {
+  animation: none;
+  transform: scaleY(0.38);
+}
+
+.tc[data-pose='sad'] .tc-bob {
+  animation-duration: 5s;
+}
+
+.tc[data-pose='sad'] .tc-tear {
+  animation: tc-tear 2.2s ease-in infinite;
+}
+
+.tc[data-pose='sad'] .tc-arm-far {
+  animation: none;
+}
+
+@keyframes tc-tear {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  20% { opacity: 1; transform: translateY(2px) scale(1); }
+  100% { opacity: 0; transform: translateY(22px) scale(1); }
+}
+
+/* bolinha: só o casco, rolando */
+.tc[data-pose='curl'] .tc-head,
+.tc[data-pose='curl'] .tc-arm,
+.tc[data-pose='curl'] .tc-foot,
+.tc[data-pose='curl'] .tc-tail,
+.tc[data-pose='curl'] .tc-scarf {
+  opacity: 0;
+}
+
+.tc[data-pose='curl'] .tc-bob {
+  transform-origin: 116px 126px;
+  animation: tc-roll 0.9s ease-in-out infinite;
+}
+
+.tc-head,
+.tc-arm,
+.tc-foot,
+.tc-tail,
+.tc-scarf {
+  transition: opacity 0.2s ease;
+}
+
+@keyframes tc-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* chapéu de festa */
+.tc-hat {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scale(0.4) translateY(8px);
+  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tc[data-party='true'] .tc-hat {
+  opacity: 1;
+  transform: rotate(-8deg);
+}
+
 /* dormindo */
 .tc[data-pose='sleep'] .tc-lid {
   animation: none;
@@ -1058,6 +1133,42 @@ kbd {
 @keyframes badge-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
   50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+}
+
+.mascot-confetti {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mascot-confetti i {
+  position: absolute;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--c);
+  opacity: 0;
+  animation: confetti 1.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  30% { opacity: 1; transform: translate(calc(var(--dx) * 0.6), var(--up)) rotate(calc(var(--rot) * 0.4)); }
+  100% { opacity: 0; transform: translate(var(--dx), 110px) rotate(var(--rot)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-confetti {
+    display: none;
+  }
+
+  .mascot-badge {
+    animation: none;
+  }
 }
 
 .mascot-body {
