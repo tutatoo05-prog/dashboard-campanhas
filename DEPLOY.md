@@ -102,9 +102,11 @@ Código em `server/acesso/`. O dash recebe os eventos da Hotmart, grava, e execu
 - Tela **Acessos → Eventos da Hotmart**: etapa por etapa, com botão "Tentar de novo agora".
 
 **Regras**
-- Pix parcelado (plano `REC_*` pago por `PIX`/`PIX_AUTOMATIC`): **30 dias** por parcela paga. Cada nova parcela (`recorrencia` > 1, ou mesmo assinante com outra transação) chama `liberar-curso` de novo com 30 dias e soma ao fim do acesso (`acessos.liberado_ate`). Todo o resto: 365 dias.
-- Parcela atrasada (`PURCHASE_DELAYED`): só quem está em Pix parcelado entra na regra. Bloqueio no **2º dia de atraso**, à meia-noite de São Paulo (`ACESSO_BLOQUEIO_DIA`, padrão 2). Pagou antes → cancela o bloqueio; pagou depois de bloqueado → liberado de novo. Todos os atrasos recebem o e-mail de apoio.
-- Sem `TEKWAY_BLOQUEAR_URL` (endpoint ainda a combinar com a Tekway) o dash **não bloqueia sozinho**: avisa a equipe por WhatsApp e o aluno aparece como "Bloquear na mão" em Acessos → Alunos.
+- **Prazo na plataforma: 365 dias para todo mundo** (cartão, Pix, Pix parcelado). A API da plataforma ainda não renova (uma 2ª chamada responde "Usuário já possui acesso ao curso") nem bloqueia, então o dash não tenta controlar o prazo lá.
+- **Pix parcelado** (plano `REC_*` pago por `PIX`/`PIX_AUTOMATIC`) é só marcado à parte no dash: cada parcela paga cobre 30 dias (`pago_ate`, visível em Acessos → Alunos). A parcela seguinte (`recorrencia` > 1, ou mesmo assinante com outra transação) chama `liberar-curso` de novo e soma parcela, sem repetir e-mail nem venda.
+- **Parcela atrasada** (`PURCHASE_DELAYED`): quem é de Pix parcelado vira "atrasado" e, no **2º dia de atraso** (meia-noite de São Paulo, `ACESSO_BLOQUEIO_DIA`), passa a **"Inativar na plataforma"**: aparece em destaque na tela Acessos ("O que você precisa fazer agora") com WhatsApp, e a equipe recebe um aviso por WhatsApp. Depois de inativar na plataforma, clique **"Já inativei"**.
+- **Pagou de novo depois de inativado:** vira **"Reativar na plataforma"** (com aviso por WhatsApp). Depois de reativar lá, clique **"Já reativei"**. Pagou antes de inativar: o atraso é cancelado sozinho.
+- Quando a Tekway tiver endpoint de bloqueio, basta preencher `TEKWAY_BLOQUEAR_URL`: o dash passa a inativar sozinho.
 - Mentoria Particular e Workshop Presencial: só e-mail e aviso (não liberam curso), como no n8n.
 
 **Migration:** rodar o bloco "Liberação de acesso dentro do dash" do fim de `db/schema.sql` (tabelas `hotmart_eventos`, `acessos`, `abandonos`).
@@ -132,7 +134,7 @@ A tela Acessos lista o que ainda falta configurar.
 4. Virada: **no mesmo momento**, remover o webhook do n8n na Hotmart (ou desativar o workflow) e trocar `ACESSO_MODO=ativo` + Restart. Os dois ativos ao mesmo tempo liberariam e avisariam em dobro.
 5. O n8n fica desativado (não apagado) como volta.
 
-**Pendente com a Tekway:** o que `liberar-curso` faz numa segunda chamada para o mesmo aluno (soma dias? substitui? erro?), `day` como texto (como o n8n manda), e endpoint de bloqueio.
+**Pendente com a Tekway:** endpoints de inativar e reativar acesso (e, de preferência, renovar prazo). Hoje a 2ª chamada de `liberar-curso` para o mesmo aluno responde "Usuário já possui acesso ao curso".
 
 ## Cargos (tela `/usuarios`)
 

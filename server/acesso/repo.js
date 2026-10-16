@@ -88,12 +88,17 @@ export function criarRepo(env) {
       return rows[0] ?? null
     },
 
-    /** Registra um pagamento que liberou acesso: soma os dias ao fim do acesso e zera qualquer atraso. */
-    async registrarPagamento({ email, curso, nome, telefone, documento, plano, pagamentoTipo, assinante, dias, transacao }) {
+    /**
+     * Registra um pagamento que liberou acesso. Na plataforma todo mundo recebe 365 dias; o Pix parcelado
+     * também guarda até quando está pago (cada parcela cobre 30 dias) para o controle de atraso.
+     * Quem tinha sido inativado na mão (status "bloqueado") e pagou de novo vira "reativar_pendente".
+     */
+    async registrarPagamento({ email, curso, nome, telefone, documento, plano, pagamentoTipo, assinante, dias, parcelado, diasPagos, transacao }) {
       const { rows } = await q(
         `insert into acessos (email, curso, nome, telefone, documento, plano, pagamento_tipo, subscriber_code, dias_regra,
-                              liberado_ate, status, parcelas_pagas, ultima_transacao, ultima_liberacao_em)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() + make_interval(days => $9), 'ativo', 1, $10, now())
+                              liberado_ate, status, parcelas_pagas, ultima_transacao, ultima_liberacao_em, origem, parcelado, pago_ate)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() + make_interval(days => $9), 'ativo', 1, $10, now(), 'dash', $11,
+                 case when $11 then now() + make_interval(days => $12) end)
          on conflict (email, curso) do update set
            nome = excluded.nome,
            telefone = coalesce(nullif(excluded.telefone, ''), acessos.telefone),
@@ -102,37 +107,57 @@ export function criarRepo(env) {
            pagamento_tipo = excluded.pagamento_tipo,
            subscriber_code = coalesce(excluded.subscriber_code, acessos.subscriber_code),
            dias_regra = excluded.dias_regra,
-           liberado_ate = greatest(coalesce(acessos.liberado_ate, now()), now()) + make_interval(days => excluded.dias_regra),
-           status = 'ativo',
+           liberado_ate = greatest(coalesce(acessos.liberado_ate, now()), now() + make_interval(days => excluded.dias_regra)),
+           parcelado = excluded.parcelado or acessos.parcelado,
+           pago_ate = case when excluded.parcelado or acessos.parcelado
+                           then greatest(coalesce(acessos.pago_ate, now()), now()) + make_interval(days => $12) end,
+           status = case when acessos.status = 'bloqueado' then 'reativar_pendente' else 'ativo' end,
            parcelas_pagas = acessos.parcelas_pagas + 1,
            ultima_transacao = excluded.ultima_transacao,
            ultima_liberacao_em = now(),
-           atraso_desde = null, bloquear_em = null, bloqueado_em = null,
+           atraso_desde = null, bloquear_em = null,
+           bloqueado_em = case when acessos.status = 'bloqueado' then acessos.bloqueado_em end,
            bloqueio_tentativas = 0, bloqueio_proxima = null, bloqueio_erro = null,
            atualizado_em = now()
-         returning id, liberado_ate, parcelas_pagas`,
-        [email, curso, nome, telefone, documento, plano, pagamentoTipo, assinante, dias, transacao],
+         returning id, liberado_ate, parcelas_pagas, status`,
+        [email, curso, nome, telefone, documento, plano, pagamentoTipo, assinante, dias, transacao, Boolean(parcelado), diasPagos ?? 30],
       )
-      return { acessoId: Number(rows[0].id), liberadoAte: rows[0].liberado_ate, parcelasPagas: rows[0].parcelas_pagas }
+      return { acessoId: Number(rows[0].id), liberadoAte: rows[0].liberado_ate, parcelasPagas: rows[0].parcelas_pagas, status: rows[0].status }
     },
 
     /**
-     * Parcela atrasada: só o acesso de Pix parcelado (30 dias por parcela) entra na regra de bloqueio.
-     * Os outros só recebem o e-mail de apoio.
+     * Parcela atrasada de Pix parcelado: marca "atrasado" e agenda quando vai para "inativar na plataforma".
+     * Só entra na regra o aluno de Pix parcelado (já marcado, ou que o próprio aviso de atraso mostra ser).
+     * Se o aluno ainda não existe no dash (comprou antes, não está na lista), ele é criado para aparecer na tela.
      */
-    async registrarAtraso({ email, assinante, curso, atrasoDesde, bloquearEm }) {
-      const { rows } = await q(
-        `update acessos
-            set status = 'atrasado',
-                atraso_desde = coalesce(atraso_desde, $3),
-                bloquear_em = coalesce(bloquear_em, $4),
-                atualizado_em = now()
-          where status <> 'bloqueado' and dias_regra = 30
+    async registrarAtraso({ email, nome, telefone, assinante, curso, parcelado, atrasoDesde, bloquearEm }) {
+      if (!parcelado) {
+        const marcados = await q(
+          `update acessos set status = 'atrasado', atraso_desde = coalesce(atraso_desde, $3), bloquear_em = coalesce(bloquear_em, $4), atualizado_em = now()
+            where status not in ('bloqueado', 'bloqueio_pendente') and parcelado
+              and (($1::text is not null and subscriber_code = $1) or (email = $2 and curso = $5))
+            returning id`,
+          [assinante, email, atrasoDesde, bloquearEm, curso],
+        )
+        return marcados.rows.length ? { acessoId: Number(marcados.rows[0].id), bloquearEm } : { pulado: 'não é Pix parcelado' }
+      }
+      const atualizados = await q(
+        `update acessos set status = 'atrasado', parcelado = true, atraso_desde = coalesce(atraso_desde, $3), bloquear_em = coalesce(bloquear_em, $4),
+                subscriber_code = coalesce(subscriber_code, $1), atualizado_em = now()
+          where status not in ('bloqueado', 'bloqueio_pendente')
             and (($1::text is not null and subscriber_code = $1) or (email = $2 and curso = $5))
           returning id`,
         [assinante, email, atrasoDesde, bloquearEm, curso],
       )
-      return rows.length ? { acessoId: Number(rows[0].id), bloquearEm } : { pulado: 'sem acesso de Pix parcelado para este aluno' }
+      if (atualizados.rows.length) return { acessoId: Number(atualizados.rows[0].id), bloquearEm }
+      const ja = await q(`select id from acessos where email = $1 and curso = $2`, [email, curso])
+      if (ja.rows.length) return { pulado: 'aluno já inativado' }
+      const criado = await q(
+        `insert into acessos (email, curso, nome, telefone, subscriber_code, status, origem, parcelado, atraso_desde, bloquear_em, dias_regra)
+         values ($1, $2, $3, $4, $5, 'atrasado', 'dash', true, $6, $7, 365) returning id`,
+        [email, curso, nome, telefone, assinante, atrasoDesde, bloquearEm],
+      )
+      return { acessoId: Number(criado.rows[0].id), bloquearEm, criado: true }
     },
 
     async registrarCompra(linha) {
@@ -170,6 +195,10 @@ export function criarRepo(env) {
 
     async marcarBloqueado(id) {
       await q(`update acessos set status = 'bloqueado', bloqueado_em = now(), bloqueio_erro = null, atualizado_em = now() where id = $1`, [id])
+    },
+
+    async marcarReativado(id) {
+      await q(`update acessos set status = 'ativo', bloqueado_em = null, atualizado_em = now() where id = $1 and status = 'reativar_pendente'`, [id])
     },
 
     async marcarBloqueioManual(id) {

@@ -1,6 +1,7 @@
 import { normalizarEvento, primeiroNome } from './hotmart.js'
 import {
   CAMPANHA_PADRAO,
+  DIAS_PIX_PARCELADO,
   ESPERA_TENTATIVAS_MIN,
   MAX_TENTATIVAS,
   ROTULOS_COM_ABANDONO,
@@ -43,6 +44,10 @@ export function textoAcessoAluno(nome, curso) {
 
 export function textoNovaVenda(nome, curso) {
   return `🎉 *NOVA VENDA REALIZADA!*\n\n👤 *Cliente:* ${nome}\n📚 *Curso:* ${curso}\n\n`
+}
+
+export function textoReativar(nome, email, curso) {
+  return `🔓 *Reativar acesso na plataforma*\n\n${nome || email} voltou a pagar (${curso}).\n✉️ ${email}\n\nO acesso dele tinha sido inativado por atraso: reative na plataforma e marque como feito em Acessos.\n`
 }
 
 export function textoCorrecao(nome) {
@@ -101,8 +106,14 @@ function criarExecutores({ env, repo, integ, agora }, venda, plano) {
         pagamentoTipo: venda.pagamentoTipo,
         assinante: venda.assinante || null,
         dias: plano.dias,
+        parcelado: Boolean(plano.parcelado),
+        diasPagos: DIAS_PIX_PARCELADO,
         transacao: venda.transacao,
       })
+    },
+
+    async aviso_reativar() {
+      return integ.avisarEquipe(env, textoReativar(venda.nome, venda.email, cursoMensagem))
     },
 
     async email_boas_vindas() {
@@ -134,8 +145,11 @@ function criarExecutores({ env, repo, integ, agora }, venda, plano) {
       const quando = venda.criadoEm ?? agora()
       return repo.registrarAtraso({
         email: venda.email,
+        nome: venda.nome,
+        telefone,
         assinante: venda.assinante || null,
         curso: cursoMensagem,
+        parcelado: Boolean(plano.parcelado),
         atrasoDesde: quando,
         bloquearEm: momentoDoBloqueio(quando, Number(env.ACESSO_BLOQUEIO_DIA) || 2),
       })
@@ -328,7 +342,7 @@ export async function bloquearAtrasados(motor) {
     const resumo = `${acesso.nome || acesso.email} (${acesso.email}) — ${acesso.curso}, atrasado desde ${dataBr(acesso.atraso_desde)}`
     try {
       if (!String(env.TEKWAY_BLOQUEAR_URL ?? '').trim()) {
-        await integ.avisarEquipe(env, `🔒 *Bloquear acesso (parcela atrasada)*\n\n${resumo}\n\nA plataforma ainda não tem bloqueio automático: bloqueie na mão e marque como feito em Acessos.\n`)
+        await integ.avisarEquipe(env, `🔒 *Inativar acesso na plataforma (parcela atrasada)*\n\n${resumo}\n\nA plataforma ainda não tem bloqueio automático: inative na mão e marque como feito em Acessos.\n`)
         await repo.marcarBloqueioManual(acesso.id)
         continue
       }

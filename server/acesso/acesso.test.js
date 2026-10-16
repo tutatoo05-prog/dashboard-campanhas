@@ -4,6 +4,7 @@ import { normalizarEvento } from './hotmart.js'
 import {
   decidir,
   diasDeAcesso,
+  normalizarCurso,
   ehPixParcelado,
   momentoDoBloqueio,
   novoFimDoAcesso,
@@ -67,15 +68,31 @@ test('telefone: 55 só para o Brasil, estrangeiro fica como veio', () => {
   assert.equal(whatsappBrasileiroValido('351961593443'), false)
 })
 
-test('prazo: Pix parcelado 30 dias, o resto 365', () => {
-  assert.equal(diasDeAcesso(venda({ plano: 'REC_Essentials', pagamento: 'PIX' })), 30)
-  assert.equal(diasDeAcesso(venda({ plano: 'REC_Essentials', pagamento: 'PIX_AUTOMATIC' })), 30)
-  assert.equal(diasDeAcesso(venda({ plano: 'REC_Essentials', pagamento: 'PIX', recorrencia: 3 })), 30)
-  assert.equal(diasDeAcesso(venda({ plano: 'REC_Essentials', pagamento: 'CREDIT_CARD' })), 365)
-  assert.equal(diasDeAcesso(venda({ plano: 'Essentials total', pagamento: 'PIX' })), 365)
-  assert.equal(diasDeAcesso(venda({ plano: 'REC_Essentials total', pagamento: 'PIX' })), 365)
-  assert.equal(diasDeAcesso(venda({ produto: 'Mentoria Essentials', plano: '', pagamento: 'BILLET' })), 365)
+test('prazo: a plataforma recebe sempre 365 dias; o Pix parcelado só é marcado à parte', () => {
+  for (const opcoes of [
+    { plano: 'REC_Essentials', pagamento: 'PIX' },
+    { plano: 'REC_Essentials', pagamento: 'PIX_AUTOMATIC' },
+    { plano: 'REC_Essentials', pagamento: 'PIX', recorrencia: 3 },
+    { plano: 'REC_Essentials', pagamento: 'CREDIT_CARD' },
+    { plano: 'Essentials total', pagamento: 'PIX' },
+    { produto: 'Mentoria Essentials', plano: '', pagamento: 'BILLET' },
+  ]) {
+    assert.equal(diasDeAcesso(venda(opcoes)), 365)
+  }
+  assert.equal(ehPixParcelado(venda({ plano: 'REC_Essentials', pagamento: 'PIX' })), true)
+  assert.equal(ehPixParcelado(venda({ plano: 'REC_Essentials', pagamento: 'PIX_AUTOMATIC' })), true)
+  assert.equal(ehPixParcelado(venda({ plano: 'REC_Essentials', pagamento: 'PIX', recorrencia: 3 })), true)
+  assert.equal(ehPixParcelado(venda({ plano: 'REC_Essentials', pagamento: 'CREDIT_CARD' })), false)
+  assert.equal(ehPixParcelado(venda({ plano: 'Essentials total', pagamento: 'PIX' })), false)
+  assert.equal(ehPixParcelado(venda({ plano: 'REC_Essentials total', pagamento: 'PIX' })), false)
   assert.equal(ehPixParcelado(venda({ plano: 'Essentials', pagamento: 'PIX' })), false)
+})
+
+test('curso: plano recorrente e "total" viram o mesmo curso', () => {
+  assert.equal(normalizarCurso('REC_Essentials'), 'Essentials')
+  assert.equal(normalizarCurso('REC_Essentials total'), 'Essentials')
+  assert.equal(normalizarCurso('Essentials total'), 'Essentials')
+  assert.equal(normalizarCurso('Essentials'), 'Essentials')
 })
 
 test('rota: Particular e Presencial não liberam; Essentials libera; desconhecido vira atenção', () => {
@@ -90,7 +107,8 @@ test('rota: Particular e Presencial não liberam; Essentials libera; desconhecid
 test('decisão: compra nova libera e avisa; parcela seguinte só renova', () => {
   const nova = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1' }), { acesso: null })
   assert.equal(nova.tipo, 'liberar')
-  assert.equal(nova.dias, 30)
+  assert.equal(nova.dias, 365)
+  assert.equal(nova.parcelado, true)
   assert.deepEqual(nova.passos, ['liberar', 'registrar_acesso', 'email_boas_vindas', 'registrar_venda', 'whatsapp_aluno', 'aviso_tuzinho'])
 
   const porRecorrencia = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', recorrencia: 2, assinante: 'SUB1', transacao: 'HP2' }), { acesso: null })
@@ -103,6 +121,11 @@ test('decisão: compra nova libera e avisa; parcela seguinte só renova', () => 
   assert.equal(cruzada.tipo, 'renovar')
 
   // reenvio do mesmo pagamento não vira renovação
+  // quem tinha sido inativado na mão e pagou de novo: a equipe é avisada para reativar
+  const reativar = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP7' }), { acesso: { ...acesso, status: 'bloqueado' } })
+  assert.equal(reativar.reativar, true)
+  assert.deepEqual(reativar.passos, ['liberar', 'registrar_acesso', 'aviso_reativar'])
+
   const mesma = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP1' }), { acesso })
   assert.equal(mesma.tipo, 'liberar')
 })
@@ -255,7 +278,10 @@ test('motor: compra aprovada faz tudo uma vez e na ordem', async () => {
   assert.deepEqual(nomesChamados(repo.chamadas), ['liberarCurso', 'registrarPagamento', 'enviarEmail', 'registrarCompra', 'enviarWhatsapp', 'avisarEquipe'])
 
   const liberar = repo.chamadas.find(([nome]) => nome === 'liberarCurso')[1]
-  assert.equal(liberar.dias, 30)
+  assert.equal(liberar.dias, 365)
+  const pagamento = repo.chamadas.find(([nome]) => nome === 'registrarPagamento')[1]
+  assert.equal(pagamento.parcelado, true)
+  assert.equal(pagamento.diasPagos, 30)
   assert.equal(liberar.campanha, 'mentoria-essentials-boleto-parcelado')
   assert.equal(liberar.idVenda, 'ev-1')
   assert.equal(liberar.documento, '52998224725')
@@ -338,7 +364,20 @@ test('motor: parcela seguinte só renova (sem e-mail, sem venda nova)', async ()
   assert.equal(eventos.get(1).estado, 'ok')
   assert.equal(eventos.get(1).decisao, 'renovar')
   assert.deepEqual(nomesChamados(repo.chamadas), ['liberarCurso', 'registrarPagamento'])
-  assert.equal(repo.chamadas[0][1].dias, 30)
+  assert.equal(repo.chamadas[0][1].dias, 365)
+})
+
+test('motor: aluno inativado que pagou de novo avisa a equipe para reativar', async () => {
+  relogio.agora = new Date('2026-10-16T15:00:00Z')
+  const { repo, integ, eventos, acessos } = criarFalsos()
+  acessos.push({ subscriber_code: 'SUB1', ultima_transacao: 'HP1', status: 'bloqueado' })
+  const motor = criarMotor(ENV, { repo, integ, agora })
+  novoEvento(eventos, payload({ id: 'ev-9', plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP9', recorrencia: 3 }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.deepEqual(nomesChamados(repo.chamadas), ['liberarCurso', 'registrarPagamento', 'avisarEquipe'])
+  assert.ok(repo.chamadas[2][1].includes('Reativar acesso'))
 })
 
 test('motor: compra sem CPF não libera, pede correção e avisa a equipe', async () => {
@@ -403,6 +442,8 @@ test('motor: abandono de carrinho e atraso mandam o e-mail de apoio', async () =
   assert.equal(emails[0][1].assunto, 'Essentials está te esperando 🚀')
   assert.equal(emails[1][1].assunto, 'Mentoria Essentials está te esperando 🚀')
   assert.ok(nomesChamados(repo.chamadas).includes('registrarAtraso'))
+  const atraso = repo.chamadas.find(([nome]) => nome === 'registrarAtraso')[1]
+  assert.equal(atraso.parcelado, false)
 })
 
 test('motor: modo teste decide e registra, mas não toca em nada fora do dash', async () => {

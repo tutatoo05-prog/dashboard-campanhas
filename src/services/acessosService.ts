@@ -49,7 +49,7 @@ export interface AcessoAluno {
   curso: string
   plano: string | null
   pagamentoTipo: string | null
-  status: 'ativo' | 'atrasado' | 'bloqueado' | 'bloqueio_pendente'
+  status: 'ativo' | 'atrasado' | 'bloqueio_pendente' | 'bloqueado' | 'reativar_pendente'
   diasRegra: number | null
   liberadoAte: string | null
   parcelasPagas: number
@@ -61,6 +61,10 @@ export interface AcessoAluno {
   /** 'plataforma' = aluno que já estava na plataforma de cursos (lista importada); 'dash' = liberado pelo dash. */
   origem: 'plataforma' | 'dash'
   plataformaId: string | null
+  /** Aluno de Pix parcelado (controle de atraso). */
+  parcelado: boolean
+  /** Até quando as parcelas pagas cobrem (cada parcela = 30 dias). */
+  pagoAte: string | null
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
@@ -99,5 +103,7 @@ export const verificarAcessos = (emailTeste: string) =>
   })
 
 export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acessos/eventos/${id}/reprocessar`, { method: 'POST' })
+
+export const marcarReativacaoFeita = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/reativacao-feita`, { method: 'POST' })
 
 export const marcarBloqueioFeito = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/bloqueio-feito`, { method: 'POST' })

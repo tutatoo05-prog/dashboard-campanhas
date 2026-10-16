@@ -50,7 +50,8 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/lista
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
- *   POST /api/acessos/lista/:id/bloqueio-feito
+ *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
+ *   POST /api/acessos/lista/:id/reativacao-feita (marca "já reativei na plataforma")
  */
 export async function handleAcessosRequest(req, res, env, user) {
   const url = new URL(req.url, 'http://localhost')
@@ -113,6 +114,8 @@ export async function handleAcessosRequest(req, res, env, user) {
           bloqueioErro: linha.bloqueio_erro,
           ultimaLiberacaoEm: linha.ultima_liberacao_em,
           origem: linha.origem,
+          parcelado: linha.parcelado,
+          pagoAte: linha.pago_ate,
           plataformaId: linha.plataforma_id,
         })),
       })
@@ -136,6 +139,18 @@ export async function handleAcessosRequest(req, res, env, user) {
       )
       if (!rowCount) return sendJson(res, 409, { error: 'Só dá para reprocessar evento com erro, falha ou atenção.' })
       setImmediate(() => void rodarAgora(env))
+      return sendJson(res, 200, { ok: true })
+    }
+
+    const reativacaoFeita = /^\/api\/acessos\/lista\/(\d+)\/reativacao-feita$/.exec(caminho)
+    if (req.method === 'POST' && reativacaoFeita) {
+      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
+      const { rowCount } = await query(
+        env,
+        `update acessos set status = 'ativo', bloqueado_em = null, atualizado_em = now() where id = $1 and status = 'reativar_pendente'`,
+        [Number(reativacaoFeita[1])],
+      )
+      if (!rowCount) return sendJson(res, 409, { error: 'Esse acesso não está aguardando reativação.' })
       return sendJson(res, 200, { ok: true })
     }
 

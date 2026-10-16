@@ -8,6 +8,7 @@ import { soDigitos } from './hotmart.js'
 // Igual ao n8n: todos os cursos que liberam acesso usam esta campanha na plataforma de cursos.
 export const CAMPANHA_PADRAO = 'mentoria-essentials-boleto-parcelado'
 export const DIAS_PADRAO = 365
+// Quanto cada parcela de Pix parcelado cobre (só para o controle de atraso no dash; na plataforma o acesso é de 365 dias).
 export const DIAS_PIX_PARCELADO = 30
 
 export function validarCpf(valor) {
@@ -81,16 +82,18 @@ const TIPOS_PIX = new Set(['PIX', 'PIX_AUTOMATIC'])
 
 /**
  * Pix parcelado: plano parcelado (REC_...) pago por Pix, ou parcela seguinte (recorrência > 1) de um Pix.
- * Cada parcela paga libera só 30 dias. No cartão o valor vem inteiro e o acesso é de um ano;
- * o plano "total" (pagamento à vista) também fica em um ano.
+ * Na plataforma TODO MUNDO recebe 365 dias (decisão do Ygor: a API da plataforma ainda não renova nem bloqueia).
+ * O Pix parcelado só é marcado à parte no dash: cada parcela paga cobre 30 dias (`pago_ate`) e, se uma
+ * parcela atrasar, o aluno aparece em Acessos para ser inativado na plataforma na mão.
  */
 export function ehPixParcelado(venda) {
   if (!TIPOS_PIX.has(venda.pagamentoTipo)) return false
   return planoParcelado(venda.plano) || Number(venda.recorrencia) > 1
 }
 
-export function diasDeAcesso(venda) {
-  return ehPixParcelado(venda) ? DIAS_PIX_PARCELADO : DIAS_PADRAO
+/** Dias que o dash pede à plataforma: sempre 365, em qualquer forma de pagamento. */
+export function diasDeAcesso() {
+  return DIAS_PADRAO
 }
 
 /**
@@ -109,7 +112,7 @@ export function ehRenovacao(venda, acesso) {
 export function normalizarCurso(valor) {
   return String(valor ?? '')
     .replace(/^REC_/i, '')
-    .replace(/s+total$/i, '')
+    .replace(/\s+total$/i, '')
     .trim()
 }
 
@@ -155,15 +158,21 @@ export function decidir(venda, { acesso = null } = {}) {
 
       const renovacao = ehRenovacao(venda, acesso)
       const dias = diasDeAcesso(venda)
+      const parcelado = ehPixParcelado(venda)
+      // Quem tinha sido inativado na plataforma e pagou de novo: a equipe precisa reativar na mão.
+      const reativar = acesso?.status === 'bloqueado'
+      const aviso = reativar ? ['aviso_reativar'] : []
       if (renovacao) {
-        return { tipo: 'renovar', rota, curso, dias, passos: ['liberar', 'registrar_acesso'] }
+        return { tipo: 'renovar', rota, curso, dias, parcelado, reativar, passos: ['liberar', 'registrar_acesso', ...aviso] }
       }
       return {
         tipo: 'liberar',
         rota,
         curso,
         dias,
-        passos: ['liberar', 'registrar_acesso', 'email_boas_vindas', 'registrar_venda', 'whatsapp_aluno', 'aviso_tuzinho'],
+        parcelado,
+        reativar,
+        passos: ['liberar', 'registrar_acesso', ...aviso, 'email_boas_vindas', 'registrar_venda', 'whatsapp_aluno', 'aviso_tuzinho'],
       }
     }
 
@@ -171,7 +180,7 @@ export function decidir(venda, { acesso = null } = {}) {
       return { tipo: 'abandono', abandono: 'carrinho', curso: rotuloCurso(venda), passos: ['registrar_abandono', 'email_apoio'] }
 
     case 'PURCHASE_DELAYED':
-      return { tipo: 'atraso', abandono: 'atraso', curso: rotuloCurso(venda), passos: ['registrar_atraso', 'registrar_abandono', 'email_apoio'] }
+      return { tipo: 'atraso', abandono: 'atraso', curso: rotuloCurso(venda), parcelado: ehPixParcelado(venda), passos: ['registrar_atraso', 'registrar_abandono', 'email_apoio'] }
 
     default:
       return { tipo: 'ignorar' }

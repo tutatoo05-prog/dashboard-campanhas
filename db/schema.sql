@@ -345,3 +345,12 @@ alter table acessos alter column email drop not null;
 alter table acessos add column if not exists plataforma_id text;
 alter table acessos add column if not exists origem text not null default 'dash';
 create unique index if not exists acessos_plataforma_id_idx on acessos (plataforma_id);
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Controle de atraso do Pix parcelado (a plataforma dá 365 dias a todos; o dash só marca quem atrasou
+-- para a equipe inativar na mão enquanto a API da plataforma não bloqueia).
+-- parcelado = aluno de Pix parcelado · pago_ate = até quando as parcelas pagas cobrem (30 dias cada).
+-- status: ativo | atrasado | bloqueio_pendente (inativar na plataforma) | bloqueado (já inativado) | reativar_pendente
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table acessos add column if not exists parcelado boolean not null default false;
+alter table acessos add column if not exists pago_ate timestamptz;

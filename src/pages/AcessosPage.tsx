@@ -7,6 +7,7 @@ import {
   fetchAcessoEventos,
   fetchAcessoResumo,
   marcarBloqueioFeito,
+  marcarReativacaoFeita,
   reprocessarEvento,
   verificarAcessos,
   type AcessoAluno,
@@ -31,8 +32,9 @@ const ESTADO_LABEL: Record<string, { texto: string; classe: string }> = {
 const STATUS_ALUNO: Record<string, { texto: string; classe: string }> = {
   ativo: { texto: 'Ativo', classe: 'text-emerald-300' },
   atrasado: { texto: 'Parcela atrasada', classe: 'text-amber-300' },
-  bloqueio_pendente: { texto: 'Bloquear na mão', classe: 'text-red-300' },
-  bloqueado: { texto: 'Bloqueado', classe: 'text-red-300' },
+  bloqueio_pendente: { texto: 'Inativar na plataforma', classe: 'text-red-300' },
+  reativar_pendente: { texto: 'Reativar na plataforma', classe: 'text-amber-300' },
+  bloqueado: { texto: 'Inativado', classe: 'text-red-300' },
 }
 
 const DECISAO_LABEL: Record<string, string> = {
@@ -115,6 +117,84 @@ function Verificador() {
           <p className={`font-medium ${resultado.falhas ? 'text-red-300' : 'text-emerald-300'}`}>
             {resultado.falhas ? `${resultado.falhas} problema(s) para corrigir antes de ligar.` : 'Tudo certo para ligar.'}
           </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** Quem precisa de uma ação na mão na plataforma de cursos (enquanto a API dela não inativa nem reativa). */
+function AcoesManuais({ alunos }: { alunos: AcessoAluno[] }) {
+  const queryClient = useQueryClient()
+  const inativar = alunos.filter((aluno) => aluno.status === 'bloqueio_pendente')
+  const reativar = alunos.filter((aluno) => aluno.status === 'reativar_pendente')
+  const atrasados = alunos.filter((aluno) => aluno.status === 'atrasado')
+  const refrescar = () => void queryClient.invalidateQueries({ queryKey: ['acessos'] })
+  const feito = useMutation({
+    mutationFn: ({ id, tipo }: { id: number; tipo: 'inativar' | 'reativar' }) => (tipo === 'inativar' ? marcarBloqueioFeito(id) : marcarReativacaoFeita(id)),
+    onSuccess: refrescar,
+  })
+
+  if (!inativar.length && !reativar.length && !atrasados.length) return null
+
+  const linha = (aluno: AcessoAluno, tipo: 'inativar' | 'reativar' | null) => {
+    const zap = aluno.telefone ? `https://wa.me/${aluno.telefone.replace(/\D/g, '')}` : ''
+    return (
+      <li key={aluno.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800/60 py-2 first:border-t-0">
+        <div className="min-w-0">
+          <p className="truncate text-zinc-100">{aluno.nome || aluno.email}</p>
+          <p className="truncate text-xs text-zinc-500">
+            {aluno.email || 'sem e-mail'} · {aluno.curso}
+            {aluno.atrasoDesde && <> · atrasado desde {soData(aluno.atrasoDesde)}</>}
+            {aluno.status === 'atrasado' && aluno.bloquearEm && <> · vira "inativar" em {soData(aluno.bloquearEm)}</>}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {zap && (
+            <a href={zap} target="_blank" rel="noreferrer" className="rounded-lg border border-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:border-zinc-600">
+              <i className="fa-brands fa-whatsapp mr-1" />
+              WhatsApp
+            </a>
+          )}
+          {tipo && (
+            <button
+              type="button"
+              disabled={feito.isPending}
+              onClick={() => feito.mutate({ id: aluno.id, tipo })}
+              className="rounded-lg border border-amber-500/40 px-3 py-1 text-xs text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50"
+            >
+              {tipo === 'inativar' ? 'Já inativei' : 'Já reativei'}
+            </button>
+          )}
+        </div>
+      </li>
+    )
+  }
+
+  return (
+    <section className="surface-card border-amber-500/30 p-4 text-sm">
+      <p className="section-label">Na mão, na plataforma de cursos</p>
+      <h3 className="section-title mt-1">O que você precisa fazer agora</h3>
+      <p className="mt-1 text-xs text-zinc-500">
+        A plataforma ainda não inativa nem reativa por API. Quem atrasa uma parcela do Pix parcelado aparece aqui no 2º dia de atraso;
+        marque "Já inativei" depois de inativar lá. Se a pessoa pagar de novo, ela volta aqui para reativar.
+      </p>
+      {inativar.length > 0 && (
+        <div className="mt-3">
+          <p className="font-semibold text-red-300">Inativar ({inativar.length})</p>
+          <ul>{inativar.map((aluno) => linha(aluno, 'inativar'))}</ul>
+        </div>
+      )}
+      {reativar.length > 0 && (
+        <div className="mt-3">
+          <p className="font-semibold text-amber-300">Reativar ({reativar.length})</p>
+          <ul>{reativar.map((aluno) => linha(aluno, 'reativar'))}</ul>
+        </div>
+      )}
+      {atrasados.length > 0 && (
+        <div className="mt-3">
+          <p className="font-semibold text-zinc-300">Atrasados, ainda no prazo ({atrasados.length})</p>
+          <ul>{atrasados.map((aluno) => linha(aluno, null))}</ul>
         </div>
       )}
     </section>
@@ -213,6 +293,12 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
       void queryClient.invalidateQueries({ queryKey: ['acessos'] })
     },
   })
+  const reativado = useMutation({
+    mutationFn: () => marcarReativacaoFeita(aluno.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['acessos'] })
+    },
+  })
   const status = STATUS_ALUNO[aluno.status] ?? { texto: aluno.status, classe: 'text-zinc-300' }
   return (
     <tr className="border-b border-zinc-900/80">
@@ -224,9 +310,12 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
       <td className="px-4 py-2.5 text-zinc-400">
         {aluno.origem === 'plataforma'
           ? `Já na plataforma${aluno.plataformaId ? ` · nº ${aluno.plataformaId}` : ''}`
-          : [aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
+          : [aluno.parcelado ? 'Pix parcelado' : aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
       </td>
-      <td className="px-4 py-2.5 text-zinc-300">{soData(aluno.liberadoAte)}</td>
+      <td className="px-4 py-2.5 text-zinc-300">
+        {soData(aluno.liberadoAte)}
+        {aluno.parcelado && aluno.pagoAte && <span className="block text-xs text-zinc-500">pago até {soData(aluno.pagoAte)}</span>}
+      </td>
       <td className="px-4 py-2.5 text-center text-zinc-400">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
       <td className={`px-4 py-2.5 font-medium ${status.classe}`}>
         {status.texto}
@@ -239,7 +328,17 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
             onClick={() => feito.mutate()}
             className="mt-1 block rounded border border-zinc-700 px-2 py-0.5 text-xs font-normal text-zinc-300 hover:border-zinc-500 disabled:opacity-50"
           >
-            Já bloqueei
+            Já inativei
+          </button>
+        )}
+        {aluno.status === 'reativar_pendente' && (
+          <button
+            type="button"
+            disabled={reativado.isPending}
+            onClick={() => reativado.mutate()}
+            className="mt-1 block rounded border border-zinc-700 px-2 py-0.5 text-xs font-normal text-zinc-300 hover:border-zinc-500 disabled:opacity-50"
+          >
+            Já reativei
           </button>
         )}
       </td>
@@ -255,7 +354,7 @@ export default function AcessosPage() {
 
   const resumo = useQuery({ queryKey: ['acessos', 'resumo'], queryFn: fetchAcessoResumo, retry: false, refetchInterval: 30_000 })
   const eventos = useQuery({ queryKey: ['acessos', 'eventos', estado, busca], queryFn: () => fetchAcessoEventos(estado, busca), retry: false, refetchInterval: 30_000, enabled: aba === 'eventos' })
-  const alunos = useQuery({ queryKey: ['acessos', 'alunos'], queryFn: fetchAcessoAlunos, retry: false, refetchInterval: 60_000, enabled: aba === 'alunos' })
+  const alunos = useQuery({ queryKey: ['acessos', 'alunos'], queryFn: fetchAcessoAlunos, retry: false, refetchInterval: 60_000 })
 
   const dados = resumo.data
   const alunosFiltrados = (alunos.data ?? []).filter((aluno) => {
@@ -312,13 +411,17 @@ export default function AcessosPage() {
 
           <Verificador />
 
+          <AcoesManuais alunos={alunos.data ?? []} />
+
           <section className="kpi-scroll">
             <Cartao rotulo="Precisam de você" valor={problemas} tom="red" dica="falhou ou pede atenção" />
             <Cartao rotulo="Tentando de novo" valor={porEstado.erro ?? 0} tom="amber" dica="o dash refaz sozinho" />
             <Cartao rotulo="Na fila" valor={(porEstado.novo ?? 0) + (porEstado.processando ?? 0)} />
             <Cartao rotulo="Feitos" valor={porEstado.ok ?? 0} />
             <Cartao rotulo="Alunos com acesso" valor={dados.acessosPorStatus.ativo ?? 0} />
-            <Cartao rotulo="Parcela atrasada" valor={(dados.acessosPorStatus.atrasado ?? 0) + (dados.acessosPorStatus.bloqueio_pendente ?? 0)} tom="amber" dica={`${dados.acessosPorStatus.bloqueado ?? 0} bloqueado(s)`} />
+            <Cartao rotulo="Inativar na plataforma" valor={dados.acessosPorStatus.bloqueio_pendente ?? 0} tom="red" dica="parcela atrasada: faça na mão" />
+            <Cartao rotulo="Reativar na plataforma" valor={dados.acessosPorStatus.reativar_pendente ?? 0} tom="amber" dica="pagou depois de inativado" />
+            <Cartao rotulo="Parcela atrasada" valor={dados.acessosPorStatus.atrasado ?? 0} tom="amber" dica={`${dados.acessosPorStatus.bloqueado ?? 0} já inativado(s)`} />
           </section>
         </>
       )}
