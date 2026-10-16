@@ -7,6 +7,7 @@ import { handlePurchasesRequest } from './purchasesHandler.js'
 import { handleLeadsRequest } from './leadsHandler.js'
 import { handleGoalsRequest } from './goalsHandler.js'
 import { handleRegistrosRequest } from './registrosHandler.js'
+import { handleHotmartEventsRequest } from './hotmartEvents.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
@@ -49,6 +50,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/leads') ||
       req.url.startsWith('/api/goals') ||
       req.url.startsWith('/api/registros') ||
+      req.url.startsWith('/api/eventos-hotmart') ||
       req.url.startsWith('/api/live') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
@@ -113,6 +115,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/registros')) {
         await handleRegistrosRequest(req, res)
+        return
+      }
+
+      if (req.url.startsWith('/api/eventos-hotmart')) {
+        await handleHotmartEventsRequest(req, res)
         return
       }
 

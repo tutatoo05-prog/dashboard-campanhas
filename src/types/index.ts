@@ -139,7 +139,7 @@ export interface Lead {
 export interface RegistroTab {
   planilha: string
   aba: string
-  tipo: 'lead' | 'comprador'
+  tipo: 'lead' | 'comprador' | 'evento'
   url: string
   count: number | null
   error: string | null
@@ -148,7 +148,7 @@ export interface RegistroTab {
 export interface Registro {
   planilha: string
   aba: string
-  tipo: 'lead' | 'comprador'
+  tipo: 'lead' | 'comprador' | 'evento'
   nome: string
   email: string
   telefone: string
@@ -156,6 +156,56 @@ export interface Registro {
   canal: string
   campanha: string
   criativo: string
+  /** Só nos eventos da Hotmart: tipo do evento, situação (pago, pendente, em aberto...), produto, valor e pagamento. */
+  evento?: string
+  situacao?: string
+  produto?: string
+  valor?: number | null
+  pagamento?: string
+}
+
+/** Evento da Hotmart lido da planilha de tracking (compra, Pix/boleto gerado, carrinho abandonado...). */
+export interface HotmartEvent {
+  id: string
+  data: string
+  evento: string
+  categoria: 'venda' | 'pix_boleto' | 'abandono' | 'cancelamento' | 'reembolso' | 'outro'
+  nome: string
+  email: string
+  telefone: string
+  cidade: string
+  estado: string
+  pais: string
+  produto: string
+  oferta: string
+  valor: number | null
+  valorOriginal: number | null
+  moeda: string
+  pagamento: string
+  parcelas: number | null
+  transacao: string
+  src: string
+  xcod: string
+  variante: string
+  campaignId: string | null
+  canal: string
+  campanha: string
+  situacao: 'pago' | 'cancelado' | 'pendente' | 'vencido' | 'recuperado' | 'em aberto' | null
+}
+
+export interface HotmartEventsSummary {
+  total: number
+  vendas: { total: number }
+  pixBoleto: { gerados: number; pagos: number; pendentes: number; vencidos: number; valorPendente: number }
+  abandono: { eventos: number; pessoas: number; emAberto: number; recuperadas: number }
+  cancelamentos: { total: number }
+  reembolsos: { total: number }
+}
+
+export interface HotmartEventsResponse {
+  fetchedAt: string
+  events: HotmartEvent[]
+  resumo: HotmartEventsSummary
 }
 
 export interface RegistrosResponse {
@@ -188,6 +238,10 @@ export interface Purchase {
   campaignId?: string | null
   /** Forma de pagamento da Hotmart (PIX, CREDIT_CARD, BILLET...). */
   pagamentoTipo?: string | null
+  /** Só quando o item é um evento da Hotmart (ex.: "Carrinho abandonado"), não uma venda. */
+  evento?: string
+  /** Etiqueta curta do evento (Pendente, Em aberto, Comprou depois...). */
+  badge?: string | null
   [key: string]: unknown
 }
 

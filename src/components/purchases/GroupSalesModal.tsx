@@ -3,7 +3,7 @@ import type { Purchase } from '@/types'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 
-export type GroupKind = 'campanha' | 'curso'
+export type GroupKind = 'campanha' | 'curso' | 'evento'
 
 interface GroupSalesModalProps {
   kind: GroupKind
@@ -11,6 +11,8 @@ interface GroupSalesModalProps {
   label: string
   /** Só as vendas deste grupo. */
   purchases: Purchase[]
+  /** Texto pequeno acima do título (padrão: "Vendas por campanha/curso"). */
+  eyebrow?: string
   onClose: () => void
   onOpenSale: (purchase: Purchase) => void
 }
@@ -23,12 +25,13 @@ function timeOf(purchase: Purchase): number {
 }
 
 /** Lista, em janela, das vendas de uma campanha ou de um curso (abre ao clicar nas listas "Vendas por ..."). */
-export function GroupSalesModal({ kind, label, purchases, onClose, onOpenSale }: GroupSalesModalProps) {
+export function GroupSalesModal({ kind, label, purchases, eyebrow, onClose, onOpenSale }: GroupSalesModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const sorted = [...purchases].sort((a, b) => timeOf(b) - timeOf(a))
   const revenue = sorted.reduce((sum, item) => sum + (typeof item.valor === 'number' ? item.valor : 0), 0)
   const canceled = sorted.filter((item) => item.status === 'cancelado').length
   const kindLabel = kind === 'campanha' ? 'Campanha' : 'Curso'
+  const isEvent = kind === 'evento'
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -57,12 +60,12 @@ export function GroupSalesModal({ kind, label, purchases, onClose, onOpenSale }:
       <div className="dialog sale-dialog" role="dialog" aria-modal="true" aria-labelledby="group-title">
         <div className="sale-head">
           <div className="min-w-0">
-            <p className="section-label">Vendas por {kindLabel.toLowerCase()}</p>
+            <p className="section-label">{eyebrow ?? `Vendas por ${kindLabel.toLowerCase()}`}</p>
             <h3 id="group-title" className="dialog-title">
               {label}
             </h3>
             <p className="sale-sub">
-              {formatNumber(sorted.length)} {sorted.length === 1 ? 'venda' : 'vendas'}
+              {formatNumber(sorted.length)} {isEvent ? (sorted.length === 1 ? 'pessoa' : 'pessoas') : sorted.length === 1 ? 'venda' : 'vendas'}
               {revenue > 0 && <> · {formatCurrency(revenue)}</>}
               {canceled > 0 && <> · {formatNumber(canceled)} {canceled === 1 ? 'cancelada' : 'canceladas'}</>}
             </p>
@@ -98,14 +101,17 @@ export function GroupSalesModal({ kind, label, purchases, onClose, onOpenSale }:
         </div>
 
         <section className="sale-section">
-          <p className="sale-note">Clique numa venda para ver os dados de quem comprou.</p>
+          <p className="sale-note">
+            {isEvent ? 'Clique numa pessoa para ver os dados e chamar no WhatsApp.' : 'Clique numa venda para ver os dados de quem comprou.'}
+          </p>
           {sorted.length === 0 ? (
             <p className="sale-note">Nenhuma venda neste grupo.</p>
           ) : (
             <ul className="sale-list sale-scroll">
               {sorted.map((item, index) => {
-                const other =
-                  kind === 'campanha'
+                const other = isEvent
+                  ? item.curso || 'Produto não informado'
+                  : kind === 'campanha'
                     ? item.curso || 'Curso não informado'
                     : String(item.campanha ?? '').trim() || UNIDENTIFIED
                 return (
@@ -118,7 +124,11 @@ export function GroupSalesModal({ kind, label, purchases, onClose, onOpenSale }:
                         </small>
                       </span>
                       <span className="sale-list-side">
-                        {item.status === 'cancelado' && <em className="sale-tag-bad">Cancelado</em>}
+                        {item.badge ? (
+                          <em className="sale-tag-bad">{item.badge}</em>
+                        ) : (
+                          item.status === 'cancelado' && <em className="sale-tag-bad">Cancelado</em>
+                        )}
                         {typeof item.valor === 'number' ? formatCurrency(item.valor) : '—'}
                         <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                       </span>

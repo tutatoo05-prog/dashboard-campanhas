@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchRegistros } from '@/services/registrosService.ts'
-import { formatNumber, formatPercent } from '@/lib/format.ts'
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Registro, RegistroTab } from '@/types'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
@@ -307,6 +307,11 @@ export default function RegistrosPage() {
                               />
                               <span className="relative flex min-w-0 items-center gap-2">
                                 <span className="truncate text-zinc-200">{tab.aba}</span>
+                                {tab.tipo === 'evento' && (
+                                  <span className="shrink-0 rounded-full border border-sky-500/25 px-1.5 text-[10px] text-sky-300">
+                                    hotmart
+                                  </span>
+                                )}
                                 {tab.tipo === 'comprador' && (
                                   <span className="shrink-0 rounded-full border border-emerald-500/25 px-1.5 text-[10px] text-emerald-300">
                                     compradores
@@ -415,7 +420,7 @@ export default function RegistrosPage() {
                   onClick={() =>
                     exportCsv(
                       'registros.csv',
-                      ['Planilha', 'Aba', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo'],
+                      ['Planilha', 'Aba', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
                       filtered.map((record) => [
                         record.planilha,
                         record.aba,
@@ -426,6 +431,11 @@ export default function RegistrosPage() {
                         record.canal,
                         record.campanha,
                         record.criativo,
+                        record.evento,
+                        record.situacao,
+                        record.produto,
+                        record.valor ?? '',
+                        record.pagamento,
                       ]),
                     )
                   }
@@ -446,6 +456,7 @@ export default function RegistrosPage() {
                     <th className="px-4 py-2 font-medium">Planilha · Aba</th>
                     <th className="px-4 py-2 font-medium">Origem</th>
                     <th className="px-4 py-2 font-medium">Campanha</th>
+                    <th className="px-4 py-2 font-medium">Detalhe</th>
                     <th className="px-4 py-2 font-medium">Data</th>
                   </tr>
                 </thead>
@@ -469,12 +480,28 @@ export default function RegistrosPage() {
                       <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={record.campanha}>
                         {record.campanha || '—'}
                       </td>
+                      <td className="max-w-[220px] px-4 py-2.5 text-xs text-zinc-400">
+                        {record.tipo === 'evento' ? (
+                          <>
+                            <span className="block truncate text-zinc-300">
+                              {[record.produto, typeof record.valor === 'number' ? formatCurrency(record.valor) : '']
+                                .filter(Boolean)
+                                .join(' · ') || record.evento}
+                            </span>
+                            <span className="block truncate text-[10px] text-zinc-600">
+                              {[record.situacao, record.pagamento].filter(Boolean).join(' · ')}
+                            </span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-zinc-500">{formatDate(record.data)}</td>
                     </tr>
                   ))}
                   {!filtered.length && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-600">
                         Nenhum registro encontrado.
                       </td>
                     </tr>

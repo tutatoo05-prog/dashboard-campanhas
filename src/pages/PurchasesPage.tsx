@@ -5,6 +5,7 @@ import { fetchPurchases } from '@/services/purchaseService.ts'
 import { fetchLeads } from '@/services/leadService.ts'
 import { PurchaseModal } from '@/components/purchases/PurchaseModal.tsx'
 import { GroupSalesModal, type GroupKind } from '@/components/purchases/GroupSalesModal.tsx'
+import { HotmartEventsPanel, type EventGroup } from '@/components/purchases/HotmartEventsPanel.tsx'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Purchase } from '@/types'
@@ -85,7 +86,7 @@ export default function PurchasesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos')
   const [selected, setSelected] = useState<Purchase | null>(null)
   // Janela com as vendas de uma campanha ou de um curso (abre ao clicar nas listas "Vendas por ...").
-  const [group, setGroup] = useState<{ kind: GroupKind; key: string } | null>(null)
+  const [group, setGroup] = useState<{ kind: GroupKind; key: string; eyebrow?: string; items?: Purchase[] } | null>(null)
 
   const purchasesQuery = useQuery({
     queryKey: ['purchases'],
@@ -205,6 +206,12 @@ export default function PurchasesPage() {
               médio e a receita por campanha aparecem aqui automaticamente.
             </section>
           )}
+
+          <HotmartEventsPanel
+            onOpen={(eventGroup: EventGroup) =>
+              setGroup({ kind: 'evento', key: eventGroup.key, eyebrow: eventGroup.eyebrow, items: eventGroup.items })
+            }
+          />
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="surface-card p-4">
@@ -360,7 +367,11 @@ export default function PurchasesPage() {
               <GroupSalesModal
                 kind={group.kind}
                 label={group.key}
-                purchases={purchases.filter((purchase) => groupKey(purchase, group.kind) === group.key)}
+                eyebrow={group.eyebrow}
+                purchases={
+                  group.items ??
+                  purchases.filter((purchase) => groupKey(purchase, group.kind === 'curso' ? 'curso' : 'campanha') === group.key)
+                }
                 onClose={() => setGroup(null)}
                 onOpenSale={setSelected}
               />

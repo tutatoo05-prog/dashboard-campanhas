@@ -3,7 +3,8 @@
 // A aba "Login" da planilha "Dashboard campanhas" NÃO é lida de propósito
 // (guarda credenciais).
 
-import { get as httpsGet } from 'node:https'
+import { csvToObjects, fetchSheetCsv, normalizeKey } from './sheetsCsv.js'
+import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv } from './hotmartEvents.js'
 
 const SHEETS = [
   {
@@ -35,10 +36,25 @@ const SHEETS = [
       { gid: '1587765805', name: 'Work Cobertura', kind: 'lead' },
     ],
   },
+  {
+    // Planilha gravada pelo n8n (fluxos "Essentials Webhook Unico 2026" e Hotmart). Cada aba aqui é um
+    // filtro de uma aba-base: leads (situacao) e eventos da Hotmart (categoria do evento).
+    id: TRACKING_SHEET_ID,
+    name: 'Tracking Essentials',
+    tabs: [
+      { gid: '2105086586', linkGid: '462706006', name: 'Leads novos', kind: 'lead', where: (raw) => raw.situacao === 'novo' },
+      { gid: '2105086586', linkGid: '1077549871', name: 'Leads repetidos', kind: 'lead', where: (raw) => raw.situacao === 'repetido' },
+      { gid: '2105086586', linkGid: '1722788244', name: 'Leads reprovados', kind: 'lead', where: (raw) => raw.situacao === 'reprovado' },
+      { gid: '1467558126', linkGid: '1758951319', name: 'Vendas aprovadas', kind: 'evento', source: 'hotmart', categoria: 'venda' },
+      { gid: '1467558126', linkGid: '1983515411', name: 'Boleto e Pix gerados', kind: 'evento', source: 'hotmart', categoria: 'pix_boleto' },
+      { gid: '1467558126', linkGid: '241349732', name: 'Carrinho abandonado', kind: 'evento', source: 'hotmart', categoria: 'abandono' },
+      { gid: '1467558126', linkGid: '1160205360', name: 'Cancelamentos e atrasos', kind: 'evento', source: 'hotmart', categoria: 'cancelamento' },
+      { gid: '1467558126', linkGid: '1078595179', name: 'Reembolsos e chargebacks', kind: 'evento', source: 'hotmart', categoria: 'reembolso' },
+    ],
+  },
 ]
 
 const CACHE_TTL_MS = 60_000
-const FETCH_TIMEOUT_MS = 20_000
 let cache = null
 
 function sendJson(res, status, payload) {
@@ -46,56 +62,6 @@ function sendJson(res, status, payload) {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Cache-Control', 'no-store')
   res.end(JSON.stringify(payload))
-}
-
-function parseCsv(text) {
-  const rows = []
-  let row = []
-  let field = ''
-  let quoted = false
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i]
-    if (quoted) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"'
-          i += 1
-        } else {
-          quoted = false
-        }
-      } else {
-        field += char
-      }
-    } else if (char === '"') {
-      quoted = true
-    } else if (char === ',') {
-      row.push(field)
-      field = ''
-    } else if (char === '\n' || char === '\r') {
-      if (char === '\r' && text[i + 1] === '\n') i += 1
-      row.push(field)
-      rows.push(row)
-      row = []
-      field = ''
-    } else {
-      field += char
-    }
-  }
-  if (field || row.length) {
-    row.push(field)
-    rows.push(row)
-  }
-  return rows
-}
-
-function normalizeKey(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
 }
 
 function pick(record, aliases) {
@@ -113,6 +79,11 @@ function toIsoDate(raw) {
     const [, dd, mm, yyyy, hh = '00', mi = '00', ss = '00'] = br
     // Planilhas gravam horário de Brasília (UTC-3).
     return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}-03:00`
+  }
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (iso) {
+    const [, yyyy, mm, dd, hh, mi, ss = '00'] = iso
+    return new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}-03:00`).toISOString()
   }
   const parsed = new Date(raw)
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString()
@@ -161,18 +132,32 @@ function resolveCampaign(raw) {
 }
 
 function toRecords(sheet, tab, csvText) {
-  const rows = parseCsv(csvText)
-  if (!rows.length) return []
-  const headers = rows[0].map(normalizeKey)
+  // Eventos da Hotmart: já vêm normalizados (origem, valor em reais, situação do Pix/boleto e do carrinho).
+  if (tab.source === 'hotmart') {
+    return eventsFromCsv(csvText)
+      .filter((event) => event.categoria === tab.categoria)
+      .map((event) => ({
+        planilha: sheet.name,
+        aba: tab.name,
+        tipo: tab.kind,
+        nome: event.nome,
+        email: event.email,
+        telefone: event.telefone,
+        data: event.data,
+        canal: event.canal,
+        campanha: event.campanha,
+        criativo: '',
+        evento: CATEGORY_LABELS[event.categoria] ?? event.evento,
+        situacao: event.situacao ?? '',
+        produto: event.produto,
+        valor: event.valor,
+        pagamento: event.pagamento,
+      }))
+  }
 
   const records = []
-  for (const cells of rows.slice(1)) {
-    if (!cells.some((cell) => cell.trim())) continue
-
-    const raw = {}
-    headers.forEach((header, index) => {
-      if (header) raw[header] = cells[index] ?? ''
-    })
+  for (const raw of csvToObjects(csvText)) {
+    if (tab.where && !tab.where(raw)) continue
 
     const landingUrl = pick(raw, ['landing_url', 'link_de_origem', 'source_url'])
     const source = pick(raw, ['veio_de', 'utm_source']) || extractUtm(landingUrl, 'utm_source')
@@ -199,56 +184,25 @@ function toRecords(sheet, tab, csvText) {
   return records
 }
 
-// https nativo com IPv4 forçado: o fetch (undici) falha sem detalhe em redes
-// onde o IPv6 do Google não responde.
-function getText(url, redirects = 5) {
-  return new Promise((resolve, reject) => {
-    const request = httpsGet(
-      url,
-      { family: 4, headers: { 'User-Agent': 'dash-campanhas' }, timeout: FETCH_TIMEOUT_MS },
-      (response) => {
-        const { statusCode = 0, headers } = response
-        if (statusCode >= 300 && statusCode < 400 && headers.location) {
-          response.resume()
-          if (redirects <= 0) return reject(new Error('Redirecionamentos demais'))
-          return resolve(getText(new URL(headers.location, url).toString(), redirects - 1))
-        }
-        if (statusCode !== 200) {
-          response.resume()
-          return reject(new Error(`HTTP ${statusCode}`))
-        }
-        if (!String(headers['content-type'] ?? '').includes('csv')) {
-          response.resume()
-          return reject(new Error('Planilha sem acesso público'))
-        }
-        const chunks = []
-        response.on('data', (chunk) => chunks.push(chunk))
-        response.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-        response.on('error', reject)
-      },
-    )
-    request.on('timeout', () => request.destroy(new Error('Tempo esgotado')))
-    request.on('error', (error) => reject(new Error(error.code ? `${error.code}: ${error.message}` : error.message)))
-  })
-}
-
-async function fetchTab(sheet, tab) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheet.id}/export?format=csv&gid=${tab.gid}`
-  let text
-  try {
-    text = await getText(url)
-  } catch {
-    text = await getText(url)
-  }
-  return toRecords(sheet, tab, text)
-}
-
 async function loadAll() {
+  // Abas "virtuais" leem a mesma aba-base: baixa uma vez só.
+  const downloads = new Map()
+  const download = (sheet, gid) => {
+    const key = `${sheet.id}:${gid}`
+    if (!downloads.has(key)) downloads.set(key, fetchSheetCsv(sheet.id, gid))
+    return downloads.get(key)
+  }
+
   const jobs = SHEETS.flatMap((sheet) =>
     sheet.tabs.map(async (tab) => {
-      const base = { planilha: sheet.name, aba: tab.name, tipo: tab.kind, url: `https://docs.google.com/spreadsheets/d/${sheet.id}/edit?gid=${tab.gid}` }
+      const base = {
+        planilha: sheet.name,
+        aba: tab.name,
+        tipo: tab.kind,
+        url: `https://docs.google.com/spreadsheets/d/${sheet.id}/edit?gid=${tab.linkGid ?? tab.gid}`,
+      }
       try {
-        const records = await fetchTab(sheet, tab)
+        const records = toRecords(sheet, tab, await download(sheet, tab.gid))
         return { summary: { ...base, count: records.length, error: null }, records }
       } catch (error) {
         console.error(`Erro ao ler ${sheet.name} / ${tab.name}:`, error)

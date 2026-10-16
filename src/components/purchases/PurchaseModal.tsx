@@ -125,7 +125,7 @@ export function PurchaseModal({
       <div className="dialog sale-dialog" role="dialog" aria-modal="true" aria-labelledby="sale-title">
         <div className="sale-head">
           <div className="min-w-0">
-            <p className="section-label">Venda</p>
+            <p className="section-label">{purchase.evento ?? 'Venda'}</p>
             <h3 id="sale-title" className="dialog-title">
               {purchase.nome || 'Comprador sem nome'}
             </h3>
@@ -135,7 +135,13 @@ export function PurchaseModal({
             </p>
           </div>
           <div className="sale-head-side">
-            {canceled ? (
+            {purchase.evento ? (
+              purchase.badge && (
+                <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-200">
+                  {purchase.badge}
+                </span>
+              )
+            ) : canceled ? (
               <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300">
                 Cancelado
               </span>
@@ -192,10 +198,14 @@ export function PurchaseModal({
             <Field label="Data da venda">{formatMoment(purchase.createdAt, purchase.data || '—')}</Field>
             <Field label="Origem da venda">{campaign}</Field>
             <Field label="Forma de pagamento">{paymentLabel(purchase.pagamentoTipo)}</Field>
-            <Field label="Acesso">
-              {String(purchase.liberacao ?? '').trim().toLowerCase() === 'sim' ? 'Liberado' : purchase.liberacao || '—'}
-            </Field>
-            <Field label="Código do assinante">{purchase.subscriberCode || '—'}</Field>
+            {!purchase.evento && (
+              <>
+                <Field label="Acesso">
+                  {String(purchase.liberacao ?? '').trim().toLowerCase() === 'sim' ? 'Liberado' : purchase.liberacao || '—'}
+                </Field>
+                <Field label="Código do assinante">{purchase.subscriberCode || '—'}</Field>
+              </>
+            )}
             {(purchase.src || purchase.xcod) && (
               <Field label="Rastreio do checkout (Hotmart)">
                 {[purchase.src, purchase.xcod].filter(Boolean).join(' · ')}
