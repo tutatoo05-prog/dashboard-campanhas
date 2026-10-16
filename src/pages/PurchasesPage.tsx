@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPurchases } from '@/services/purchaseService.ts'
@@ -14,12 +14,18 @@ interface GroupRow {
   revenueCount: number
 }
 
+const UNIDENTIFIED = 'Sem identificação'
+
+/** Valor da campanha/curso de uma venda; vazio vira "Sem identificação" (igual nas listas e no filtro). */
+function groupKey(purchase: Purchase, field: 'campanha' | 'curso'): string {
+  return String(purchase[field] ?? '').trim() || UNIDENTIFIED
+}
+
 function groupBy(purchases: Purchase[], field: 'campanha' | 'curso'): GroupRow[] {
   const map = new Map<string, GroupRow>()
 
   for (const purchase of purchases) {
-    const raw = String(purchase[field] ?? '').trim()
-    const key = raw || 'Sem identificação'
+    const key = groupKey(purchase, field)
     const row = map.get(key) ?? { key, count: 0, revenue: 0, revenueCount: 0 }
     row.count += 1
     if (typeof purchase.valor === 'number') {
@@ -34,6 +40,53 @@ function groupBy(purchases: Purchase[], field: 'campanha' | 'curso'): GroupRow[]
 
 type StatusFilter = 'todos' | 'ativo' | 'cancelado'
 
+interface GroupListProps {
+  rows: GroupRow[]
+  active: string | null
+  onToggle: (key: string) => void
+}
+
+/** Lista de campanhas/cursos; clicar numa linha filtra "Todas as vendas" (clicar de novo limpa). */
+function GroupList({ rows, active, onToggle }: GroupListProps) {
+  if (!rows.length) {
+    return <p className="py-6 text-center text-sm text-zinc-600">Nenhuma venda ainda.</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.map((row) => {
+        const isActive = active === row.key
+        return (
+          <button
+            key={row.key}
+            type="button"
+            aria-pressed={isActive}
+            onClick={() => onToggle(row.key)}
+            title={isActive ? 'Clique para limpar o filtro' : `Ver as vendas de "${row.key}"`}
+            className={`flex w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
+              isActive
+                ? 'border-amber-400/70 bg-amber-400/10'
+                : 'border-zinc-800/60 bg-zinc-950/40 hover:border-zinc-600'
+            }`}
+          >
+            <span className="truncate text-sm text-zinc-300">{row.key}</span>
+            <span className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
+              <span>{formatNumber(row.count)} vendas</span>
+              {row.revenueCount > 0 && (
+                <span className="text-amber-200">{formatCurrency(row.revenue)}</span>
+              )}
+              <i
+                className={`fa-solid ${isActive ? 'fa-xmark text-amber-300' : 'fa-chevron-right text-zinc-600'}`}
+                aria-hidden="true"
+              />
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function isCanceled(purchase: Purchase): boolean {
   return purchase.status === 'cancelado'
 }
@@ -41,6 +94,9 @@ function isCanceled(purchase: Purchase): boolean {
 export default function PurchasesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos')
+  const [campaignFilter, setCampaignFilter] = useState<string | null>(null)
+  const [courseFilter, setCourseFilter] = useState<string | null>(null)
+  const listRef = useRef<HTMLElement>(null)
 
   const purchasesQuery = useQuery({
     queryKey: ['purchases'],
@@ -58,15 +114,45 @@ export default function PurchasesPage() {
     )
   }, [purchases, statusFilter])
 
+  const byGroup = useMemo(
+    () =>
+      byStatus.filter(
+        (purchase) =>
+          (!campaignFilter || groupKey(purchase, 'campanha') === campaignFilter) &&
+          (!courseFilter || groupKey(purchase, 'curso') === courseFilter),
+      ),
+    [byStatus, campaignFilter, courseFilter],
+  )
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return byStatus
-    return byStatus.filter((purchase) =>
+    if (!term) return byGroup
+    return byGroup.filter((purchase) =>
       [purchase.nome, purchase.email, purchase.curso, purchase.campanha]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(term)),
     )
-  }, [byStatus, search])
+  }, [byGroup, search])
+
+  const filteredRevenue = filtered.reduce(
+    (sum, purchase) => sum + (typeof purchase.valor === 'number' ? purchase.valor : 0),
+    0,
+  )
+  const hasGroupFilter = Boolean(campaignFilter || courseFilter)
+
+  function toggleFilter(kind: 'campanha' | 'curso', key: string) {
+    const setter = kind === 'campanha' ? setCampaignFilter : setCourseFilter
+    const current = kind === 'campanha' ? campaignFilter : courseFilter
+    const next = current === key ? null : key
+    setter(next)
+    // Ao escolher uma linha, leva direto para a lista já filtrada.
+    if (next) listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function clearGroupFilters() {
+    setCampaignFilter(null)
+    setCourseFilter(null)
+  }
 
   const totalRevenue = purchases.reduce(
     (sum, purchase) => sum + (typeof purchase.valor === 'number' ? purchase.valor : 0),
@@ -152,61 +238,35 @@ export default function PurchasesPage() {
             <div className="surface-card p-4">
               <p className="section-label">Por campanha</p>
               <h3 className="section-title mt-1 mb-3">Vendas por campanha</h3>
-              <div className="space-y-2">
-                {byCampaign.map((row) => (
-                  <div
-                    key={row.key}
-                    className="flex items-center justify-between rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2"
-                  >
-                    <span className="truncate text-sm text-zinc-300" title={row.key}>
-                      {row.key}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
-                      <span>{formatNumber(row.count)} vendas</span>
-                      {row.revenueCount > 0 && (
-                        <span className="text-amber-200">{formatCurrency(row.revenue)}</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-                {!byCampaign.length && (
-                  <p className="py-6 text-center text-sm text-zinc-600">Nenhuma venda ainda.</p>
-                )}
-              </div>
+              <GroupList
+                rows={byCampaign}
+                active={campaignFilter}
+                onToggle={(key) => toggleFilter('campanha', key)}
+              />
             </div>
 
             <div className="surface-card p-4">
               <p className="section-label">Por curso</p>
               <h3 className="section-title mt-1 mb-3">Vendas por curso</h3>
-              <div className="space-y-2">
-                {byCourse.map((row) => (
-                  <div
-                    key={row.key}
-                    className="flex items-center justify-between rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2"
-                  >
-                    <span className="truncate text-sm text-zinc-300" title={row.key}>
-                      {row.key}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
-                      <span>{formatNumber(row.count)} vendas</span>
-                      {row.revenueCount > 0 && (
-                        <span className="text-amber-200">{formatCurrency(row.revenue)}</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-                {!byCourse.length && (
-                  <p className="py-6 text-center text-sm text-zinc-600">Nenhuma venda ainda.</p>
-                )}
-              </div>
+              <GroupList
+                rows={byCourse}
+                active={courseFilter}
+                onToggle={(key) => toggleFilter('curso', key)}
+              />
             </div>
           </section>
 
-          <section className="surface-card overflow-hidden">
+          <section ref={listRef} className="surface-card scroll-mt-4 overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <p className="section-label">Lista</p>
-                <h3 className="section-title mt-1">Todas as vendas</h3>
+                <h3 className="section-title mt-1">
+                  {hasGroupFilter ? 'Vendas filtradas' : 'Todas as vendas'}
+                </h3>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {formatNumber(filtered.length)} {filtered.length === 1 ? 'venda' : 'vendas'}
+                  {filteredRevenue > 0 && <> · {formatCurrency(filteredRevenue)}</>}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -250,6 +310,39 @@ export default function PurchasesPage() {
                 </button>
               </div>
             </div>
+
+            {hasGroupFilter && (
+              <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/60 px-4 py-2.5 text-xs">
+                <span className="text-zinc-500">Filtrando por:</span>
+                {campaignFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setCampaignFilter(null)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 text-amber-200 hover:bg-amber-400/20"
+                  >
+                    Campanha: {campaignFilter}
+                    <i className="fa-solid fa-xmark" aria-hidden="true" />
+                  </button>
+                )}
+                {courseFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setCourseFilter(null)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 text-amber-200 hover:bg-amber-400/20"
+                  >
+                    Curso: {courseFilter}
+                    <i className="fa-solid fa-xmark" aria-hidden="true" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={clearGroupFilters}
+                  className="text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                >
+                  Limpar filtros
+                </button>
+              </div>
+            )}
 
             <div className="max-h-[520px] overflow-auto">
               <table className="w-full text-left text-sm">
