@@ -134,7 +134,7 @@ export async function handleMetaRequest(req, res, env) {
         }
       }
 
-      const rangeOptions = period === 'custom' ? { since, until } : {}
+      const rangeOptions = { ...(period === 'custom' ? { since, until } : {}), env }
       const data = await getDashboardData(token, access.accountId, period, rangeOptions)
       const account = accounts.find((item) => item.id === access.accountId)
 

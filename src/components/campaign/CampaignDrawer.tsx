@@ -3,6 +3,7 @@ import { TONE_CLASSES } from '@/lib/analysis.js'
 import { resolveDailySeries } from '@/lib/trends.js'
 import { evidenceGap, stepsFor } from '@/lib/actions.ts'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
+import { leadsHint } from '@/lib/leadsHint.ts'
 import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
 import type { DailyPoint } from '@/lib/dailySeries.ts'
 import type { CampaignItem, EnrichedCampaignItem, InsightsData, Level } from '@/types'
@@ -140,7 +141,9 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
             <p className="section-label mb-2">Números do período</p>
             <div className="drawer-stats">
               <Stat label="Investimento" value={formatCurrency(item.spend)} />
-              <Stat label="Leads" value={formatNumber(item.leads)} />
+              <Stat label="Leads" value={formatNumber(item.leads)}>
+                {leadsHint(item) && <span className="drawer-vs">{leadsHint(item)}</span>}
+              </Stat>
               <Stat label="Custo por lead" value={item.leads > 0 ? formatCurrency(item.cpl) : '—'}>
                 <Compare value={item.cpl} avg={averages.cpl} lowerIsBetter />
               </Stat>

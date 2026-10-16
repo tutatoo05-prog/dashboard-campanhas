@@ -225,3 +225,10 @@ create table if not exists meta_action_log (
   created_at timestamptz not null default now()
 );
 create index if not exists meta_action_log_created_at_idx on meta_action_log (created_at desc);
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Sincronização de leads do site (server/scripts/syncLeadsEssentials.js).
+-- fonte_id = id do lead no banco "Dados Essentials"; evita copiar duas vezes.
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table leads add column if not exists fonte_id text;
+create unique index if not exists leads_fonte_id_idx on leads (fonte_id);

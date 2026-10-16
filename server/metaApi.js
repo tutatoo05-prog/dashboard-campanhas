@@ -4,6 +4,12 @@ import {
   resolveDailyWindow,
   validateCustomRange,
 } from '../src/lib/period.js'
+import {
+  enrichCampaignsWithSiteLeads,
+  getSiteLeadsByCampaign,
+  getSiteLeadsDaily,
+  resolveMetaWindow,
+} from './siteLeads.js'
 
 const GRAPH_VERSION = 'v21.0'
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`
@@ -185,7 +191,16 @@ export async function getInsights(token, accountId, period, level, options = {})
     getCampaignMetaMap(token, accountId),
   ])
 
-  return insights.map((row) => normalizeInsightRow(row, campaignMeta))
+  const rows = insights.map((row) => normalizeInsightRow(row, campaignMeta))
+
+  // Só no nível de campanha: o site grava o utm_campaign, mas não o conjunto nem o anúncio.
+  // Passe `env` nas opções para trocar os leads do pixel pelos leads reais do site.
+  if (apiLevel === 'campaign' && options.env) {
+    const siteTotals = await getSiteLeadsByCampaign(options.env, resolveMetaWindow(period, options))
+    return enrichCampaignsWithSiteLeads(rows, siteTotals)
+  }
+
+  return rows
 }
 
 function normalizeInsightRow(row, campaignMeta) {
@@ -315,7 +330,7 @@ export async function getDashboardData(token, accountId, period, options = {}) {
   let dailyByCampaign = {}
   try {
     const window = resolveDailyWindow(period, options)
-    dailyByCampaign = await getDailyCampaignInsights(token, accountId, window)
+    dailyByCampaign = await getDailyCampaignInsights(token, accountId, { ...window, env: options.env })
   } catch {
     // Tendência é complementar — não derruba o dashboard se a série diária falhar.
     dailyByCampaign = {}
@@ -360,7 +375,18 @@ export async function getDailyCampaignInsights(token, accountId, options = 14) {
     getCampaignMetaMap(token, accountId),
   ])
 
-  const rows = insights.map((row) => normalizeInsightRow(row, campaignMeta))
+  let rows = insights.map((row) => normalizeInsightRow(row, campaignMeta))
+
+  // Campanha com leads no site: a série diária usa só o site, para os dias somarem o mesmo
+  // total da tela. Campanha sem leads no site (ex.: formulário da própria Meta) fica com o pixel.
+  const env = typeof options === 'object' && options ? options.env : null
+  if (env) {
+    const siteDaily = await getSiteLeadsDaily(env, { since, until })
+    rows = rows.map((row) =>
+      siteDaily.has(row.name) ? { ...row, leads: siteDaily.get(row.name, row.dateStart) } : row,
+    )
+  }
+
   return groupDailyByCampaign(rows)
 }
 

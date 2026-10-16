@@ -32,6 +32,9 @@ Configuradas em **Plesk → Node.js → Custom environment variables**:
 | `DATABASE_URL` | Conexão Postgres (Supabase) — usar porta `5432` (direta), não `6543` (pooler), pois o processo é persistente |
 | `LIVE_FLAG_PATH` | Caminho absoluto do `live.on` no site principal (`.../httpdocs/public/produtos/essentials/live.on`). Ver seção "Live do Essentials" |
 | `LIVE_MAX_HOURS` | Teto de emergência da ligação manual em horas (padrão `6`). Não corta horário da agenda mais longo que isso |
+| `ESSENTIALS_DATABASE_URL` | Conexão **só de leitura** do projeto Supabase "Dados Essentials" (usuário `dash_leitura`, Session pooler, porta `5432`). Sem ela a cópia de leads não inicia. Ver seção "Leads do site" |
+| `LEADS_SYNC_ENABLED` | `false` desliga a cópia automática de leads (padrão: ligada) |
+| `LEADS_SYNC_MINUTES` | De quantos em quantos minutos copiar os leads novos (padrão `10`) |
 | outras | ver `.env.example` na raiz do repo |
 
 Token do Meta expira (~60 dias mesmo estendido) — quando o dashboard começar a dar erro de permissão nas contas, repetir o processo de gerar/estender token no Graph API Explorer e atualizar `META_ACCESS_TOKEN`.
@@ -39,6 +42,21 @@ Token do Meta expira (~60 dias mesmo estendido) — quando o dashboard começar 
 ## Migrations de banco (Supabase)
 
 `db/schema.sql` tem `create table if not exists` (não altera tabela já existente) **e** um bloco de `alter table ... add column if not exists` logo abaixo, comentado como migração incremental. Depois de um `git pull`/deploy que mexeu em `db/schema.sql`, rodar esse bloco manualmente no **SQL Editor do Supabase** antes de restart, se a tabela já existir.
+
+## Leads do site (cópia automática e leads reais por campanha)
+
+Os cadastros dos formulários do site caem no projeto Supabase **"Dados Essentials"** (tabela `leads`, escrita pela função `receber-lead`). O dash lê a tabela `leads` do **próprio** banco, então existe uma cópia automática. Código: `server/leadsSync.js` (a cópia), `server/leadsSyncScheduler.js` (o agendador, junto do processo Node) e `server/scripts/syncLeadsEssentials.js` (para rodar na mão: `node --env-file=.env server/scripts/syncLeadsEssentials.js [--dry]`).
+
+- A cópia é idempotente: `leads.fonte_id` guarda o id do lead no banco do site, e só entra o que ainda não foi copiado. Roda 45 s depois de subir e a cada `LEADS_SYNC_MINUTES`.
+- **Antes do primeiro deploy**: rodar no SQL Editor do Supabase **do dash** o bloco "Sincronização de leads do site" do fim de `db/schema.sql` (coluna `fonte_id` + índice único).
+- Em **Plesk → Node.js → Custom environment variables**, criar `ESSENTIALS_DATABASE_URL`. Usuário de leitura no banco do site (SQL Editor do projeto "Dados Essentials"): `create role dash_leitura login password '...'; grant usage on schema public to dash_leitura; grant select on public.leads to dash_leitura; create policy dash_leitura_le_leads on public.leads for select to dash_leitura using (true);`. A URL usa `dash_leitura.<ref do projeto>` como usuário.
+
+**Leads no dashboard.** O pixel da Meta nem sempre registra o evento de Lead do formulário (ex.: a campanha CHAMADA DE QUINTA tinha 100 cadastros no site e 2 eventos no pixel). Por isso, no nível de **campanha**, `leads` = o **maior** entre os cadastros do site e os eventos do pixel (nunca a soma), e o custo por lead usa esse valor. O cruzamento é pelo **nome da campanha** = `utm_campaign` do cadastro (sem diferenciar maiúsculas), na mesma janela de datas da Meta (`server/siteLeads.js`). `leadsMeta` e `leadsSite` seguem na resposta para a tela explicar a diferença. Conjuntos e anúncios continuam com o número do pixel, porque o site não grava o `utm_content`.
+
+- Se renomear a campanha na Meta, o cruzamento deixa de achar os cadastros antigos (o `utm_campaign` gravado é o nome da época).
+- Cadastros com `utm_campaign` vazio ou com `{{campaign.name}}` (macro não preenchida) não entram em nenhuma campanha.
+- Série diária: campanha com cadastros no site usa só o site; sem cadastros no site, usa o pixel.
+- Se a consulta ao banco falhar, o dashboard continua com o número do pixel (só registra um aviso no log).
 
 ## Live do Essentials (tela `/live`)
 

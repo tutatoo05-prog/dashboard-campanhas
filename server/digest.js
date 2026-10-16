@@ -68,7 +68,7 @@ export function resolveDigestAccountIds(env, { accountId } = {}) {
   return defaults
 }
 
-async function buildAccountSection(token, accountsCatalog, accountId, resolvedPeriod) {
+async function buildAccountSection(env, token, accountsCatalog, accountId, resolvedPeriod) {
   const meta =
     accountsCatalog.find((item) => item.id === accountId) ?? {
       id: accountId,
@@ -76,7 +76,7 @@ async function buildAccountSection(token, accountsCatalog, accountId, resolvedPe
       currency: 'BRL',
     }
 
-  const data = await getDashboardData(token, accountId, resolvedPeriod)
+  const data = await getDashboardData(token, accountId, resolvedPeriod, { env })
   const campaigns = data.campaigns ?? []
   const analysisOptions = { dailyByCampaign: data.dailyByCampaign ?? {} }
   const enrichedAll = enrichItems(campaigns, analysisOptions)
@@ -185,7 +185,7 @@ export async function buildDigest(env, { period, slot, accountId } = {}) {
 
   for (const id of accessible) {
     try {
-      sections.push(await buildAccountSection(token, accountsCatalog, id, resolvedPeriod))
+      sections.push(await buildAccountSection(env, token, accountsCatalog, id, resolvedPeriod))
     } catch (error) {
       errors.push({ accountId: id, error: error.message || String(error) })
       console.error(`[digest] falha na conta ${id}:`, error.message || error)

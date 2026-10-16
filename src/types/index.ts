@@ -46,8 +46,13 @@ export interface CampaignItem {
   clicks: number
   ctr: number
   cpc: number
+  /** Leads usados no dash: o maior entre os cadastros do site e o pixel da Meta. */
   leads: number
   cpl: number
+  /** Eventos de Lead contados pelo pixel da Meta (só nas campanhas). */
+  leadsMeta?: number
+  /** Cadastros do site cruzados pelo nome da campanha (só nas campanhas). */
+  leadsSite?: number
   conversions: number
   cpa: number
   frequency: number

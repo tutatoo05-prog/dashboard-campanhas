@@ -17,6 +17,7 @@ import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
 import { getAccountTheme } from '@/lib/accountTheme.ts'
+import { leadsHint } from '@/lib/leadsHint.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { usePlatformStore } from '@/store/platformStore.ts'
@@ -656,8 +657,9 @@ export default function DashboardPage() {
                       <td className="px-4 py-2.5 text-right text-zinc-300">
                         {formatDecimal(item.ctr)}%
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                      <td className="px-4 py-2.5 text-right text-zinc-300" title={leadsHint(item) ?? undefined}>
                         {formatNumber(item.leads)}
+                        {leadsHint(item) && <span className="ml-1 text-[10px] text-zinc-500">●</span>}
                       </td>
                       <td className="px-4 py-2.5 text-right text-zinc-300">
                         {item.leads > 0 ? formatCurrency(item.cpl) : '—'}

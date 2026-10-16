@@ -7,6 +7,7 @@ import { applySecurityHeaders } from './security.js'
 import { startDigestScheduler } from './digestScheduler.js'
 import { startLiveScheduler } from './liveScheduler.js'
 import { startAlertsScheduler } from './alertsScheduler.js'
+import { startLeadsSyncScheduler } from './leadsSyncScheduler.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const distDir = join(__dirname, '../dist')
@@ -103,4 +104,5 @@ server.listen(port, '0.0.0.0', () => {
   startDigestScheduler(env)
   startLiveScheduler(env)
   startAlertsScheduler(env)
+  startLeadsSyncScheduler(env)
 })

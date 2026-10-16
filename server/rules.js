@@ -30,7 +30,7 @@ export async function runRulesEvaluation(env) {
 
   for (const accountId of accountIds) {
     try {
-      const data = await getDashboardData(token, accountId, 'last7')
+      const data = await getDashboardData(token, accountId, 'last7', { env })
 
       let monthSpend = null
       let spendTarget = null
@@ -38,7 +38,7 @@ export async function runRulesEvaluation(env) {
         const goal = await query(env, 'select spend_target from goals where account_id = $1 and month = $2', [accountId, month])
         spendTarget = goal.rows[0]?.spend_target != null ? Number(goal.rows[0].spend_target) : null
         if (spendTarget) {
-          const monthCampaigns = await getInsights(token, accountId, 'this_month', 'campaigns')
+          const monthCampaigns = await getInsights(token, accountId, 'this_month', 'campaigns', { env })
           monthSpend = monthCampaigns.reduce((sum, item) => sum + (item.spend || 0), 0)
         }
       }
