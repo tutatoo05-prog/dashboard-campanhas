@@ -6,6 +6,8 @@
 
 import { csvToObjects, fetchSheetCsv } from './sheetsCsv.js'
 import { query } from './db.js'
+import { comCache } from './cacheCurto.js'
+import { CHAVE_EVENTOS_HOTMART, gravarCopia, lerCopia } from './planilhasCopia.js'
 
 export const TRACKING_SHEET_ID = '1PKUyzv3isiEW-HbHH4sY2zaSJcK1yi3ejG0ETKGCFeg'
 export const HOTMART_ALL_GID = '1467558126' // aba "Hotmart (todos)"
@@ -247,15 +249,41 @@ export function summarize(events) {
   }
 }
 
-/** Lê e normaliza a aba "Hotmart (todos)" (cache de 1 minuto). */
+/** Lê a aba "Hotmart (todos)" do Google e devolve os eventos já normalizados (sem as situações). Leva ~1,5 s. */
+export async function lerEventosAoVivo() {
+  const csv = await fetchSheetCsv(TRACKING_SHEET_ID, HOTMART_ALL_GID)
+  return toEvents(csvToObjects(csv))
+}
+
+/** Situações e resumo na hora de ler: dependem de quem já comprou e do dia de hoje, então não vão para a cópia. */
+function montarResposta(eventosPuros, buyers, fetchedAt) {
+  const events = withSituations(eventosPuros, Date.now(), buyers).sort((a, b) => b.data.localeCompare(a.data))
+  return { fetchedAt, events, resumo: summarize(events) }
+}
+
+/**
+ * Eventos da Hotmart para as telas. Lê da cópia no banco (milésimos); só vai ao Google se ainda não houver
+ * cópia ou se pedirem atualização na hora (force), e então atualiza a cópia.
+ */
 export async function loadHotmartEvents({ force = false, env = null } = {}) {
+  if (env && !force) {
+    const copia = await comCache('planilhas|eventos', 300_000, () => lerCopia(env, CHAVE_EVENTOS_HOTMART))
+    if (copia?.dados?.events) {
+      const buyers = await loadExtraBuyers(env)
+      return montarResposta(copia.dados.events, buyers, copia.atualizadoEm)
+    }
+  }
+
   if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data
 
-  const csv = await fetchSheetCsv(TRACKING_SHEET_ID, HOTMART_ALL_GID)
+  const eventos = await lerEventosAoVivo()
+  if (env) {
+    await gravarCopia(env, CHAVE_EVENTOS_HOTMART, { events: eventos }).catch((erro) => {
+      if (erro?.code !== '42P01') console.error('[planilhas] não consegui guardar a cópia:', erro.message || erro)
+    })
+  }
   const buyers = env ? await loadExtraBuyers(env, { force }) : extraBuyers
-  const events = withSituations(toEvents(csvToObjects(csv)), Date.now(), buyers).sort((a, b) => b.data.localeCompare(a.data))
-
-  const data = { fetchedAt: new Date().toISOString(), events, resumo: summarize(events) }
+  const data = montarResposta(eventos, buyers, new Date().toISOString())
   cache = { at: Date.now(), data }
   return data
 }

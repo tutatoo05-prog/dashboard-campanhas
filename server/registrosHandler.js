@@ -5,6 +5,8 @@
 
 import { csvToObjects, fetchSheetCsv, normalizeKey } from './sheetsCsv.js'
 import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv, loadExtraBuyers } from './hotmartEvents.js'
+import { comCache } from './cacheCurto.js'
+import { CHAVE_REGISTROS, gravarCopia, lerCopia } from './planilhasCopia.js'
 
 const SHEETS = [
   {
@@ -217,6 +219,13 @@ async function loadAll() {
   }
 }
 
+/** Lê as planilhas do Google ao vivo (≈14 s, 16 abas). Usado só pelo agendador da cópia e como reserva. */
+export async function carregarRegistrosAoVivo(env = null) {
+  // Quem já comprou (compras do dash) para o carrinho abandonado sair de "em aberto"
+  if (env) await loadExtraBuyers(env, { force: true })
+  return loadAll()
+}
+
 export async function handleRegistrosRequest(req, res, env = null) {
   const { pathname } = new URL(req.url, 'http://localhost')
 
@@ -231,10 +240,24 @@ export async function handleRegistrosRequest(req, res, env = null) {
   const force = new URL(req.url, 'http://localhost').searchParams.get('refresh') === '1'
 
   try {
+    // "Atualizar": copia as planilhas agora (leva uns segundos) e já mostra o resultado.
+    if (force && env) {
+      const { sincronizarRegistros } = await import('./planilhasSync.js')
+      await sincronizarRegistros(env).catch((erro) => {
+        if (erro?.code !== '42P01') console.error('Erro ao atualizar a cópia dos registros:', erro.message || erro)
+      })
+    }
+
+    // Caminho normal: lê a cópia no banco, em milésimos.
+    const copia = env ? await comCache('planilhas|registros', 300_000, () => lerCopia(env, CHAVE_REGISTROS)) : null
+    if (copia?.dados?.records) {
+      return sendJson(res, 200, { success: true, fetchedAt: copia.atualizadoEm, ...copia.dados })
+    }
+
+    // Sem cópia ainda (primeira vez, ou migração pendente): lê o Google ao vivo e guarda para a próxima.
     if (force || !cache || Date.now() - cache.at > CACHE_TTL_MS) {
-      // Quem já comprou (compras do dash) para o carrinho abandonado sair de "em aberto"
-      if (env) await loadExtraBuyers(env, { force })
-      cache = { at: Date.now(), data: await loadAll() }
+      cache = { at: Date.now(), data: await carregarRegistrosAoVivo(env) }
+      if (env) await gravarCopia(env, CHAVE_REGISTROS, cache.data).catch(() => {})
     }
     return sendJson(res, 200, {
       success: true,

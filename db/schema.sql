@@ -369,3 +369,15 @@ create table if not exists campaign_profiles (
   atualizado_em timestamptz not null default now(),
   primary key (account_id, campaign_id)
 );
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Cópia das planilhas do Google no banco (server/planilhasSync.js). Registros e Compras leem daqui em
+-- milésimos em vez de baixar 16 abas (~14 s) a cada abertura. O agendador atualiza a cada 5 minutos.
+-- chave: registros | hotmart-eventos · dados: o JSON pronto · erro: última falha de atualização (a cópia boa fica)
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists planilhas_copia (
+  chave text primary key,
+  dados jsonb not null,
+  atualizado_em timestamptz not null default now(),
+  erro text
+);

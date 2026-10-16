@@ -150,3 +150,9 @@ O dash descobre sozinho **para que cada campanha serve** (captação de leads, l
 - Campanha com data final já vencida aparece como **Concluída** e some das listas de ativas e das ações.
 - **Migration:** bloco "Ficha da campanha" de `db/schema.sql` (tabela `campaign_profiles`, só guarda o que o usuário confirmou). Sem ela o painel funciona, só não salva a escolha.
 - Domínios que contam como "página sua" (anúncio de tráfego para eles = captação): `DOMINIOS_PROPRIOS` em `src/lib/campaignType.js`.
+
+## Cópia das planilhas no banco (Registros e Compras rápidos)
+Ler as 16 abas das planilhas do Google ao vivo levava até ~14 s a cada abertura de **Registros** e dos "Eventos da Hotmart" em **Compras**. Agora o servidor copia as planilhas para a tabela `planilhas_copia` a cada **5 minutos** (`server/planilhasSync.js`) e as telas leem de lá (menos de 1 s). O botão **Atualizar** de Registros copia na hora. Se a cópia falhar, a última cópia boa continua valendo (o erro fica registrado na própria tabela).
+- **Migration:** bloco "Cópia das planilhas do Google no banco" de `db/schema.sql`. Sem a tabela, as telas continuam lendo o Google ao vivo (como antes).
+- Variáveis (opcionais): `PLANILHAS_SYNC_ENABLED=false` desliga a cópia; `PLANILHAS_SYNC_MINUTES` muda o intervalo (padrão 5).
+- As "situações" dos eventos (Pix pendente/vencido, carrinho em aberto) são calculadas na hora de ler, então não ficam velhas.

@@ -9,6 +9,7 @@ import { startLiveScheduler } from './liveScheduler.js'
 import { startAlertsScheduler } from './alertsScheduler.js'
 import { startLeadsSyncScheduler } from './leadsSyncScheduler.js'
 import { startAcessoScheduler } from './acesso/scheduler.js'
+import { startPlanilhasScheduler } from './planilhasSync.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const distDir = join(__dirname, '../dist')
@@ -122,4 +123,5 @@ server.listen(port, '0.0.0.0', () => {
   startAlertsScheduler(env)
   startLeadsSyncScheduler(env)
   startAcessoScheduler(env)
+  startPlanilhasScheduler(env)
 })
