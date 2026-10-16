@@ -116,7 +116,34 @@
 }
 .step-check:hover { background: var(--y); }
 .step-check[aria-pressed='true'] { background: var(--t); border-color: var(--line); color: #fff; }
-.step-done span { opacity: 0.6; text-decoration: line-through; }
+.step-done .step-text,
+.step-done .step-detail { opacity: 0.6; text-decoration: line-through; }
+
+/* Passo com explicação e links (tutorial) */
+.step-list li { align-items: flex-start; }
+.step-check { margin-top: 0.1rem; }
+.step-body { display: grid; gap: 0.3rem; min-width: 0; }
+.step-text { font-weight: 800; }
+.step-detail { display: block; font-size: 0.78rem; font-weight: 600; line-height: 1.45; color: var(--muted); }
+.step-links { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.15rem; }
+.step-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.6rem;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--y);
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 2px 2px 0 var(--shade);
+}
+.step-link:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shade); }
+.step-link i { font-size: 0.65rem; }
+.rich-name { color: var(--ink); }
+.drawer-steps .step-body { margin-top: 0.1rem; }
 
 .step-progress { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 800; color: var(--muted); }
 .step-progress-bar { display: inline-block; width: 72px; height: 8px; border: 2px solid var(--line); border-radius: 6px; background: var(--white); overflow: hidden; }

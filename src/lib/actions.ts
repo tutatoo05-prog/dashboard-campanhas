@@ -1,6 +1,24 @@
 import { EVIDENCE } from '@/lib/stats.js'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import type { CampaignItem, EnrichedCampaignItem } from '@/types'
+import {
+  budgetAheadSteps,
+  budgetOverSteps,
+  campaignLinks,
+  cheapestCampaign,
+  costliestCampaign,
+  creativeSteps,
+  cplUpSteps,
+  leadsDownSteps,
+  stepsFor,
+  zeroLeadsSteps,
+  type ActionLink,
+  type ActionStep,
+  type StepContext,
+} from '@/lib/actionGuides.ts'
+
+export { stepsFor }
+export type { ActionLink, ActionStep }
 
 /**
  * Transforma a análise das campanhas numa lista de coisas a fazer.
@@ -17,8 +35,10 @@ export interface ActionItem {
   icon: string
   title: string
   why: string
-  /** Passo a passo para executar no Gerenciador de Anúncios. */
-  steps: string[]
+  /** Passo a passo para executar no Gerenciador de Anúncios, com nomes, números e links. */
+  steps: ActionStep[]
+  /** Atalhos no cartão (ex.: abrir a campanha na Meta). */
+  links?: ActionLink[]
   /** Frase curta sobre o dinheiro/resultado em jogo. */
   impact?: string
   campaign?: EnrichedCampaignItem
@@ -67,6 +87,8 @@ interface BuildOptions {
   goal?: GoalPace | null
   /** Dias do período analisado (padrão 7), usado pra estimar o dinheiro em jogo por semana. */
   periodDays?: number
+  /** Conta de anúncios (act_...), para os links do Gerenciador abrirem na conta certa. */
+  accountId?: string
 }
 
 function change(current: number, previous?: number | null): number | null {
@@ -119,68 +141,6 @@ function reasoningFor(item: EnrichedCampaignItem, ctx: ActionContext): string {
   return parts.join(' ') || item.analysis.notes[0] || 'Os números da campanha pedem atenção.'
 }
 
-/** Passo a passo específico para cada tipo de problema. */
-export function stepsFor(item: EnrichedCampaignItem): string[] {
-  const labels = item.analysis.tags.map((tag) => tag.label)
-  const verdict = item.analysis.verdict
-
-  if (verdict === 'pause') {
-    return [
-      'Abra o Gerenciador de Anúncios e localize esta campanha.',
-      'Se ela ainda tem histórico bom, reduza o orçamento diário pela metade. Se não, pause.',
-      'Antes de reativar, troque o criativo ou o público — repetir o mesmo anúncio repete o resultado.',
-      'Redirecione a verba para a campanha com menor custo por lead.',
-    ]
-  }
-
-  if (verdict === 'scale') {
-    return [
-      'Aumente o orçamento diário em no máximo 20%. Mudanças maiores reiniciam o aprendizado da Meta.',
-      'Não mexa em mais nada (público, criativo) no mesmo dia.',
-      'Espere 48h e confira se o custo por lead se manteve antes de subir de novo.',
-      'Se quiser ir mais rápido, duplique o conjunto vencedor em vez de inflar o orçamento.',
-    ]
-  }
-
-  if (verdict === 'fix') {
-    const steps: string[] = []
-    if (labels.includes('Anúncio fraco')) {
-      steps.push(
-        'Crie 2 variações do anúncio: mude os 3 primeiros segundos do vídeo (ou a imagem) e a primeira frase do texto.',
-        'Rode as variações no mesmo conjunto e compare o CTR depois de 48h.',
-      )
-    }
-    if (labels.includes('Problema na página')) {
-      steps.push(
-        'Abra a página do link no celular: ela carrega em menos de 3 segundos?',
-        'Confira se a promessa do anúncio é a mesma da primeira tela da página.',
-        'Reduza o formulário ao mínimo (nome e WhatsApp ou e-mail).',
-      )
-    }
-    if (labels.includes('Anúncio cansado')) {
-      steps.push(
-        `A frequência está em ${formatDecimal(item.frequency, 1)} — o público já viu demais.`,
-        'Troque o criativo ou amplie o público para novas pessoas.',
-      )
-    }
-    if (labels.includes('Revisar quem vê')) {
-      steps.push(
-        'Cada clique está caro: teste um público mais aberto (deixe a Meta escolher) contra o atual.',
-        'Remova interesses muito específicos e exclua quem já virou lead.',
-      )
-    }
-    if (!steps.length) {
-      steps.push('Revise criativo, público e página — algum deles está puxando o resultado para baixo.')
-    }
-    return steps
-  }
-
-  return [
-    'Não faça mudanças agora — mexer cedo demais atrapalha a otimização.',
-    'Volte a olhar esta campanha em 48h, quando houver mais dados.',
-  ]
-}
-
 /** Quanto falta de dados para a análise poder decidir. */
 export function evidenceGap(item: CampaignItem): string | null {
   const missingClicks = Math.max(0, EVIDENCE.minClicksForRate - (item.clicks || 0))
@@ -191,7 +151,7 @@ export function evidenceGap(item: CampaignItem): string | null {
   return parts.length ? `Faltam cerca de ${parts.join(' e ')} para uma decisão segura.` : null
 }
 
-function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionItem | null {
+function campaignAction(item: EnrichedCampaignItem, averageCpl: number, stepCtx: StepContext): ActionItem | null {
   const verdict = item.analysis.verdict
   const note = item.analysis.notes[0] ?? ''
   const spend = formatCurrency(item.spend)
@@ -206,7 +166,8 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
       title: `Pausar ou reduzir: ${item.name}`,
       why: note,
       impact: `${spend} investidos para ${resultText}.`,
-      steps: stepsFor(item),
+      steps: stepsFor(item, stepCtx),
+      links: campaignLinks(item, stepCtx),
       campaign: item,
     }
   }
@@ -221,7 +182,8 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
       title: `${item.analysis.primary.label}: ${item.name}`,
       why: note,
       impact: `${spend} investidos · CTR ${formatDecimal(item.ctr)}% · ${resultText}.`,
-      steps: stepsFor(item),
+      steps: stepsFor(item, stepCtx),
+      links: campaignLinks(item, stepCtx),
       campaign: item,
     }
   }
@@ -235,7 +197,8 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
       title: `Investir mais: ${item.name}`,
       why: note,
       impact: `${resultText} com CTR ${formatDecimal(item.ctr)}%.`,
-      steps: stepsFor(item),
+      steps: stepsFor(item, stepCtx),
+      links: campaignLinks(item, stepCtx),
       campaign: item,
     }
   }
@@ -249,7 +212,8 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
       title: `Aguardar dados: ${item.name}`,
       why: note,
       impact: evidenceGap(item) ?? undefined,
-      steps: stepsFor(item),
+      steps: stepsFor(item, stepCtx),
+      links: campaignLinks(item, stepCtx),
       campaign: item,
     }
   }
@@ -259,13 +223,21 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number): ActionI
 
 /** Gera as ações da conta, já ordenadas por prioridade e dinheiro em jogo. */
 export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOptions): ActionItem[] {
-  const { totals, previousTotals, ads = [], goal, periodDays: days = 7 } = options
+  const { totals, previousTotals, ads = [], goal, periodDays: days = 7, accountId } = options
   const active = enriched.filter((item) => item.status === 'Ativa')
   const actions: ActionItem[] = []
   const ctx: ActionContext = { averageCpl: totals.cpl, totalSpend: totals.spend, weekly: 7 / Math.max(1, days) }
+  // Contexto dos passo a passo: conta, dias do período e as campanhas mais barata/cara para citar pelo nome.
+  const stepCtxFor = (excludeId?: string): StepContext => ({
+    accountId,
+    days,
+    averageCpl: totals.cpl,
+    cheapest: cheapestCampaign(active, excludeId),
+    costliest: costliestCampaign(active),
+  })
 
   for (const item of active) {
-    const base = campaignAction(item, totals.cpl)
+    const base = campaignAction(item, totals.cpl, stepCtxFor(item.id))
     if (!base) continue
     const waste = base.kind === 'pause' || base.kind === 'fix' ? wasteOf(item, ctx.averageCpl) : 0
     actions.push({
@@ -287,11 +259,8 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         title: `Gastando sem trazer leads: ${item.name}`,
         why: 'Já houve cliques suficientes e nenhum lead apareceu. Confira se o formulário/pixel está funcionando antes de culpar o anúncio.',
         impact: `${formatCurrency(item.spend)} investidos e ${formatNumber(item.clicks)} cliques sem nenhum lead.`,
-        steps: [
-          'Abra a página do link e faça um cadastro de teste.',
-          'Confirme que o lead aparece em Leads/Registros aqui no painel.',
-          'Se o cadastro funciona, a campanha é fraca: pause ou troque criativo e público.',
-        ],
+        steps: zeroLeadsSteps(item, stepCtxFor(item.id)),
+        links: campaignLinks(item, { accountId }),
         campaign: item,
         moneyAtStake: roundMoney(item.spend * ctx.weekly),
         reasoning: `${formatNumber(item.clicks)} cliques e ${formatCurrency(item.spend)} gastos sem nenhum lead. Com esse volume de cliques, o mais provável é um problema no formulário, no pixel ou na oferta.`,
@@ -322,11 +291,8 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         title: `Trocar um anúncio: ${worst.name}`,
         why: `Dentro da mesma campanha, este anúncio custa ${formatCurrency(worst.cpl)} por lead e o melhor custa ${formatCurrency(best.cpl)} (${best.name}).`,
         impact: `${formatCurrency(worst.spend)} investidos neste anúncio.`,
-        steps: [
-          `Pause "${worst.name}" ou reduza a verba dele.`,
-          `Crie uma variação inspirada em "${best.name}" — mesmo gancho, nova imagem ou vídeo.`,
-          'Deixe a variação rodar 48h antes de julgar.',
-        ],
+        steps: creativeSteps(worst, best, stepCtxFor(campaignId)),
+        links: [{ label: 'Abrir este anúncio na Meta', href: `https://adsmanager.facebook.com/adsmanager/manage/ads?${new URLSearchParams({ ...(accountId ? { act: accountId.replace(/^act_/, '') } : {}), selected_campaign_ids: campaignId, selected_ad_ids: worst.id })}`, external: true }],
         campaign,
         moneyAtStake: roundMoney(Math.max(0, worst.spend - worst.leads * best.cpl) * ctx.weekly),
         reasoning: `Na mesma campanha, "${worst.name}" custa ${formatDecimal(worst.cpl / best.cpl, 1)}× mais por lead que "${best.name}", e já consumiu ${formatCurrency(worst.spend)}.`,
@@ -344,11 +310,7 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
       icon: 'fa-arrow-trend-up',
       title: `Custo por lead subiu ${formatDecimal(cplChange, 0)}%`,
       why: `Cada lead custava ${formatCurrency(previousTotals?.cpl)} no período anterior e agora custa ${formatCurrency(totals.cpl)}.`,
-      steps: [
-        'Veja abaixo qual campanha mais encareceu — normalmente é uma só.',
-        'Pause ou reduza a campanha mais cara e mande a verba para a mais barata.',
-        'Se for geral, pode ser cansaço de público: renove os criativos.',
-      ],
+      steps: cplUpSteps(stepCtxFor(), totals.cpl, previousTotals?.cpl ?? totals.cpl),
       moneyAtStake: roundMoney(((totals.cpl - (previousTotals?.cpl ?? totals.cpl)) * totals.leads) * ctx.weekly),
       reasoning: `Com ${formatNumber(totals.leads)} leads no período, a alta de ${formatCurrency(previousTotals?.cpl)} para ${formatCurrency(totals.cpl)} por lead é dinheiro a mais saindo pelo mesmo resultado.`,
     })
@@ -363,11 +325,7 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
       icon: 'fa-arrow-trend-down',
       title: `Leads caíram ${formatDecimal(Math.abs(leadsChange), 0)}%`,
       why: `Foram ${formatNumber(totals.leads)} leads, contra ${formatNumber(previousTotals?.leads)} no período anterior.`,
-      steps: [
-        'Confira se alguma campanha boa foi pausada ou ficou sem orçamento.',
-        'Verifique se a página de captura está no ar e o pixel disparando.',
-        'Se o investimento caiu junto, a queda é esperada — compare o custo por lead.',
-      ],
+      steps: leadsDownSteps(stepCtxFor()),
     })
   }
 
@@ -381,10 +339,14 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
       icon: 'fa-repeat',
       title: `Público saturado: ${item.name}`,
       why: `Cada pessoa viu o anúncio ${formatDecimal(item.frequency, 1)} vezes. Acima de 3, o resultado costuma cair.`,
-      steps: stepsFor({
-        ...item,
-        analysis: { ...item.analysis, verdict: 'fix', tags: [{ emoji: '🔄', label: 'Anúncio cansado', tone: 'warning' }] },
-      }),
+      steps: stepsFor(
+        {
+          ...item,
+          analysis: { ...item.analysis, verdict: 'fix', tags: [{ emoji: '🔄', label: 'Anúncio cansado', tone: 'warning' }] },
+        },
+        stepCtxFor(item.id),
+      ),
+      links: campaignLinks(item, { accountId }),
       campaign: item,
       reasoning: `Frequência de ${formatDecimal(item.frequency, 1)}: acima de 3 o público já viu demais, o clique cai e o custo por lead tende a subir.`,
     })
@@ -402,7 +364,7 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         icon: 'fa-wallet',
         title: 'Orçamento do mês estourado',
         why: `Já foram ${formatCurrency(goal.monthSpend)} de ${formatCurrency(goal.spendTarget)} previstos.`,
-        steps: ['Reduza os orçamentos diários ou aumente a meta do mês em Meta do mês (Dashboard).'],
+        steps: budgetOverSteps(stepCtxFor()),
       })
     } else if (goal.monthSpend > expected * 1.2 && goal.monthSpend > 0) {
       actions.push({
@@ -412,7 +374,7 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
         icon: 'fa-gauge-high',
         title: 'Gastando mais rápido que o planejado',
         why: `Até hoje o esperado era ${formatCurrency(expected)} e já foram ${formatCurrency(goal.monthSpend)}. No ritmo atual a verba acaba antes do fim do mês.`,
-        steps: ['Reduza os orçamentos das campanhas com pior custo por lead.', 'Evite subir orçamentos até voltar ao ritmo.'],
+        steps: budgetAheadSteps(stepCtxFor()),
       })
     }
   }

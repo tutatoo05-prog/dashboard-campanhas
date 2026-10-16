@@ -14,6 +14,7 @@ import {
   periodDays,
   totalMoneyAtStake,
   type ActionItem,
+  type ActionStep,
   type ActionKind,
   type ActionPriority,
   type GoalPace,
@@ -52,6 +53,8 @@ import { AssigneePicker } from '@/components/actions/AssigneePicker.tsx'
 import { AutomationPanel } from '@/components/actions/AutomationPanel.tsx'
 import { MetaActionDialog, type MetaActionKind } from '@/components/actions/MetaActionDialog.tsx'
 import { ResultsSection } from '@/components/actions/ResultsSection.tsx'
+import { StepContent, StepLink } from '@/components/actions/StepContent.tsx'
+import { cheapestCampaign, costliestCampaign, ruleAlertSteps, type StepContext } from '@/lib/actionGuides.ts'
 import { SnoozeMenu, formatSnoozeDate } from '@/components/actions/SnoozeMenu.tsx'
 import { computeResults } from '@/lib/actionResults.ts'
 import { saveSnoozed } from '@/lib/actionsProgress.ts'
@@ -105,26 +108,9 @@ function comparePlan(a: PlanItem, b: PlanItem): number {
   return (b.campaign?.spend ?? 0) - (a.campaign?.spend ?? 0)
 }
 
-const ALERT_STEPS: Record<RuleAlert['ruleType'], string[]> = {
-  cpl_above_avg: [
-    'Abra o Gerenciador de Anúncios e localize a campanha.',
-    'Compare os anúncios dela: o mais caro costuma puxar o custo para cima.',
-    'Pause ou reduza o anúncio mais caro e crie uma variação do melhor.',
-    'Confira de novo em 48h.',
-  ],
-  spend_no_leads: [
-    'Abra a página do link e faça um cadastro de teste.',
-    'Confirme que o lead aparece em Leads/Registros aqui no painel.',
-    'Se o cadastro funciona, a campanha é fraca: pause ou troque criativo e público.',
-  ],
-  budget_used: [
-    'Veja quais campanhas têm o pior custo por lead.',
-    'Reduza os orçamentos diários delas ou aumente a meta do mês no Dashboard.',
-  ],
-}
-
 /** Transforma um alerta de regra automática numa ação da lista. */
-function alertToAction(alert: RuleAlert, enriched: EnrichedCampaignItem[]): ActionItem {
+function alertToAction(alert: RuleAlert, enriched: EnrichedCampaignItem[], ctx: StepContext): ActionItem {
+  const campaign = alert.campaignId ? enriched.find((item) => item.id === alert.campaignId) : undefined
   return {
     id: `rule:${alert.id}`,
     priority: alert.ruleType === 'budget_used' ? 'today' : 'urgent',
@@ -132,10 +118,11 @@ function alertToAction(alert: RuleAlert, enriched: EnrichedCampaignItem[]): Acti
     icon: 'fa-bell',
     title: alert.title,
     why: alert.detail,
-    steps: ALERT_STEPS[alert.ruleType],
+    steps: ruleAlertSteps(alert.ruleType, campaign, ctx),
+    links: campaign ? [{ label: 'Abrir na Meta', href: `https://adsmanager.facebook.com/adsmanager/manage/campaigns?${new URLSearchParams({ act: ctx.accountId?.replace(/^act_/, '') ?? '', selected_campaign_ids: campaign.id })}`, external: true }] : undefined,
     moneyAtStake: alert.money ?? undefined,
     reasoning: `Regra automática disparada: ${alert.detail}`,
-    campaign: alert.campaignId ? enriched.find((item) => item.id === alert.campaignId) : undefined,
+    campaign,
   }
 }
 
@@ -221,7 +208,7 @@ function StepList({
   doneSet,
   onToggle,
 }: {
-  steps: string[]
+  steps: ActionStep[]
   doneSet: Set<number>
   onToggle: (index: number) => void
 }) {
@@ -230,7 +217,7 @@ function StepList({
       {steps.map((step, index) => {
         const checked = doneSet.has(index)
         return (
-          <li key={step} className={checked ? 'step-done' : ''}>
+          <li key={step.text} className={checked ? 'step-done' : ''}>
             <button
               type="button"
               className="step-check"
@@ -240,7 +227,7 @@ function StepList({
             >
               <i className="fa-solid fa-check" />
             </button>
-            <span>{step}</span>
+            <StepContent step={step} />
           </li>
         )
       })}
@@ -348,6 +335,9 @@ function ActionCard({
                 Ver detalhes
               </button>
             )}
+            {action.links?.map((link) => (
+              <StepLink key={link.href} link={link} className="action-link" />
+            ))}
             {tools}
           </div>
         </div>
@@ -424,6 +414,9 @@ function FocusCard({
             <i className="fa-solid fa-magnifying-glass-chart" /> Ver detalhes
           </button>
         )}
+        {action.links?.map((link) => (
+          <StepLink key={link.href} link={link} className="chip-btn" />
+        ))}
         {action.reasoning && (
           <button type="button" className="chip-btn" onClick={onExplain}>
             <i className="fa-solid fa-paw" /> TaTuzinho explica
@@ -617,6 +610,7 @@ export default function ActionsPage() {
         ads: (data.ads ?? []) as CampaignItem[],
         goal: !allMode ? goal : null,
         periodDays: days,
+        accountId: id,
       })
       result.push({
         id,
@@ -657,7 +651,15 @@ export default function ActionsPage() {
           const urgentCampaigns = new Set(b.actions.filter((a) => a.priority === 'urgent').map((a) => a.campaign?.id))
           const fromRules = (actionsState?.alerts ?? [])
             .filter((alert) => alert.accountId === b.id && !(alert.campaignId && urgentCampaigns.has(alert.campaignId)))
-            .map((alert) => alertToAction(alert, b.enriched))
+            .map((alert) =>
+              alertToAction(alert, b.enriched, {
+                accountId: b.id,
+                days,
+                averageCpl: b.totals.cpl,
+                cheapest: cheapestCampaign(b.enriched, alert.campaignId ?? undefined),
+                costliest: costliestCampaign(b.enriched),
+              }),
+            )
           return [...b.actions, ...fromRules].map((action) => ({
             ...action,
             key: `${b.id}::${action.id}`,
@@ -666,7 +668,7 @@ export default function ActionsPage() {
           }))
         })
         .sort(comparePlan),
-    [bundles, actionsState?.alerts],
+    [bundles, actionsState?.alerts, days],
   )
 
   const itemIndex = useMemo(() => new Map(allItems.map((item) => [item.key, item])), [allItems])

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { TONE_CLASSES } from '@/lib/analysis.js'
 import { resolveDailySeries } from '@/lib/trends.js'
 import { evidenceGap, stepsFor } from '@/lib/actions.ts'
+import { StepContent } from '@/components/actions/StepContent.tsx'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import { leadsHint } from '@/lib/leadsHint.ts'
 import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
@@ -175,7 +176,9 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
             <p className="section-label mb-2">O que fazer agora</p>
             <ol className="drawer-steps">
               {steps.map((step) => (
-                <li key={step}>{step}</li>
+                <li key={step.text}>
+                  <StepContent step={step} />
+                </li>
               ))}
             </ol>
           </section>
