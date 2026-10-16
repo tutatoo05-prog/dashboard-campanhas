@@ -116,12 +116,12 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       }
 
       if (req.url.startsWith('/api/registros')) {
-        await handleRegistrosRequest(req, res)
+        await handleRegistrosRequest(req, res, env)
         return
       }
 
       if (req.url.startsWith('/api/eventos-hotmart')) {
-        await handleHotmartEventsRequest(req, res)
+        await handleHotmartEventsRequest(req, res, env)
         return
       }
 

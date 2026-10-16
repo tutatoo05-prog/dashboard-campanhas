@@ -78,16 +78,31 @@ async function serveStatic(req, res) {
   }
 }
 
+// Falha passageira (ex.: o DNS do banco some por um instante) vira log, não derruba o processo.
+process.on('unhandledRejection', (motivo) => console.error('[erro não tratado]', motivo))
+process.on('uncaughtException', (erro) => console.error('[exceção não tratada]', erro))
+
 const env = loadRuntimeEnv()
 const apiMiddleware = createApiMiddleware(env, { isProduction })
 const port = Number(process.env.PORT || process.env.APP_PORT || 4173)
 
 const server = createServer(async (req, res) => {
   if (req.url?.startsWith('/api/')) {
-    await apiMiddleware(req, res, () => {
-      res.statusCode = 404
-      res.end(JSON.stringify({ error: 'Rota não encontrada.' }))
-    })
+    try {
+      await apiMiddleware(req, res, () => {
+        res.statusCode = 404
+        res.end(JSON.stringify({ error: 'Rota não encontrada.' }))
+      })
+    } catch (erro) {
+      console.error('[api]', req.method, req.url, erro?.message || erro)
+      if (!res.headersSent) {
+        res.statusCode = 503
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: 'Serviço indisponível por um instante. Tente de novo.' }))
+      } else {
+        res.end()
+      }
+    }
     return
   }
 

@@ -78,7 +78,9 @@ export async function handleAcessosRequest(req, res, env, user) {
       const limite = Math.min(200, Math.max(1, Number(url.searchParams.get('limite')) || 60))
       const filtros = []
       const valores = []
-      if (estado && estado !== 'todos') {
+      if (estado === 'problemas') {
+        filtros.push(`estado in ('erro', 'falhou', 'atencao')`)
+      } else if (estado && estado !== 'todos') {
         valores.push(estado)
         filtros.push(`estado = $${valores.length}`)
       } else {

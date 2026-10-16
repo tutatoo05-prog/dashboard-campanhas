@@ -4,7 +4,7 @@
 // (guarda credenciais).
 
 import { csvToObjects, fetchSheetCsv, normalizeKey } from './sheetsCsv.js'
-import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv } from './hotmartEvents.js'
+import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv, loadExtraBuyers } from './hotmartEvents.js'
 
 const SHEETS = [
   {
@@ -217,7 +217,7 @@ async function loadAll() {
   }
 }
 
-export async function handleRegistrosRequest(req, res) {
+export async function handleRegistrosRequest(req, res, env = null) {
   const { pathname } = new URL(req.url, 'http://localhost')
 
   if (pathname !== '/api/registros') {
@@ -232,6 +232,8 @@ export async function handleRegistrosRequest(req, res) {
 
   try {
     if (force || !cache || Date.now() - cache.at > CACHE_TTL_MS) {
+      // Quem já comprou (compras do dash) para o carrinho abandonado sair de "em aberto"
+      if (env) await loadExtraBuyers(env, { force })
       cache = { at: Date.now(), data: await loadAll() }
     }
     return sendJson(res, 200, {

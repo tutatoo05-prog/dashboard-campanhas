@@ -15,8 +15,6 @@ import {
 } from '@/services/acessosService.ts'
 import { formatNumber } from '@/lib/format.ts'
 
-type Aba = 'eventos' | 'alunos'
-
 const MODO_LABEL = { desligado: 'Desligado (o n8n cuida)', teste: 'Teste (só simula)', ativo: 'Ativo' } as const
 
 const ESTADO_LABEL: Record<string, { texto: string; classe: string }> = {
@@ -347,23 +345,27 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
 }
 
 export default function AcessosPage() {
-  const [aba, setAba] = useState<Aba>('eventos')
-  const [estado, setEstado] = useState('todos')
-  const [busca, setBusca] = useState('')
   const [buscaAluno, setBuscaAluno] = useState('')
 
   const resumo = useQuery({ queryKey: ['acessos', 'resumo'], queryFn: fetchAcessoResumo, retry: false, refetchInterval: 30_000 })
-  const eventos = useQuery({ queryKey: ['acessos', 'eventos', estado, busca], queryFn: () => fetchAcessoEventos(estado, busca), retry: false, refetchInterval: 30_000, enabled: aba === 'eventos' })
   const alunos = useQuery({ queryKey: ['acessos', 'alunos'], queryFn: fetchAcessoAlunos, retry: false, refetchInterval: 60_000 })
-
   const dados = resumo.data
+  const porEstado = dados?.porEstado ?? {}
+  const problemas = (porEstado.falhou ?? 0) + (porEstado.atencao ?? 0) + (porEstado.erro ?? 0)
+  // Só busca as falhas quando existem: a lista de eventos não é o foco da tela.
+  const falhas = useQuery({
+    queryKey: ['acessos', 'eventos', 'problemas'],
+    queryFn: () => fetchAcessoEventos('problemas', ''),
+    retry: false,
+    refetchInterval: 30_000,
+    enabled: problemas > 0,
+  })
+
   const alunosFiltrados = (alunos.data ?? []).filter((aluno) => {
     const termo = buscaAluno.trim().toLowerCase()
     if (!termo) return true
     return [aluno.nome, aluno.email, aluno.curso, aluno.telefone].filter(Boolean).some((valor) => String(valor).toLowerCase().includes(termo))
   })
-  const porEstado = dados?.porEstado ?? {}
-  const problemas = (porEstado.falhou ?? 0) + (porEstado.atencao ?? 0)
   const erro = resumo.error as Error | undefined
   const faltando = dados?.configuracao.obrigatorias ?? []
 
@@ -373,7 +375,7 @@ export default function AcessosPage() {
         <p className="section-label">Operação</p>
         <Typewriter as="h2" className="section-title mt-1" text="Acessos" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-          Quem comprou, se o acesso foi liberado e até quando vale. Cada venda da Hotmart passa por aqui; o que falhar fica na lista para tentar de novo.
+          Seus alunos, até quando o acesso vale e quem precisa de uma ação na plataforma de cursos. A liberação das vendas da Hotmart acontece sozinha; só o que falhar aparece aqui.
         </p>
       </PageHero>
 
@@ -385,96 +387,51 @@ export default function AcessosPage() {
 
       {dados && (
         <>
-          <section className={`surface-card p-4 text-sm ${dados.modo === 'ativo' ? '' : 'border-amber-500/30'}`}>
-            <p className="text-zinc-300">
-              <i className="fa-solid fa-circle-info mr-2 text-zinc-500" />
-              Modo: <strong className="text-zinc-100">{MODO_LABEL[dados.modo]}</strong>
-              {dados.ultimoEventoEm && <span className="text-zinc-500"> · último evento da Hotmart em {dataHora(dados.ultimoEventoEm)}</span>}
-            </p>
-            {dados.modo === 'desligado' && (
-              <p className="mt-1.5 text-xs text-zinc-500">O dash ainda não está recebendo os eventos. Defina ACESSO_MODO=teste (ou ativo) no servidor — veja o DEPLOY.md.</p>
-            )}
-            {dados.modo === 'teste' && (
-              <p className="mt-1.5 text-xs text-zinc-500">Em teste o dash grava e decide, mas não libera curso nem manda e-mail ou WhatsApp. Compare com o que o n8n fez e depois mude para ativo.</p>
-            )}
-            {faltando.length > 0 && (
-              <div className="mt-2 text-xs text-amber-200">
-                Falta configurar no servidor para o modo ativo:
-                <ul className="mt-1 list-disc pl-5 text-amber-200/80">
-                  {faltando.map((item) => (
-                    <li key={item.nome}><code>{item.nome}</code> — {item.descricao}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
+          {(dados.modo !== 'ativo' || faltando.length > 0) && (
+            <section className="surface-card border-amber-500/30 p-4 text-sm">
+              <p className="text-zinc-300">
+                <i className="fa-solid fa-circle-info mr-2 text-zinc-500" />
+                Modo: <strong className="text-zinc-100">{MODO_LABEL[dados.modo]}</strong>
+              </p>
+              {dados.modo === 'desligado' && (
+                <p className="mt-1.5 text-xs text-zinc-500">O dash ainda não está recebendo os eventos. Defina ACESSO_MODO=ativo no servidor — veja o DEPLOY.md.</p>
+              )}
+              {dados.modo === 'teste' && (
+                <p className="mt-1.5 text-xs text-zinc-500">Em teste o dash grava e decide, mas não libera curso nem manda e-mail ou WhatsApp.</p>
+              )}
+              {faltando.length > 0 && (
+                <div className="mt-2 text-xs text-amber-200">
+                  Falta configurar no servidor:
+                  <ul className="mt-1 list-disc pl-5 text-amber-200/80">
+                    {faltando.map((item) => (
+                      <li key={item.nome}><code>{item.nome}</code> — {item.descricao}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
 
-          <Verificador />
-
-          <AcoesManuais alunos={alunos.data ?? []} />
-
-          <section className="kpi-scroll">
-            <Cartao rotulo="Precisam de você" valor={problemas} tom="red" dica="falhou ou pede atenção" />
-            <Cartao rotulo="Tentando de novo" valor={porEstado.erro ?? 0} tom="amber" dica="o dash refaz sozinho" />
-            <Cartao rotulo="Na fila" valor={(porEstado.novo ?? 0) + (porEstado.processando ?? 0)} />
-            <Cartao rotulo="Feitos" valor={porEstado.ok ?? 0} />
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <Cartao rotulo="Alunos com acesso" valor={dados.acessosPorStatus.ativo ?? 0} />
-            <Cartao rotulo="Inativar na plataforma" valor={dados.acessosPorStatus.bloqueio_pendente ?? 0} tom="red" dica="parcela atrasada: faça na mão" />
-            <Cartao rotulo="Reativar na plataforma" valor={dados.acessosPorStatus.reativar_pendente ?? 0} tom="amber" dica="pagou depois de inativado" />
-            <Cartao rotulo="Parcela atrasada" valor={dados.acessosPorStatus.atrasado ?? 0} tom="amber" dica={`${dados.acessosPorStatus.bloqueado ?? 0} já inativado(s)`} />
+            <Cartao rotulo="Parcela atrasada" valor={dados.acessosPorStatus.atrasado ?? 0} tom="amber" dica="ainda no prazo" />
+            <Cartao rotulo="Inativar na plataforma" valor={dados.acessosPorStatus.bloqueio_pendente ?? 0} tom="red" dica="faça na mão" />
+            <Cartao rotulo="Reativar na plataforma" valor={dados.acessosPorStatus.reativar_pendente ?? 0} tom="amber" dica="pagou de novo" />
+            <Cartao rotulo="Vendas com problema" valor={problemas} tom="red" dica="não liberou sozinho" />
           </section>
         </>
       )}
 
-      <section className="surface-card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="flex gap-2">
-            {(['eventos', 'alunos'] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setAba(item)}
-                className={`rounded-lg border px-3 py-1.5 text-sm ${aba === item ? 'border-amber-400/70 bg-amber-400/20 font-semibold text-zinc-50' : 'border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}
-              >
-                {item === 'eventos' ? 'Eventos da Hotmart' : 'Alunos'}
-              </button>
-            ))}
-          </div>
-          {aba === 'alunos' && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-zinc-500">{alunosFiltrados.length} aluno(s)</span>
-              <input
-                type="text"
-                value={buscaAluno}
-                onChange={(evento) => setBuscaAluno(evento.target.value)}
-                placeholder="Buscar nome, e-mail ou curso..."
-                className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-              />
-            </div>
-          )}
-          {aba === 'eventos' && (
-            <div className="flex flex-wrap items-center gap-2">
-              <select value={estado} onChange={(evento) => setEstado(evento.target.value)} className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200">
-                <option value="todos">Todos</option>
-                <option value="atencao">Precisam de atenção</option>
-                <option value="falhou">Falharam</option>
-                <option value="erro">Tentando de novo</option>
-                <option value="ok">Feitos</option>
-                <option value="ignorado">Ignorados</option>
-              </select>
-              <input
-                type="text"
-                value={busca}
-                onChange={(evento) => setBusca(evento.target.value)}
-                placeholder="Buscar nome, e-mail ou transação..."
-                className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-              />
-            </div>
-          )}
-        </div>
+      <AcoesManuais alunos={alunos.data ?? []} />
 
-        <div className="max-h-[560px] overflow-auto">
-          {aba === 'eventos' ? (
+      {problemas > 0 && (
+        <section className="surface-card overflow-hidden border-red-500/30">
+          <div className="p-4">
+            <p className="section-label">Precisa de você</p>
+            <h3 className="section-title mt-1">Vendas que não terminaram de liberar</h3>
+            <p className="mt-1 text-xs text-zinc-500">O dash tenta de novo sozinho; se continuar, corrija o motivo e use "Tentar de novo agora".</p>
+          </div>
+          <div className="max-h-[420px] overflow-auto">
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                 <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
@@ -486,36 +443,66 @@ export default function AcessosPage() {
                 </tr>
               </thead>
               <tbody>
-                {(eventos.data ?? []).map((evento) => (
+                {(falhas.data ?? []).map((evento) => (
                   <EventoLinha key={evento.id} evento={evento} />
                 ))}
               </tbody>
             </table>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
-                <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                  <th className="px-4 py-2 font-medium">Aluno</th>
-                  <th className="px-4 py-2 font-medium">Curso</th>
-                  <th className="px-4 py-2 font-medium">Pagamento</th>
-                  <th className="px-4 py-2 font-medium">Acesso até</th>
-                  <th className="px-4 py-2 text-center font-medium">Parcelas</th>
-                  <th className="px-4 py-2 font-medium">Situação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alunosFiltrados.map((aluno) => (
-                  <AlunoLinha key={aluno.id} aluno={aluno} />
-                ))}
-              </tbody>
-            </table>
+            {falhas.isError && <p className="p-4 text-center text-sm text-red-300">{(falhas.error as Error).message}</p>}
+          </div>
+        </section>
+      )}
+
+      <section className="surface-card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <p className="section-label">Lista</p>
+            <h3 className="section-title mt-1">Alunos</h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              {alunos.isLoading ? 'Carregando...' : `${alunosFiltrados.length} aluno(s)${buscaAluno.trim() ? ' encontrados' : ''}`}
+            </p>
+          </div>
+          <input
+            type="text"
+            value={buscaAluno}
+            onChange={(evento) => setBuscaAluno(evento.target.value)}
+            placeholder="Buscar nome, e-mail ou curso..."
+            className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+          />
+        </div>
+
+        <div className="max-h-[640px] overflow-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
+              <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
+                <th className="px-4 py-2 font-medium">Aluno</th>
+                <th className="px-4 py-2 font-medium">Curso</th>
+                <th className="px-4 py-2 font-medium">Pagamento</th>
+                <th className="px-4 py-2 font-medium">Acesso até</th>
+                <th className="px-4 py-2 text-center font-medium">Parcelas</th>
+                <th className="px-4 py-2 font-medium">Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alunosFiltrados.map((aluno) => (
+                <AlunoLinha key={aluno.id} aluno={aluno} />
+              ))}
+            </tbody>
+          </table>
+          {alunos.isLoading && <p className="p-6 text-center text-sm text-zinc-500">Carregando os alunos...</p>}
+          {alunos.isError && (
+            <p className="p-6 text-center text-sm text-red-300">
+              Não consegui carregar os alunos: {(alunos.error as Error).message}{' '}
+              <button type="button" className="underline" onClick={() => void alunos.refetch()}>
+                tentar de novo
+              </button>
+            </p>
           )}
-          {aba === 'eventos' && eventos.isSuccess && !eventos.data.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum evento por aqui ainda.</p>}
-          {aba === 'alunos' && alunos.isSuccess && !alunos.data.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum aluno registrado ainda.</p>}
-          {(eventos.isError && aba === 'eventos') && <p className="p-6 text-center text-sm text-red-300">{(eventos.error as Error).message}</p>}
-          {(alunos.isError && aba === 'alunos') && <p className="p-6 text-center text-sm text-red-300">{(alunos.error as Error).message}</p>}
+          {alunos.isSuccess && !alunosFiltrados.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum aluno encontrado.</p>}
         </div>
       </section>
+
+      <Verificador />
     </div>
   )
 }

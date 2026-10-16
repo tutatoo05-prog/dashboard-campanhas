@@ -19,6 +19,9 @@ export function getPool(env = process.env) {
     max: 10,
   })
 
+  // Erro numa conexão parada do pool (rede caiu): só registra, o pool abre outra na próxima consulta.
+  pool.on('error', (erro) => console.error('[banco] conexão do pool com erro:', erro.message))
+
   return pool
 }
 

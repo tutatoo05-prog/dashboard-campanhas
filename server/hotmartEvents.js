@@ -5,6 +5,7 @@
 // quem abandonou o carrinho e não comprou?
 
 import { csvToObjects, fetchSheetCsv } from './sheetsCsv.js'
+import { query } from './db.js'
 
 export const TRACKING_SHEET_ID = '1PKUyzv3isiEW-HbHH4sY2zaSJcK1yi3ejG0ETKGCFeg'
 export const HOTMART_ALL_GID = '1467558126' // aba "Hotmart (todos)"
@@ -14,6 +15,33 @@ const CACHE_TTL_MS = 60_000
 const PENDING_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000
 const TEST_EMAIL = /@(teste|exemplo|example|test).(com|com.br)$/i
 let cache = null
+
+/** Telefone comparável: os 10 últimos dígitos (ignora 55 e formatação). */
+function phoneKey(value) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  return digits.length >= 10 ? digits.slice(-10) : ''
+}
+
+let extraBuyers = []
+let extraBuyersAt = 0
+
+/**
+ * Quem já comprou segundo o próprio dash (tabela purchases, que também recebe as vendas novas do webhook).
+ * Serve para o carrinho abandonado não continuar "em aberto" de quem comprou por outro caminho ou com outro e-mail.
+ * Guarda o resultado por 1 minuto; se o banco falhar, segue só com as vendas da planilha.
+ */
+export async function loadExtraBuyers(env, { force = false } = {}) {
+  if (!force && Date.now() - extraBuyersAt < CACHE_TTL_MS) return extraBuyers
+  try {
+    if (!env?.DATABASE_URL) return extraBuyers
+    const { rows } = await query(env, `select email, telefone, created_at from purchases where coalesce(status, 'ativo') <> 'cancelado'`)
+    extraBuyers = rows.map((row) => ({ email: String(row.email ?? '').trim().toLowerCase(), telefone: row.telefone, data: new Date(row.created_at).toISOString() }))
+    extraBuyersAt = Date.now()
+  } catch (error) {
+    console.error('Erro ao ler as compras para cruzar com os eventos da Hotmart:', error.message || error)
+  }
+  return extraBuyers
+}
 
 /** Categoria de cada evento, na linguagem da tela. */
 export function categoryOf(evento) {
@@ -128,18 +156,32 @@ function cancelSituation(evento) {
   return 'cancelada'
 }
 
-export function withSituations(events, now = Date.now()) {
+export function withSituations(events, now = Date.now(), otherBuyers = extraBuyers) {
   const byTransaction = new Map()
-  const buyers = new Map() // e-mail -> momento da primeira compra aprovada
+  const buyersByEmail = new Map() // e-mail -> momento da primeira compra
+  const buyersByPhone = new Map() // telefone (10 últimos dígitos) -> momento da primeira compra
+  const remember = (map, key, when) => {
+    if (!key || !when) return
+    const previous = map.get(key)
+    if (!previous || when < previous) map.set(key, when)
+  }
   for (const event of events) {
     if (event.transacao) {
       if (!byTransaction.has(event.transacao)) byTransaction.set(event.transacao, [])
       byTransaction.get(event.transacao).push(event)
     }
-    if (event.categoria === 'venda' && event.email) {
-      const previous = buyers.get(event.email)
-      if (!previous || event.data < previous) buyers.set(event.email, event.data)
+    if (event.categoria === 'venda') {
+      remember(buyersByEmail, event.email, event.data)
+      remember(buyersByPhone, phoneKey(event.telefone), event.data)
     }
+  }
+  for (const buyer of otherBuyers) {
+    remember(buyersByEmail, buyer.email, buyer.data)
+    remember(buyersByPhone, phoneKey(buyer.telefone), buyer.data)
+  }
+  const firstPurchase = (event) => {
+    const times = [buyersByEmail.get(event.email), buyersByPhone.get(phoneKey(event.telefone))].filter(Boolean)
+    return times.length ? times.sort()[0] : null
   }
 
   return events.map((event) => {
@@ -151,8 +193,11 @@ export function withSituations(events, now = Date.now()) {
       return { ...event, situacao: ageMs > PENDING_MAX_AGE_MS ? 'vencido' : 'pendente' }
     }
     if (event.categoria === 'abandono') {
-      const boughtAt = buyers.get(event.email)
-      return { ...event, situacao: boughtAt && boughtAt >= event.data ? 'recuperado' : 'em aberto' }
+      // Mesma pessoa (e-mail OU telefone) em qualquer compra: não é carrinho a recuperar.
+      //  - comprou depois do carrinho: "recuperado"; comprou antes (já era aluno): "ja comprou".
+      const boughtAt = firstPurchase(event)
+      if (!boughtAt) return { ...event, situacao: 'em aberto' }
+      return { ...event, situacao: boughtAt >= event.data ? 'recuperado' : 'ja comprou' }
     }
     if (event.categoria === 'cancelamento') return { ...event, situacao: cancelSituation(event.evento) }
     if (event.categoria === 'reembolso') return { ...event, situacao: /charge/i.test(event.evento) ? 'chargeback' : 'reembolsada' }
@@ -203,11 +248,12 @@ export function summarize(events) {
 }
 
 /** Lê e normaliza a aba "Hotmart (todos)" (cache de 1 minuto). */
-export async function loadHotmartEvents({ force = false } = {}) {
+export async function loadHotmartEvents({ force = false, env = null } = {}) {
   if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data
 
   const csv = await fetchSheetCsv(TRACKING_SHEET_ID, HOTMART_ALL_GID)
-  const events = withSituations(toEvents(csvToObjects(csv))).sort((a, b) => b.data.localeCompare(a.data))
+  const buyers = env ? await loadExtraBuyers(env, { force }) : extraBuyers
+  const events = withSituations(toEvents(csvToObjects(csv)), Date.now(), buyers).sort((a, b) => b.data.localeCompare(a.data))
 
   const data = { fetchedAt: new Date().toISOString(), events, resumo: summarize(events) }
   cache = { at: Date.now(), data }
@@ -219,7 +265,7 @@ export function eventsFromCsv(csvText) {
   return withSituations(toEvents(csvToObjects(csvText)))
 }
 
-export async function handleHotmartEventsRequest(req, res) {
+export async function handleHotmartEventsRequest(req, res, env = null) {
   const { pathname, searchParams } = new URL(req.url, 'http://localhost')
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Cache-Control', 'no-store')
@@ -234,7 +280,7 @@ export async function handleHotmartEventsRequest(req, res) {
   }
 
   try {
-    const data = await loadHotmartEvents({ force: searchParams.get('refresh') === '1' })
+    const data = await loadHotmartEvents({ force: searchParams.get('refresh') === '1', env })
     res.statusCode = 200
     return res.end(JSON.stringify({ success: true, ...data }))
   } catch (error) {

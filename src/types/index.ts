@@ -196,6 +196,7 @@ export interface HotmartEvent {
     | 'pendente'
     | 'vencido'
     | 'recuperado'
+    | 'ja comprou'
     | 'em aberto'
     | 'cancelada'
     | 'atrasada'

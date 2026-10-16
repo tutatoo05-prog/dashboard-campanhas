@@ -15,6 +15,7 @@ const SITUATION_LABEL: Record<string, string> = {
   pendente: 'Pendente',
   vencido: 'Vencido?',
   recuperado: 'Comprou depois',
+  'ja comprou': 'Já é aluno',
   'em aberto': 'Em aberto',
   cancelada: 'Cancelada',
   atrasada: 'Atrasada',
@@ -145,7 +146,7 @@ export function HotmartEventsPanel({ onOpen }: { onOpen: (group: EventGroup) => 
           label="Carrinhos abandonados"
           value={resumo.abandono.emAberto}
           tone="zinc"
-          hint={`${formatNumber(resumo.abandono.recuperadas)} compraram depois`}
+          hint={`${formatNumber(resumo.abandono.recuperadas)} já compraram (saem da lista)`}
           onClick={() => open('Carrinhos abandonados em aberto', 'Carrinho abandonado', carts)}
         />
         <Card
