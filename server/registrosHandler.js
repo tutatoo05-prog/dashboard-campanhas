@@ -13,7 +13,6 @@ const SHEETS = [
     tabs: [
       { gid: '0', name: 'Essentials', kind: 'lead' },
       { gid: '610716526', name: 'interessados - lp', kind: 'lead' },
-      { gid: '1338273265', name: 'compradores', kind: 'comprador' },
       { gid: '1382358557', name: 'Prompt', kind: 'lead' },
       { gid: '1898672040', name: 'particular', kind: 'lead' },
     ],

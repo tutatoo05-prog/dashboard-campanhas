@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchRegistros } from '@/services/registrosService.ts'
+import { fetchPurchases } from '@/services/purchaseService.ts'
+import { RegistrosGroupModal, type RegistroGroupKind } from '@/components/registros/RegistrosGroupModal.tsx'
+import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Registro, RegistroTab } from '@/types'
@@ -59,13 +62,11 @@ function formatDate(value: string): string {
 function BarList({
   rows,
   total,
-  active,
   onSelect,
   empty,
 }: {
   rows: CountRow[]
   total: number
-  active: string
   onSelect: (label: string) => void
   empty: string
 }) {
@@ -73,17 +74,13 @@ function BarList({
   return (
     <div className="space-y-1.5">
       {rows.map((row) => {
-        const isActive = active === row.label
         return (
           <button
             key={row.label}
             type="button"
-            onClick={() => onSelect(isActive ? '' : row.label)}
-            className={`relative block w-full overflow-hidden rounded-lg border px-3 py-2 text-left transition ${
-              isActive
-                ? 'border-amber-500/50 bg-amber-500/10'
-                : 'border-zinc-800/60 bg-zinc-950/40 hover:border-zinc-700'
-            }`}
+            onClick={() => onSelect(row.label)}
+            title="Ver a lista"
+            className="relative block w-full cursor-pointer overflow-hidden rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-3 py-2 text-left transition hover:border-amber-500/50"
           >
             <span
               className="absolute inset-y-0 left-0 bg-amber-500/10"
@@ -107,8 +104,8 @@ function BarList({
 export default function RegistrosPage() {
   const queryClient = useQueryClient()
   const [selectedTab, setSelectedTab] = useState('')
-  const [canal, setCanal] = useState('')
-  const [campanha, setCampanha] = useState('')
+  const [group, setGroup] = useState<{ kind: RegistroGroupKind; label: string } | null>(null)
+  const [selected, setSelected] = useState<Registro | null>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [refreshing, setRefreshing] = useState(false)
@@ -117,6 +114,13 @@ export default function RegistrosPage() {
     queryKey: ['registros'],
     queryFn: () => fetchRegistros(),
     retry: false,
+  })
+
+  const purchasesQuery = useQuery({
+    queryKey: ['purchases'],
+    queryFn: fetchPurchases,
+    retry: false,
+    enabled: Boolean(selected),
   })
 
   const tabs = useMemo(() => registrosQuery.data?.tabs ?? [], [registrosQuery.data])
@@ -141,8 +145,6 @@ export default function RegistrosPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
     return scoped
-      .filter((record) => !canal || record.canal === canal)
-      .filter((record) => !campanha || campaignOf(record) === campanha)
       .filter(
         (record) =>
           !term ||
@@ -151,25 +153,26 @@ export default function RegistrosPage() {
             .some((value) => value.toLowerCase().includes(term)),
       )
       .sort((a, b) => (b.data || '').localeCompare(a.data || ''))
-  }, [scoped, canal, campanha, search])
+  }, [scoped, search])
 
   const totalRecords = records.length
   const totalUnique = useMemo(() => uniqueContacts(records), [records])
   const failedTabs = tabs.filter((tab) => tab.error)
   const selectedInfo = tabs.find((tab) => tabKey(tab) === selectedTab)
-  const filtersActive = Boolean(selectedTab || canal || campanha || search)
+  const filtersActive = Boolean(selectedTab || search)
+
+  const groupRecords = useMemo(() => {
+    if (!group) return []
+    return scoped.filter((record) => (group.kind === 'origem' ? record.canal === group.label : campaignOf(record) === group.label))
+  }, [group, scoped])
 
   function selectTab(key: string) {
     setSelectedTab((current) => (current === key ? '' : key))
-    setCanal('')
-    setCampanha('')
     setVisible(PAGE_SIZE)
   }
 
   function clearFilters() {
     setSelectedTab('')
-    setCanal('')
-    setCampanha('')
     setSearch('')
     setVisible(PAGE_SIZE)
   }
@@ -347,16 +350,13 @@ export default function RegistrosPage() {
               <h3 className="section-title mt-1 mb-1">De onde vieram</h3>
               <p className="mb-3 text-xs text-zinc-600">
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
-                {formatNumber(scoped.length)} registros. Clique para filtrar a lista.
+                {formatNumber(scoped.length)} registros. Clique para ver a lista.
+
               </p>
               <BarList
                 rows={byCanal}
                 total={scoped.length}
-                active={canal}
-                onSelect={(label) => {
-                  setCanal(label)
-                  setVisible(PAGE_SIZE)
-                }}
+                onSelect={(label) => setGroup({ kind: 'origem', label })}
                 empty="Nenhum registro."
               />
             </section>
@@ -366,17 +366,13 @@ export default function RegistrosPage() {
               <h3 className="section-title mt-1 mb-1">Leads por campanha</h3>
               <p className="mb-3 text-xs text-zinc-600">
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
-                {formatNumber(byCampanha.length)} campanhas. Clique para filtrar a lista.
+                {formatNumber(byCampanha.length)} campanhas. Clique para ver a lista.
               </p>
               <div className="max-h-[420px] overflow-y-auto pr-1">
                 <BarList
                   rows={byCampanha}
                   total={scoped.length}
-                  active={campanha}
-                  onSelect={(label) => {
-                    setCampanha(label)
-                    setVisible(PAGE_SIZE)
-                  }}
+                  onSelect={(label) => setGroup({ kind: 'campanha', label })}
                   empty="Nenhum registro."
                 />
               </div>
@@ -396,8 +392,6 @@ export default function RegistrosPage() {
                 {filtersActive && (
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                     {selectedInfo && <span>Aba: {selectedInfo.aba}</span>}
-                    {canal && <span>Origem: {canal}</span>}
-                    {campanha && <span>Campanha: {campanha}</span>}
                     <button type="button" onClick={clearFilters} className="text-amber-200 hover:underline">
                       limpar filtros
                     </button>
@@ -462,7 +456,11 @@ export default function RegistrosPage() {
                 </thead>
                 <tbody>
                   {filtered.slice(0, visible).map((record, index) => (
-                    <tr key={`${tabKey(record)}-${index}`} className="border-b border-zinc-900/80 last:border-0">
+                    <tr
+                      key={`${tabKey(record)}-${index}`}
+                      onClick={() => setSelected(record)}
+                      className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
+                    >
                       <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={record.nome}>
                         {record.nome || '—'}
                       </td>
@@ -522,6 +520,26 @@ export default function RegistrosPage() {
             )}
           </section>
         </>
+      )}
+
+      {group && !selected && (
+        <RegistrosGroupModal
+          kind={group.kind}
+          label={group.label}
+          scope={selectedInfo ? `Aba ${selectedInfo.aba}` : 'Todas as abas'}
+          records={groupRecords}
+          onClose={() => setGroup(null)}
+          onOpenRecord={setSelected}
+        />
+      )}
+
+      {selected && (
+        <RegistroModal
+          record={selected}
+          purchases={purchasesQuery.isError ? [] : purchasesQuery.data}
+          closeLabel={group ? 'Voltar à lista' : 'Fechar'}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   )
