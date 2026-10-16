@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { fetchSession } from '@/services/authService.ts'
@@ -72,29 +72,63 @@ function AppRoutes() {
   const setUser = useAuthStore((state) => state.setUser)
   const setStatus = useAuthStore((state) => state.setStatus)
 
+  const [rodada, setRodada] = useState(0)
+
   useEffect(() => {
     let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
 
-    fetchSession()
-      .then((session) => {
-        if (cancelled) return
-        if (session.authenticated && session.user) {
-          setUser(session.user)
-        } else {
-          setStatus('unauthenticated')
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('unauthenticated')
-      })
+    // Só vai para o login quando o servidor RESPONDE "não está logado". Servidor lento, fora do ar ou com erro
+    // não é logout: tenta de novo algumas vezes e, se continuar, mostra o aviso com o botão "Tentar de novo".
+    const tentar = (numero: number) => {
+      fetchSession()
+        .then((session) => {
+          if (cancelled) return
+          if (session.authenticated && session.user) {
+            setUser(session.user)
+          } else {
+            setStatus('unauthenticated')
+          }
+        })
+        .catch(() => {
+          if (cancelled) return
+          if (numero >= 4) {
+            setStatus('offline')
+            return
+          }
+          timer = setTimeout(() => tentar(numero + 1), 1500 * numero)
+        })
+    }
+    tentar(1)
 
     return () => {
       cancelled = true
+      if (timer) clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [rodada])
 
   if (status === 'loading') return <AppLoading />
+  if (status === 'offline') {
+    return (
+      <div className="app-loading">
+        <div>
+          <Tatu size={56} mood="spin" className="mx-auto" />
+          <p className="app-loading-text">O servidor demorou para responder. Você continua logado.</p>
+          <button
+            type="button"
+            className="btn-gold mt-4"
+            onClick={() => {
+              setStatus('loading')
+              setRodada((valor) => valor + 1)
+            }}
+          >
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <Routes>

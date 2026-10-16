@@ -17,6 +17,10 @@ export function getPool(env = process.env) {
     connectionString,
     ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
     max: 10,
+    // Sem isso, uma conexão que não abre deixa a consulta (e a tela) esperando para sempre.
+    connectionTimeoutMillis: 15_000,
+    idleTimeoutMillis: 60_000,
+    keepAlive: true,
   })
 
   // Erro numa conexão parada do pool (rede caiu): só registra, o pool abre outra na próxima consulta.

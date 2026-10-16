@@ -1,3 +1,5 @@
+// O cache de DNS precisa ser o primeiro a carregar, antes de qualquer conexão.
+import './dnsCache.js'
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { join, extname } from 'node:path'
@@ -92,11 +94,14 @@ const port = Number(process.env.PORT || process.env.APP_PORT || 4173)
 
 const server = createServer(async (req, res) => {
   if (req.url?.startsWith('/api/')) {
+    const inicio = Date.now()
     try {
       await apiMiddleware(req, res, () => {
         res.statusCode = 404
         res.end(JSON.stringify({ error: 'Rota não encontrada.' }))
       })
+      const duracao = Date.now() - inicio
+      if (duracao > 3000) console.warn(`[lento] ${req.method} ${String(req.url).split('?')[0]} levou ${duracao} ms`)
     } catch (erro) {
       console.error('[api]', req.method, req.url, erro?.message || erro)
       if (!res.headersSent) {
@@ -113,6 +118,28 @@ const server = createServer(async (req, res) => {
   await serveStatic(req, res)
 })
 
+/** Abre as primeiras conexões (banco e serviços de fora) logo ao subir, para o DNS e o TLS já estarem prontos. */
+async function aquecerConexoes(ambiente) {
+  const inicio = Date.now()
+  const tarefas = []
+  if (ambiente.DATABASE_URL) tarefas.push(import('./db.js').then(({ query }) => query(ambiente, 'select 1')))
+  for (const url of ['https://graph.facebook.com/', 'https://docs.google.com/', 'https://api.brevo.com/']) {
+    tarefas.push(fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(20_000) }))
+  }
+  const resultados = await Promise.allSettled(tarefas)
+  const falhas = resultados.filter((r) => r.status === 'rejected').length
+  console.log(`[aquecimento] conexões prontas em ${Date.now() - inicio} ms${falhas ? ` (${falhas} não responderam)` : ''}`)
+}
+
+// Aviso no log quando o servidor fica "travado" (algo ocupou o processo por mais de 1 s).
+let ultimoBatimento = Date.now()
+setInterval(() => {
+  const agora = Date.now()
+  const atraso = agora - ultimoBatimento - 1000
+  if (atraso > 1000) console.warn(`[travada] o servidor ficou ${Math.round(atraso)} ms sem responder`)
+  ultimoBatimento = agora
+}, 1000).unref()
+
 server.listen(port, '0.0.0.0', () => {
   console.log(`Academy Labs em http://localhost:${port}`)
   if (!env.META_ACCESS_TOKEN) {
@@ -127,4 +154,5 @@ server.listen(port, '0.0.0.0', () => {
   startLeadsSyncScheduler(env)
   startAcessoScheduler(env)
   startPlanilhasScheduler(env)
+  void aquecerConexoes(env)
 })

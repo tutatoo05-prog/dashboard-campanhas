@@ -159,3 +159,11 @@ Ler as 16 abas das planilhas do Google ao vivo levava até ~14 s a cada abertura
 
 ## Se as telas ficarem "carregando" (chamadas para fora)
 Abrir uma tela dispara dezenas de conexões para a Meta e para o Google de uma vez; o Node resolve nomes (DNS) numa fila de poucas threads, e com a fila cheia as conexões estouram o limite de 10 s ("Connect Timeout") e **todas** as telas ficam carregando. Por isso (`server/limitador.js`): no máximo 5 chamadas à Meta e 3 downloads de planilha ao mesmo tempo, limite de 30 s e uma nova tentativa quando a falha é de rede; se a Meta falhar, a tela segue com a última leitura boa (até 30 min). O servidor também sobe com `UV_THREADPOOL_SIZE=16`; se ainda assim travar, coloque essa variável também no Plesk (Node.js → variáveis). A primeira cópia das planilhas só roda 45 s depois do Restart.
+
+## Painel lento e "deslogando" ao atualizar (DNS e login)
+**Causa encontrada:** o servidor resolve nomes (DNS) sem guardar o resultado. Com o DNS do servidor lento (medido aqui: 3 a 8 s por consulta), toda conexão nova (banco, Meta, Google) esperava isso, a leitura da sessão no banco estourava os 8 s da tela e o painel mandava a pessoa para o login — a sessão em si nunca foi apagada.
+**O que mudou:**
+- `server/dnsCache.js`: o endereço de cada serviço fica guardado (5 min valendo direto; depois disso usa o velho na hora e atualiza em segundo plano, até 24 h; se o DNS falhar, vale o último conhecido). Ao subir, o servidor já abre as primeiras conexões ("[aquecimento]" no log).
+- Login: só vai para a tela de login quando o servidor responde "não está logado". Servidor lento ou fora do ar vira "O servidor demorou para responder. Você continua logado." com botão **Tentar de novo** (4 tentativas automáticas antes). A conferência do login fica 30 s em memória (menos consultas ao banco por tela).
+- Banco: limite de 15 s para abrir conexão (antes esperava para sempre).
+- **Diagnóstico:** abra `https://dash.tuzinho.academy/api/saude` (sem login, sem dados de ninguém): mostra em milissegundos o banco, o DNS de cada serviço, a fila de conexões, o atraso do servidor e a memória. No log do app aparecem `[lento]` (chamada que passou de 3 s) e `[travada]` (servidor parado por mais de 1 s).

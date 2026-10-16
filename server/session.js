@@ -17,8 +17,21 @@ export async function createSession(env, userId) {
   return token
 }
 
+// Cada chamada da API confere o login no banco; uma tela faz dezenas. Guardar 30 s elimina quase todas e
+// faz o login resistir a um banco lento por um instante. Sair (logout) apaga na hora.
+const VALIDADE_CACHE_MS = 30_000
+/** @type {Map<string, { at: number, user: object }>} */
+const usuariosEmMemoria = new Map()
+
+export function limparCacheDeSessoes() {
+  usuariosEmMemoria.clear()
+}
+
 export async function getSessionUser(env, token) {
   if (!token) return null
+
+  const guardado = usuariosEmMemoria.get(token)
+  if (guardado && Date.now() - guardado.at < VALIDADE_CACHE_MS) return guardado.user
 
   const result = await query(
     env,
@@ -29,11 +42,19 @@ export async function getSessionUser(env, token) {
     [token],
   )
 
-  return result.rows[0] ?? null
+  const user = result.rows[0] ?? null
+  if (user) {
+    if (usuariosEmMemoria.size > 500) usuariosEmMemoria.clear()
+    usuariosEmMemoria.set(token, { at: Date.now(), user })
+  } else {
+    usuariosEmMemoria.delete(token)
+  }
+  return user
 }
 
 export async function destroySession(env, token) {
   if (!token) return
+  usuariosEmMemoria.delete(token)
   await query(env, 'delete from sessions where token = $1', [token])
 }
 

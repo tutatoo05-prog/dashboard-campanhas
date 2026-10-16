@@ -14,6 +14,7 @@ import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
 import { handleAcessosRequest } from './acesso/handler.js'
 import { handleFichasRequest } from './fichas.js'
+import { handleSaudeRequest } from './saude.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
@@ -29,6 +30,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     }
 
     applySecurityHeaders(res, { isProduction })
+
+    if (req.url.startsWith('/api/saude')) {
+      await handleSaudeRequest(req, res, env)
+      return
+    }
 
     if (req.url.startsWith('/api/auth')) {
       await handleAuthRequest(req, res, env)

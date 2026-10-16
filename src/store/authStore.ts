@@ -3,7 +3,8 @@ import type { User } from '@/types'
 import { pickNameFromUser } from '@/lib/userName.ts'
 
 interface AuthState {
-  status: 'loading' | 'authenticated' | 'unauthenticated'
+  /** offline = o servidor não respondeu (lento ou fora do ar): a pessoa NÃO foi deslogada. */
+  status: 'loading' | 'authenticated' | 'unauthenticated' | 'offline'
   user: User | null
   setUser: (user: User | null) => void
   setStatus: (status: AuthState['status']) => void
