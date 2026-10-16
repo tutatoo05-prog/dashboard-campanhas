@@ -82,6 +82,19 @@ export async function fetchAcessoAlunos(): Promise<AcessoAluno[]> {
   return data.acessos
 }
 
+export interface VerificacaoItem {
+  grupo: string
+  nivel: 'ok' | 'erro' | 'aviso'
+  texto: string
+}
+
+export const verificarAcessos = (emailTeste: string) =>
+  pedir<{ itens: VerificacaoItem[]; falhas: number }>('/api/acessos/verificar', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ emailTeste }),
+  })
+
 export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acessos/eventos/${id}/reprocessar`, { method: 'POST' })
 
 export const marcarBloqueioFeito = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/bloqueio-feito`, { method: 'POST' })

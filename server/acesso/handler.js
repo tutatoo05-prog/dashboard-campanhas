@@ -1,37 +1,15 @@
 import { query } from '../db.js'
+import { readRequestBody } from '../readBody.js'
 import { isAdmin } from '../roles.js'
 import { modoAcesso } from './motor.js'
 import { normalizarEvento } from './hotmart.js'
 import { rodarAgora } from './scheduler.js'
+import { configuracaoFaltando, verificarConexoes } from './verificacao.js'
 
 function sendJson(res, status, payload) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(payload))
-}
-
-// Variáveis que o modo "ativo" precisa. Falta alguma → o painel mostra o que falta em vez de falhar em silêncio.
-const CONFIG_OBRIGATORIA = {
-  HOTMART_HOTTOK: 'Token do webhook da Hotmart',
-  TEKWAY_LIBERAR_URL: 'Endereço do liberar-curso da plataforma',
-  TEKWAY_TOKEN: 'Token da plataforma de cursos',
-  BREVO_API_KEY: 'Chave da Brevo (e-mail)',
-  BREVO_REMETENTE_EMAIL: 'E-mail remetente na Brevo',
-  EVOLUTION_URL: 'Endereço da Evolution (WhatsApp)',
-  EVOLUTION_ALUNO_INSTANCIA: 'Instância do WhatsApp que fala com o aluno',
-  EVOLUTION_ALUNO_APIKEY: 'Chave da instância do aluno',
-  EVOLUTION_EQUIPE_INSTANCIA: 'Instância do WhatsApp dos avisos à equipe',
-  EVOLUTION_EQUIPE_APIKEY: 'Chave da instância dos avisos',
-  ACESSO_AVISO_NUMERO: 'Número da equipe que recebe os avisos',
-}
-const CONFIG_OPCIONAL = { TEKWAY_BLOQUEAR_URL: 'Endereço do bloqueio de acesso (sem ele, o bloqueio é manual)' }
-
-export function configuracaoFaltando(env) {
-  const vazio = (nome) => !String(env[nome] ?? '').trim()
-  return {
-    obrigatorias: Object.entries(CONFIG_OBRIGATORIA).filter(([nome]) => vazio(nome)).map(([nome, descricao]) => ({ nome, descricao })),
-    opcionais: Object.entries(CONFIG_OPCIONAL).filter(([nome]) => vazio(nome)).map(([nome, descricao]) => ({ nome, descricao })),
-  }
 }
 
 function eventoParaApi(linha) {
@@ -70,6 +48,7 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/resumo
  *   GET  /api/acessos/eventos?estado=&busca=&limite=
  *   GET  /api/acessos/lista
+ *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
  *   POST /api/acessos/lista/:id/bloqueio-feito
  */
@@ -135,6 +114,13 @@ export async function handleAcessosRequest(req, res, env, user) {
           ultimaLiberacaoEm: linha.ultima_liberacao_em,
         })),
       })
+    }
+
+    if (req.method === 'POST' && caminho === '/api/acessos/verificar') {
+      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
+      const corpo = JSON.parse((await readRequestBody(req)) || '{}')
+      const emailTeste = String(corpo.emailTeste ?? '').trim()
+      return sendJson(res, 200, await verificarConexoes(env, { emailTeste }))
     }
 
     const reprocessar = /^\/api\/acessos\/eventos\/(\d+)\/reprocessar$/.exec(caminho)

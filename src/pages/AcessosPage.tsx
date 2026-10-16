@@ -8,6 +8,7 @@ import {
   fetchAcessoResumo,
   marcarBloqueioFeito,
   reprocessarEvento,
+  verificarAcessos,
   type AcessoAluno,
   type AcessoEvento,
 } from '@/services/acessosService.ts'
@@ -59,6 +60,66 @@ const ETAPA_LABEL: Record<string, string> = {
 const dataHora = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) : '—'
 const soData = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')
+
+function Verificador() {
+  const [emailTeste, setEmailTeste] = useState('')
+  const verificar = useMutation({ mutationFn: (email: string) => verificarAcessos(email) })
+  const resultado = verificar.data
+  const icone = { ok: 'fa-circle-check text-emerald-500', erro: 'fa-circle-xmark text-red-500', aviso: 'fa-triangle-exclamation text-amber-500' } as const
+
+  return (
+    <section className="surface-card p-4 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="section-label">Antes de ligar</p>
+          <h3 className="section-title mt-1">Conferir conexões</h3>
+          <p className="mt-1 text-xs text-zinc-500">Testa a Brevo e o WhatsApp com as chaves do servidor, sem mexer em nenhum aluno.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            value={emailTeste}
+            onChange={(evento) => setEmailTeste(evento.target.value)}
+            placeholder="Seu e-mail (opcional: manda 1 e-mail de teste)"
+            className="w-72 max-w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+          />
+          <button
+            type="button"
+            disabled={verificar.isPending}
+            onClick={() => verificar.mutate(emailTeste.trim())}
+            className="rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50"
+          >
+            <i className="fa-solid fa-plug mr-1.5" />
+            {verificar.isPending ? 'Conferindo...' : emailTeste.trim() ? 'Conferir e mandar teste' : 'Conferir conexões'}
+          </button>
+        </div>
+      </div>
+      {verificar.isError && <p className="mt-3 text-red-300">{(verificar.error as Error).message}</p>}
+      {resultado && (
+        <div className="mt-3 space-y-3">
+          {[...new Set(resultado.itens.map((item) => item.grupo))].map((grupo) => (
+            <div key={grupo}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{grupo}</p>
+              <ul className="mt-1 space-y-1">
+                {resultado.itens
+                  .filter((item) => item.grupo === grupo)
+                  .map((item, indice) => (
+                    <li key={indice} className="flex items-baseline gap-2 text-zinc-300">
+                      <i className={`fa-solid ${icone[item.nivel]}`} />
+                      <span>{item.texto}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ))}
+          <p className={`font-medium ${resultado.falhas ? 'text-red-300' : 'text-emerald-300'}`}>
+            {resultado.falhas ? `${resultado.falhas} problema(s) para corrigir antes de ligar.` : 'Tudo certo para ligar.'}
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
 
 function Cartao({ rotulo, valor, dica, tom }: { rotulo: string; valor: number; dica?: string; tom?: 'red' | 'amber' }) {
   const cor = tom === 'red' && valor > 0 ? 'text-red-300' : tom === 'amber' && valor > 0 ? 'text-amber-200' : 'text-zinc-50'
@@ -240,6 +301,8 @@ export default function AcessosPage() {
               </div>
             )}
           </section>
+
+          <Verificador />
 
           <section className="kpi-scroll">
             <Cartao rotulo="Precisam de você" valor={problemas} tom="red" dica="falhou ou pede atenção" />
