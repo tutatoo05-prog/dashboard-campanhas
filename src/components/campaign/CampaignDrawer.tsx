@@ -3,6 +3,7 @@ import { TONE_CLASSES } from '@/lib/analysis.js'
 import { resolveDailySeries } from '@/lib/trends.js'
 import { evidenceGap, stepsFor } from '@/lib/actions.ts'
 import { StepContent } from '@/components/actions/StepContent.tsx'
+import { TipoCampanha } from '@/components/actions/TipoCampanha.tsx'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import { leadsHint } from '@/lib/leadsHint.ts'
 import { TrendCharts } from '@/components/charts/TrendCharts.tsx'
@@ -120,6 +121,7 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
               </span>
               <span className="text-xs text-zinc-500">Nota {analysis.score}/100</span>
             </div>
+            {item.tipo && <div className="mt-2"><TipoCampanha item={item} /></div>}
           </div>
           <button type="button" className="drawer-close" onClick={onClose} aria-label="Fechar detalhes">
             <i className="fa-solid fa-xmark" />

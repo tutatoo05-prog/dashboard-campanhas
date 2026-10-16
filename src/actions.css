@@ -423,3 +423,37 @@
 .notify-warning { font-size: 0.78rem; font-weight: 700; color: var(--bad, #b3261e); }
 .automation-ok { font-size: 0.8rem; font-weight: 700; color: var(--good, #0f7a49); }
 .automation-error { font-size: 0.8rem; font-weight: 700; color: var(--bad, #b3261e); }
+
+/* ── Tipo da campanha (descoberto sozinho ou confirmado) ── */
+.tipo-campanha { position: relative; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.tipo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.6rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.tipo-chip small { font-size: 0.64rem; font-weight: 700; color: var(--muted); }
+.tipo-mudar { font-size: 0.72rem; font-weight: 800; color: #c2570a; text-decoration: underline; cursor: pointer; }
+.tipo-menu {
+  flex-basis: 100%;
+  width: fit-content;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 14rem;
+  padding: 0.4rem;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--card, var(--white));
+  box-shadow: 3px 3px 0 var(--shade);
+}
+.tipo-menu button { padding: 0.3rem 0.5rem; border-radius: 6px; font-size: 0.78rem; font-weight: 700; text-align: left; color: var(--ink); }
+.tipo-menu button:hover { background: var(--y); }
+.tipo-menu em { font-size: 0.72rem; color: #b3261e; }
+.tipo-pergunta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+.tipo-pergunta .chip-btn { padding: 0.35rem 0.7rem; border-radius: 8px; font-size: 0.78rem; cursor: pointer; }

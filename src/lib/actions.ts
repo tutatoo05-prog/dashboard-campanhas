@@ -1,5 +1,5 @@
 import { EVIDENCE } from '@/lib/stats.js'
-import { NON_LEAD_OBJECTIVES } from '@/lib/analysis.js'
+import { ehCampanhaDeLead } from '@/lib/analysis.js'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import type { CampaignItem, EnrichedCampaignItem } from '@/types'
 import {
@@ -40,6 +40,8 @@ export interface ActionItem {
   steps: ActionStep[]
   /** Atalhos no cartão (ex.: abrir a campanha na Meta). */
   links?: ActionLink[]
+  /** Cartão de pergunta: o dash não entendeu para que a campanha serve e pede o tipo ao usuário. */
+  pergunta?: { campaignId: string }
   /** Frase curta sobre o dinheiro/resultado em jogo. */
   impact?: string
   campaign?: EnrichedCampaignItem
@@ -226,7 +228,7 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number, stepCtx:
 export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOptions): ActionItem[] {
   const { totals, previousTotals, ads = [], goal, periodDays: days = 7, accountId } = options
   // Só campanhas de leads entram nas ações de leads (engajamento/alcance não geram lead).
-  const active = enriched.filter((item) => item.status === 'Ativa' && !NON_LEAD_OBJECTIVES.includes(item.objective))
+  const active = enriched.filter((item) => item.status === 'Ativa' && ehCampanhaDeLead(item))
   const actions: ActionItem[] = []
   const ctx: ActionContext = { averageCpl: totals.cpl, totalSpend: totals.spend, weekly: 7 / Math.max(1, days) }
   // Contexto dos passo a passo: conta, dias do período e as campanhas mais barata/cara para citar pelo nome.
@@ -246,6 +248,29 @@ export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOpt
       ...base,
       reasoning: reasoningFor(item, ctx),
       moneyAtStake: waste ? roundMoney(waste * ctx.weekly) : undefined,
+    })
+  }
+
+  // Campanha que o dash não conseguiu entender: pergunta o tipo em vez de adivinhar.
+  for (const item of enriched) {
+    if (item.status !== 'Ativa' || item.spend <= 0 || item.tipo !== 'indefinido') continue
+    actions.push({
+      id: `tipo:${item.id}`,
+      priority: 'today',
+      kind: 'alert',
+      icon: 'fa-circle-question',
+      title: `Para que serve a campanha ${item.name}?`,
+      why: String(item.tipoMotivo ?? 'Não consegui entender o objetivo desta campanha.'),
+      impact: `${formatCurrency(item.spend)} investidos. Sem saber o objetivo, o painel pode cobrar o resultado errado dela.`,
+      steps: [
+        {
+          text: 'Escolha abaixo o que esta campanha faz.',
+          detail: 'Captação de leads: leva para cadastro. Live / vídeo: divulga uma transmissão. Venda direta: leva para o checkout. A sua escolha vale daqui para frente; dá para mudar quando quiser.',
+        },
+      ],
+      links: campaignLinks(item, { accountId }),
+      campaign: item,
+      pergunta: { campaignId: item.id },
     })
   }
 

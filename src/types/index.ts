@@ -57,6 +57,13 @@ export interface CampaignItem {
   cpa: number
   frequency: number
   dateStart?: string | null
+  /** Conta de anúncios da campanha (act_...). */
+  accountId?: string
+  /** Para que a campanha serve: descoberto pelo dash ou confirmado pelo usuário (ver src/lib/campaignType.js). */
+  tipo?: string
+  tipoOrigem?: 'automatico' | 'manual'
+  tipoConfianca?: 'alta' | 'media' | 'baixa'
+  tipoMotivo?: string
   [key: string]: unknown
 }
 

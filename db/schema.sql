@@ -354,3 +354,18 @@ create unique index if not exists acessos_plataforma_id_idx on acessos (platafor
 -- ───────────────────────────────────────────────────────────────────────────────
 alter table acessos add column if not exists parcelado boolean not null default false;
 alter table acessos add column if not exists pago_ate timestamptz;
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Ficha da campanha: o que o usuário confirmou ou corrigiu sobre "para que a campanha serve".
+-- O dash descobre o tipo sozinho (src/lib/campaignType.js); só o que estiver aqui sobrepõe o automático.
+-- tipo: captacao | live | engajamento | venda | reconhecimento | conversas · meta_custo = custo por resultado desejado (R$)
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists campaign_profiles (
+  account_id text not null,
+  campaign_id text not null,
+  tipo text,
+  meta_custo numeric,
+  atualizado_por text,
+  atualizado_em timestamptz not null default now(),
+  primary key (account_id, campaign_id)
+);

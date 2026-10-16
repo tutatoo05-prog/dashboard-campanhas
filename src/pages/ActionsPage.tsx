@@ -54,6 +54,8 @@ import { AutomationPanel } from '@/components/actions/AutomationPanel.tsx'
 import { MetaActionDialog, type MetaActionKind } from '@/components/actions/MetaActionDialog.tsx'
 import { ResultsSection } from '@/components/actions/ResultsSection.tsx'
 import { StepContent, StepLink } from '@/components/actions/StepContent.tsx'
+import { TipoPergunta } from '@/components/actions/TipoCampanha.tsx'
+import { TIPOS } from '@/lib/campaignType.js'
 import { cheapestCampaign, costliestCampaign, ruleAlertSteps, type StepContext } from '@/lib/actionGuides.ts'
 import { SnoozeMenu, formatSnoozeDate } from '@/components/actions/SnoozeMenu.tsx'
 import { computeResults } from '@/lib/actionResults.ts'
@@ -312,6 +314,7 @@ function ActionCard({
           </div>
 
           {open && <StepList steps={action.steps} doneSet={stepsDone} onToggle={onToggleStep} />}
+          {action.pergunta && action.campaign && <TipoPergunta item={action.campaign} />}
           {why && action.reasoning && (
             <p className="why-box">
               <b>Por que o TaTuzinho sugeriu isso?</b> {action.reasoning}
@@ -398,6 +401,7 @@ function FocusCard({
       </div>
 
       <StepList steps={action.steps} doneSet={stepsDone} onToggle={onToggleStep} />
+      {action.pergunta && action.campaign && <TipoPergunta item={action.campaign} />}
 
       {action.reasoning && (
         <p className="why-box">
@@ -1398,6 +1402,11 @@ export default function ActionsPage() {
                           >
                             <td className="max-w-[260px] truncate px-4 py-2.5 text-zinc-200" title={item.name}>
                               {item.name}
+                              {item.tipo && TIPOS[item.tipo as keyof typeof TIPOS] && (
+                                <small className="block text-[11px] font-normal text-zinc-500">
+                                  {TIPOS[item.tipo as keyof typeof TIPOS].label} · {item.tipoOrigem === 'manual' ? 'confirmado' : 'descoberto sozinho'}
+                                </small>
+                              )}
                             </td>
                             <td className="px-4 py-2.5 text-zinc-400">
                               {item.analysis.primary.emoji} {item.analysis.primary.label}

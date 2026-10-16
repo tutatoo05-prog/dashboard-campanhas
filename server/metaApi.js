@@ -1,3 +1,5 @@
+import { inferirTipo } from '../src/lib/campaignType.js'
+import { aplicarFichas, listarFichas } from './fichas.js'
 import {
   daysAgoLocal,
   formatLocalDate,
@@ -155,6 +157,109 @@ export async function getAdAccounts(token, { allowedIds } = {}) {
   }))
 }
 
+const EXTRAS_TTL_MS = 10 * 60 * 1000
+/** @type {Map<string, { at: number, promise: Promise<Map<string, object>> }>} */
+const extrasCache = new Map()
+
+/** Links que aparecem dentro do criativo de um anúncio (qualquer formato). */
+function coletarLinks(valor, achados = new Set(), chave = '') {
+  if (typeof valor === 'string') {
+    if (/^https?:\/\//i.test(valor) && /(link|url)/i.test(chave)) achados.add(valor)
+    return achados
+  }
+  if (Array.isArray(valor)) {
+    for (const item of valor) coletarLinks(item, achados, chave)
+    return achados
+  }
+  if (valor && typeof valor === 'object') {
+    for (const [nome, filho] of Object.entries(valor)) coletarLinks(filho, achados, nome)
+  }
+  return achados
+}
+
+/**
+ * O que a Meta diz sobre "para que serve" cada campanha: meta de otimização e destino dos conjuntos,
+ * evento do pixel e links dos anúncios. Guarda por 10 minutos; se a Meta falhar, devolve o que conseguiu.
+ */
+export function getCampaignExtras(token, accountId) {
+  const cached = extrasCache.get(accountId)
+  if (cached && Date.now() - cached.at < EXTRAS_TTL_MS) return cached.promise
+
+  const promise = (async () => {
+    const porCampanha = new Map()
+    const entrada = (id) => {
+      if (!porCampanha.has(id)) porCampanha.set(id, { otimizacoes: new Set(), destinos: new Set(), eventos: new Set(), links: new Set() })
+      return porCampanha.get(id)
+    }
+    try {
+      const conjuntos = await fetchAllPages(
+        `/${accountId}/adsets`,
+        { fields: 'campaign_id,optimization_goal,destination_type,promoted_object{custom_event_type}', limit: '500' },
+        token,
+      )
+      for (const conjunto of conjuntos) {
+        if (!conjunto.campaign_id) continue
+        const dados = entrada(String(conjunto.campaign_id))
+        if (conjunto.optimization_goal) dados.otimizacoes.add(conjunto.optimization_goal)
+        if (conjunto.destination_type) dados.destinos.add(conjunto.destination_type)
+        if (conjunto.promoted_object?.custom_event_type) dados.eventos.add(conjunto.promoted_object.custom_event_type)
+      }
+    } catch (error) {
+      console.error('[meta] não consegui ler os conjuntos para descobrir o tipo das campanhas:', error.message || error)
+    }
+    try {
+      const anuncios = await fetchAllPages(
+        `/${accountId}/ads`,
+        { fields: 'campaign_id,creative{object_story_spec,asset_feed_spec}', limit: '100' },
+        token,
+      )
+      for (const anuncio of anuncios) {
+        if (!anuncio.campaign_id) continue
+        const dados = entrada(String(anuncio.campaign_id))
+        for (const link of coletarLinks(anuncio.creative)) dados.links.add(link)
+      }
+    } catch (error) {
+      console.error('[meta] não consegui ler os links dos anúncios:', error.message || error)
+    }
+    return new Map(
+      [...porCampanha].map(([id, dados]) => [
+        id,
+        { otimizacoes: [...dados.otimizacoes], destinos: [...dados.destinos], eventos: [...dados.eventos], links: [...dados.links] },
+      ]),
+    )
+  })()
+
+  extrasCache.set(accountId, { at: Date.now(), promise })
+  // Falha total: não guarda o erro por 10 minutos.
+  promise.catch(() => extrasCache.delete(accountId))
+  return promise
+}
+
+/** Descobre o tipo da campanha (e quanto de certeza) a partir do objetivo e dos extras da Meta. */
+function anotarTipo(row, campaignMeta, extras, accountId) {
+  const campaignId = String(row.campaignId ?? row.id)
+  const meta = campaignMeta.get(campaignId) ?? {}
+  const dados = extras.get(campaignId) ?? {}
+  const resultado = inferirTipo({
+    objetivoBruto: meta.objective,
+    otimizacoes: dados.otimizacoes,
+    destinos: dados.destinos,
+    eventos: dados.eventos,
+    links: dados.links,
+    leadsSite: row.leadsSite,
+  })
+  return {
+    ...row,
+    accountId,
+    tipo: resultado.tipo,
+    tipoOrigem: 'automatico',
+    tipoConfianca: resultado.confianca,
+    tipoMotivo: resultado.motivo,
+    otimizacoes: dados.otimizacoes ?? [],
+    destinos: dados.destinos ?? [],
+  }
+}
+
 export async function getCampaignMetaMap(token, accountId) {
   const campaigns = await fetchAllPages(
     `/${accountId}/campaigns`,
@@ -179,7 +284,7 @@ export async function getInsights(token, accountId, period, level, options = {})
   const apiLevel = LEVEL_MAP[level] ?? 'campaign'
   const dateParams = resolveDateParams(period, options)
 
-  const [insights, campaignMeta] = await Promise.all([
+  const [insights, campaignMeta, extras] = await Promise.all([
     fetchAllPages(
       `/${accountId}/insights`,
       {
@@ -191,9 +296,11 @@ export async function getInsights(token, accountId, period, level, options = {})
       token,
     ),
     getCampaignMetaMap(token, accountId),
+    getCampaignExtras(token, accountId).catch(() => new Map()),
   ])
 
   const rows = insights.map((row) => normalizeInsightRow(row, campaignMeta))
+  const finalizar = async (lista) => aplicarFichas(lista.map((row) => anotarTipo(row, campaignMeta, extras, accountId)), options.env ? await listarFichas(options.env, accountId) : new Map())
 
   // Só no nível de campanha: o site grava o utm_campaign, mas não o conjunto nem o anúncio.
   // Passe `env` nas opções para trocar os leads do pixel pelos leads reais do site.
@@ -201,10 +308,10 @@ export async function getInsights(token, accountId, period, level, options = {})
     // Antes de contar, grava o ID da campanha nos leads que só têm o nome (renomear depois não perde nada).
     await resolveCampaignIds(options.env, campaignMeta)
     const siteTotals = await getSiteLeadsByCampaign(options.env, resolveMetaWindow(period, options))
-    return enrichCampaignsWithSiteLeads(rows, siteTotals)
+    return finalizar(enrichCampaignsWithSiteLeads(rows, siteTotals))
   }
 
-  return rows
+  return finalizar(rows)
 }
 
 function normalizeInsightRow(row, campaignMeta) {

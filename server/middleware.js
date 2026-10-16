@@ -13,6 +13,7 @@ import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
 import { handleAcessosRequest } from './acesso/handler.js'
+import { handleFichasRequest } from './fichas.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
@@ -53,6 +54,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/registros') ||
       req.url.startsWith('/api/eventos-hotmart') ||
       req.url.startsWith('/api/acessos') ||
+      req.url.startsWith('/api/fichas') ||
       req.url.startsWith('/api/live') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
@@ -122,6 +124,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/eventos-hotmart')) {
         await handleHotmartEventsRequest(req, res, env)
+        return
+      }
+
+      if (req.url.startsWith('/api/fichas')) {
+        await handleFichasRequest(req, res, env, user)
         return
       }
 

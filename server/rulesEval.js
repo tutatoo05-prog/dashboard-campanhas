@@ -7,6 +7,8 @@
  *  - budget_used    {pct}        verba do mês passou de X% da meta de investimento
  */
 
+import { tipoSemLead } from '../src/lib/campaignType.js'
+
 export const RULE_TYPES = ['cpl_above_avg', 'spend_no_leads', 'budget_used']
 
 const LIMITS = {
@@ -23,6 +25,9 @@ const DEFAULTS = {
 
 /** Campanhas cujo resultado não é lead (visualização de live, alcance...): ficam fora das regras de lead. */
 export const OBJETIVOS_SEM_LEAD = new Set(['engagement', 'awareness'])
+
+/** Campanha que não é de leads: pelo tipo (descoberto ou confirmado) ou, sem tipo, pelo objetivo. */
+const semLead = (item) => (item.tipo ? tipoSemLead(item.tipo) : OBJETIVOS_SEM_LEAD.has(item.objective))
 
 export function brl(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0)
@@ -66,7 +71,7 @@ export function evaluateRules(rules, ctx) {
   const { campaigns = [], dailyByCampaign = {}, monthSpend = null, spendTarget = null, today } = ctx
   const out = []
 
-  const leadCampaigns = campaigns.filter((item) => !OBJETIVOS_SEM_LEAD.has(item.objective))
+  const leadCampaigns = campaigns.filter((item) => !semLead(item))
   const totals = leadCampaigns.reduce(
     (acc, item) => ({ spend: acc.spend + (item.spend || 0), leads: acc.leads + (item.leads || 0) }),
     { spend: 0, leads: 0 },

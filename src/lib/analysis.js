@@ -14,6 +14,7 @@ import {
   twoProportionZTest,
 } from './stats.js'
 import { buildCampaignTrend, resolveDailySeries } from './trends.js'
+import { TIPOS, tipoSemLead } from './campaignType.js'
 
 export const ANALYSIS_TAGS = {
   scale: {
@@ -65,6 +66,12 @@ export const ANALYSIS_TAGS = {
 
 /** Objetivos em que o resultado não é lead (visualização de live/vídeo, alcance). */
 export const NON_LEAD_OBJECTIVES = ['engagement', 'awareness']
+
+/** A campanha se julga por lead? Vale o tipo (descoberto ou confirmado); sem tipo, o objetivo. */
+export function ehCampanhaDeLead(item) {
+  if (item?.tipo) return !tipoSemLead(item.tipo)
+  return !NON_LEAD_OBJECTIVES.includes(item?.objective)
+}
 
 export const TONE_CLASSES = {
   success: 'border-amber-500/25 bg-amber-500/8 text-amber-200',
@@ -142,13 +149,14 @@ export function analyzeCampaign(item, averages, allItems = [], trend = null) {
 
   // Campanha de visualização/engajamento (ex.: a live no Instagram): o resultado é ThruPlay, não lead.
   // Cobrar lead dela geraria alerta falso de "gastando sem leads".
-  if (NON_LEAD_OBJECTIVES.includes(item.objective)) {
-    const tag = ANALYSIS_TAGS.engagement
+  if (!ehCampanhaDeLead(item)) {
+    const info = TIPOS[item.tipo] ?? null
+    const tag = info ? { emoji: info.emoji, label: info.label, tone: 'success' } : ANALYSIS_TAGS.engagement
     return {
       tags: [tag],
       primary: tag,
       score: 60,
-      notes: ['Campanha de engajamento (visualização ou alcance): o resultado dela não é lead, por isso não entra nas contas de custo por lead.'],
+      notes: [`Campanha de ${(info?.label ?? 'engajamento').toLowerCase()}: o resultado dela é ${info?.resultado ?? 'visualização ou alcance'}, não lead, por isso não entra nas contas de custo por lead.`],
       trend: resolvedTrend,
       verdict: 'monitor',
       evidence: { volume: {}, significance: {}, tests: {} },
@@ -439,7 +447,9 @@ function scoreCampaign(item, averages, tags, trend = null) {
 }
 
 export function enrichItems(items, options = {}) {
-  const averages = computeAverages(items)
+  // Médias e comparações só entre campanhas de lead: live e alcance não têm lead para comparar.
+  const leadItems = items.filter(ehCampanhaDeLead)
+  const averages = computeAverages(leadItems)
   const dailyByCampaign = options.dailyByCampaign ?? null
 
   return items
@@ -448,7 +458,7 @@ export function enrichItems(items, options = {}) {
       const trend = buildCampaignTrend(series)
       return {
         ...item,
-        analysis: analyzeCampaign(item, averages, items, trend),
+        analysis: analyzeCampaign(item, averages, leadItems, trend),
       }
     })
     .sort((a, b) => b.analysis.score - a.analysis.score)
@@ -469,7 +479,9 @@ export function computeSummary(items, options = {}) {
   const ctr =
     totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
   const cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0
-  const cpl = totals.leads > 0 ? totals.spend / totals.leads : 0
+  // Custo por lead: só o gasto das campanhas de lead (live e alcance não geram lead).
+  const leadSpend = items.filter(ehCampanhaDeLead).reduce((sum, item) => sum + item.spend, 0)
+  const cpl = totals.leads > 0 ? leadSpend / totals.leads : 0
   const cpa = totals.conversions > 0 ? totals.spend / totals.conversions : 0
 
   const enriched = enrichItems(items, options)
@@ -484,7 +496,7 @@ export function computeSummary(items, options = {}) {
     worst,
     enriched,
     activeRanked,
-    averages: computeAverages(items),
+    averages: computeAverages(items.filter(ehCampanhaDeLead)),
   }
 }
 

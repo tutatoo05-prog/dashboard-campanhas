@@ -38,3 +38,53 @@ test('análise: campanha de engajamento não vira "pausar" por não ter lead', (
   assert.equal(analise.verdict, 'monitor')
   assert.equal(analise.primary.label, 'Engajamento')
 })
+
+import { inferirTipo } from '../src/lib/campaignType.js'
+
+test('tipo: descobre sozinho a partir do que a Meta informa', () => {
+  const casos = [
+    [{ objetivoBruto: 'OUTCOME_ENGAGEMENT', otimizacoes: ['THRUPLAY'], destinos: ['INSTAGRAM_LIVE'] }, 'live', 'alta'],
+    [{ objetivoBruto: 'OUTCOME_LEADS', otimizacoes: ['LEAD_GENERATION'] }, 'captacao', 'alta'],
+    [{ objetivoBruto: 'OUTCOME_SALES', eventos: ['PURCHASE'] }, 'venda', 'alta'],
+    [{ objetivoBruto: 'OUTCOME_ENGAGEMENT', destinos: ['WHATSAPP'] }, 'conversas', 'alta'],
+    [{ objetivoBruto: 'OUTCOME_AWARENESS', otimizacoes: ['REACH'] }, 'reconhecimento', 'alta'],
+    [{ objetivoBruto: 'OUTCOME_ENGAGEMENT', otimizacoes: ['POST_ENGAGEMENT'] }, 'engajamento', 'alta'],
+    // tráfego: depende do destino do anúncio
+    [{ objetivoBruto: 'OUTCOME_TRAFFIC', otimizacoes: ['LANDING_PAGE_VIEWS'], links: ['https://tuzinho.academy/produtos/essentials/'] }, 'captacao', 'media'],
+    [{ objetivoBruto: 'OUTCOME_TRAFFIC', otimizacoes: ['LINK_CLICKS'], links: ['http://instagram.com/tuzinhoacademy/live'] }, 'engajamento', 'media'],
+    [{ objetivoBruto: 'OUTCOME_TRAFFIC', otimizacoes: ['LINK_CLICKS'], links: ['https://outrosite.com/x'], leadsSite: 12 }, 'captacao', 'media'],
+    [{ objetivoBruto: 'OUTCOME_TRAFFIC', otimizacoes: ['LINK_CLICKS'], links: ['https://outrosite.com/x'] }, 'indefinido', 'baixa'],
+    [{}, 'indefinido', 'baixa'],
+  ]
+  for (const [info, tipo, confianca] of casos) {
+    const r = inferirTipo(info)
+    assert.equal(r.tipo, tipo, JSON.stringify(info))
+    assert.equal(r.confianca, confianca, JSON.stringify(info))
+    assert.ok(r.motivo.length > 10)
+  }
+})
+
+test('tipo: o escolhido pelo usuário manda sobre o automático', async () => {
+  const { aplicarFichas } = await import('./fichas.js')
+  const linhas = [{ id: '1', campaignId: '1', tipo: 'indefinido', tipoOrigem: 'automatico' }, { id: '2', campaignId: '2', tipo: 'captacao', tipoOrigem: 'automatico' }]
+  const saida = aplicarFichas(linhas, new Map([['1', { tipo: 'live', metaCusto: 0.05 }]]))
+  assert.equal(saida[0].tipo, 'live')
+  assert.equal(saida[0].tipoOrigem, 'manual')
+  assert.equal(saida[0].metaCusto, 0.05)
+  assert.equal(saida[1].tipo, 'captacao')
+})
+
+test('análise: live fica fora da média e do custo por lead da conta', async () => {
+  const { computeSummary } = await import('../src/lib/analysis.js')
+  const base = { status: 'Ativa', impressions: 20000, reach: 15000, clicks: 400, ctr: 2, cpc: 0.4, conversions: 0, cpa: 0, frequency: 1.4 }
+  const itens = [
+    { ...base, id: 'a', name: 'Captação', objective: 'traffic', tipo: 'captacao', spend: 200, leads: 20, cpl: 10 },
+    { ...base, id: 'b', name: 'Live', objective: 'engagement', tipo: 'live', spend: 100, leads: 0, cpl: 0 },
+  ]
+  const resumo = computeSummary(itens, {})
+  assert.equal(resumo.totals.spend, 300)
+  assert.equal(resumo.totals.cpl, 10) // 200 / 20, sem o gasto da live
+  const live = resumo.enriched.find((item) => item.id === 'b')
+  assert.equal(live.analysis.verdict, 'monitor')
+  assert.equal(live.analysis.primary.label, 'Live / vídeo')
+})
