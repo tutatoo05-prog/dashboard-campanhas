@@ -2,6 +2,10 @@
 // Usado pela tela Registros e pelos eventos da Hotmart.
 
 import { get as httpsGet } from 'node:https'
+import { criarLimitador } from './limitador.js'
+
+// As 16 abas não podem ser baixadas todas de uma vez: junto com a Meta, enchem a fila de DNS do Node.
+const limitarGoogle = criarLimitador(3)
 
 const FETCH_TIMEOUT_MS = 20_000
 
@@ -89,13 +93,15 @@ export function getText(url, redirects = 5) {
 }
 
 /** Baixa uma aba (gid) como texto CSV, com uma nova tentativa se falhar. */
-export async function fetchSheetCsv(sheetId, gid) {
+export function fetchSheetCsv(sheetId, gid) {
   const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`
-  try {
-    return await getText(url)
-  } catch {
-    return getText(url)
-  }
+  return limitarGoogle(async () => {
+    try {
+      return await getText(url)
+    } catch {
+      return getText(url)
+    }
+  })
 }
 
 /**

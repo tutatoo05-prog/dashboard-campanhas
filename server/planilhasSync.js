@@ -73,7 +73,8 @@ export function startPlanilhasScheduler(env) {
   }
 
   console.log(`[planilhas] cópia das planilhas no banco ativa · a cada ${minutos} min`)
-  const inicio = setTimeout(() => void rodar(), 5_000) // deixa o servidor subir antes da 1ª cópia
+  // Deixa o servidor subir e as primeiras telas carregarem antes da 1ª cópia (que baixa 16 abas do Google).
+  const inicio = setTimeout(() => void rodar(), 45_000)
   const timer = setInterval(() => void rodar(), minutos * 60_000)
   inicio.unref?.()
   timer.unref?.()

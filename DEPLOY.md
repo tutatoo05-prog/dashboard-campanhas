@@ -156,3 +156,6 @@ Ler as 16 abas das planilhas do Google ao vivo levava até ~14 s a cada abertura
 - **Migration:** bloco "Cópia das planilhas do Google no banco" de `db/schema.sql`. Sem a tabela, as telas continuam lendo o Google ao vivo (como antes).
 - Variáveis (opcionais): `PLANILHAS_SYNC_ENABLED=false` desliga a cópia; `PLANILHAS_SYNC_MINUTES` muda o intervalo (padrão 5).
 - As "situações" dos eventos (Pix pendente/vencido, carrinho em aberto) são calculadas na hora de ler, então não ficam velhas.
+
+## Se as telas ficarem "carregando" (chamadas para fora)
+Abrir uma tela dispara dezenas de conexões para a Meta e para o Google de uma vez; o Node resolve nomes (DNS) numa fila de poucas threads, e com a fila cheia as conexões estouram o limite de 10 s ("Connect Timeout") e **todas** as telas ficam carregando. Por isso (`server/limitador.js`): no máximo 5 chamadas à Meta e 3 downloads de planilha ao mesmo tempo, limite de 30 s e uma nova tentativa quando a falha é de rede; se a Meta falhar, a tela segue com a última leitura boa (até 30 min). O servidor também sobe com `UV_THREADPOOL_SIZE=16`; se ainda assim travar, coloque essa variável também no Plesk (Node.js → variáveis). A primeira cópia das planilhas só roda 45 s depois do Restart.

@@ -109,3 +109,33 @@ test('cache curto: quem pede junto espera o mesmo resultado; erro não fica guar
   assert.equal((await comCache('t|erro', 1000, async () => 'voltou')), 'voltou') // o erro não ficou
   limparCache()
 })
+
+test('limitador: no máximo N ao mesmo tempo, e nova tentativa só para falha de rede', async () => {
+  const { criarLimitador, comNovaTentativa } = await import('./limitador.js')
+  const limitar = criarLimitador(2)
+  let ativas = 0
+  let maior = 0
+  const tarefa = async () => {
+    ativas += 1
+    maior = Math.max(maior, ativas)
+    await new Promise((resolve) => setTimeout(resolve, 15))
+    ativas -= 1
+    return 'ok'
+  }
+  const resultados = await Promise.all(Array.from({ length: 8 }, () => limitar(tarefa)))
+  assert.equal(resultados.length, 8)
+  assert.equal(maior, 2)
+
+  let tentativas = 0
+  const volta = await comNovaTentativa(async () => {
+    tentativas += 1
+    if (tentativas === 1) throw Object.assign(new Error('fetch failed'), { cause: { code: 'ENOENT' } })
+    return 'voltou'
+  }, { esperaMs: 1 })
+  assert.equal(volta, 'voltou')
+  assert.equal(tentativas, 2)
+
+  let outras = 0
+  await assert.rejects(comNovaTentativa(async () => { outras += 1; throw new Error('Invalid OAuth access token') }, { esperaMs: 1 }))
+  assert.equal(outras, 1) // erro da própria Meta: não insiste
+})

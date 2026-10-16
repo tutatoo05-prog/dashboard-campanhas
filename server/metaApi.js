@@ -1,5 +1,6 @@
 import { inferirTipo } from '../src/lib/campaignType.js'
 import { comCache, limparCache } from './cacheCurto.js'
+import { comNovaTentativa, criarLimitador } from './limitador.js'
 import { aplicarFichas, listarFichas } from './fichas.js'
 import {
   daysAgoLocal,
@@ -92,6 +93,15 @@ const LEVEL_MAP = {
   ads: 'ad',
 }
 
+// Sem limite, abrir uma tela dispara dezenas de conexões de uma vez e todas falham por tempo esgotado.
+const limitarMeta = criarLimitador(5)
+const TEMPO_MAXIMO_META_MS = 30_000
+
+/** GET na Meta: fila de no máximo 5 ao mesmo tempo, 30 s de limite e uma nova tentativa se a rede falhar. */
+function buscarNaMeta(url) {
+  return limitarMeta(() => comNovaTentativa(() => fetch(url, { signal: AbortSignal.timeout(TEMPO_MAXIMO_META_MS) })))
+}
+
 export async function graphGet(path, params, token) {
   const url = new URL(`${GRAPH_BASE}${path}`)
   url.searchParams.set('access_token', token)
@@ -102,7 +112,7 @@ export async function graphGet(path, params, token) {
     }
   }
 
-  const response = await fetch(url)
+  const response = await buscarNaMeta(url)
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
@@ -122,7 +132,7 @@ export async function fetchAllPages(path, params, token) {
   while (first || nextUrl) {
     const data = first
       ? await graphGet(path, params, token)
-      : await fetch(nextUrl).then((r) => r.json())
+      : await buscarNaMeta(nextUrl).then((r) => r.json())
 
     first = false
     items.push(...(data.data ?? []))
@@ -460,7 +470,26 @@ function round(value) {
 export function getDashboardData(token, accountId, period, options = {}) {
   const chave = `painel|${accountId}|${period}|${options.since ?? ''}|${options.until ?? ''}`
   if (options.fresh) limparCache(chave)
-  return comCache(chave, 3 * 60_000, () => lerDashboardData(token, accountId, period, options))
+  return comCache(chave, 3 * 60_000, () => lerComReserva(chave, () => lerDashboardData(token, accountId, period, options)))
+}
+
+/** Última leitura boa de cada período: se a Meta falhar na próxima, a tela continua com ela em vez de ficar carregando. */
+const ultimasLeituras = new Map()
+const VALIDADE_RESERVA_MS = 30 * 60_000
+
+async function lerComReserva(chave, carregar) {
+  try {
+    const dados = await carregar()
+    ultimasLeituras.set(chave, { at: Date.now(), dados })
+    return dados
+  } catch (erro) {
+    const reserva = ultimasLeituras.get(chave)
+    if (reserva && Date.now() - reserva.at < VALIDADE_RESERVA_MS) {
+      console.error('[meta] a Meta falhou; usando a última leitura boa:', erro.message || erro)
+      return { ...reserva.dados, desatualizado: true }
+    }
+    throw erro
+  }
 }
 
 async function lerDashboardData(token, accountId, period, options = {}) {

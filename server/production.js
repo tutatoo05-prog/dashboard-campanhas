@@ -83,6 +83,9 @@ async function serveStatic(req, res) {
 process.on('unhandledRejection', (motivo) => console.error('[erro não tratado]', motivo))
 process.on('uncaughtException', (erro) => console.error('[exceção não tratada]', erro))
 
+// Mais threads para resolver nomes (DNS) e IPv4 primeiro: com o padrão (4 threads), várias conexões ao mesmo tempo esperam na fila.
+process.env.UV_THREADPOOL_SIZE ||= '16'
+
 const env = loadRuntimeEnv()
 const apiMiddleware = createApiMiddleware(env, { isProduction })
 const port = Number(process.env.PORT || process.env.APP_PORT || 4173)
