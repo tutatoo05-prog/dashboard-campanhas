@@ -8,6 +8,7 @@ import {
   enrichCampaignsWithSiteLeads,
   getSiteLeadsByCampaign,
   getSiteLeadsDaily,
+  resolveCampaignIds,
   resolveMetaWindow,
 } from './siteLeads.js'
 
@@ -196,6 +197,8 @@ export async function getInsights(token, accountId, period, level, options = {})
   // Só no nível de campanha: o site grava o utm_campaign, mas não o conjunto nem o anúncio.
   // Passe `env` nas opções para trocar os leads do pixel pelos leads reais do site.
   if (apiLevel === 'campaign' && options.env) {
+    // Antes de contar, grava o ID da campanha nos leads que só têm o nome (renomear depois não perde nada).
+    await resolveCampaignIds(options.env, campaignMeta)
     const siteTotals = await getSiteLeadsByCampaign(options.env, resolveMetaWindow(period, options))
     return enrichCampaignsWithSiteLeads(rows, siteTotals)
   }
@@ -383,7 +386,7 @@ export async function getDailyCampaignInsights(token, accountId, options = 14) {
   if (env) {
     const siteDaily = await getSiteLeadsDaily(env, { since, until })
     rows = rows.map((row) =>
-      siteDaily.has(row.name) ? { ...row, leads: siteDaily.get(row.name, row.dateStart) } : row,
+      siteDaily.has(row) ? { ...row, leads: siteDaily.get(row, row.dateStart) } : row,
     )
   }
 

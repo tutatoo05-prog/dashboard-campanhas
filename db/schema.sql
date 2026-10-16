@@ -232,3 +232,9 @@ create index if not exists meta_action_log_created_at_idx on meta_action_log (cr
 -- ───────────────────────────────────────────────────────────────────────────────
 alter table leads add column if not exists fonte_id text;
 create unique index if not exists leads_fonte_id_idx on leads (fonte_id);
+
+-- ID da campanha da Meta em cada lead (cruza por ID em vez de por nome, então renomear a campanha
+-- não perde histórico). Vem do utm_id do cadastro e, nos que não têm, é preenchido pelo servidor
+-- a partir do nome da campanha (server/siteLeads.js). Cadastros antigos ficam com null até serem resolvidos.
+alter table leads add column if not exists campaign_id text;
+create index if not exists leads_campaign_id_idx on leads (campaign_id);

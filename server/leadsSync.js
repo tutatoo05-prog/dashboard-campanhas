@@ -18,6 +18,8 @@ function toDashLead(row) {
     // produto do site vira a "origem" da tela Leads (essentials, workshop_irezumi_1...)
     origem: String(row.produto ?? '').replace(/-/g, '_'),
     campanha: utm.utm_campaign ?? '',
+    // ID da campanha da Meta (utm_id={{campaign.id}} no anúncio). Sem ele, o servidor resolve pelo nome.
+    campaign_id: /^\d{8,}$/.test(String(utm.utm_id ?? '').trim()) ? String(utm.utm_id).trim() : null,
     midia: utm.utm_medium ?? '',
     veio_de: utm.utm_source ?? '',
     criativo: utm.utm_content ?? '',
@@ -32,15 +34,15 @@ async function insertBatch(env, leads) {
   const col = (key) => leads.map((lead) => lead[key])
   const result = await query(
     env,
-    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, midia, veio_de, criativo, ad_id, landing_url, data, created_at)
+    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at)
      select * from unnest(
-       $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[],
-       $8::text[], $9::text[], $10::text[], $11::text[], $12::text[], $13::timestamptz[]
+       $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[],
+       $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::timestamptz[]
      )
      on conflict (fonte_id) do nothing`,
     [
       col('fonte_id'), col('nome'), col('email'), col('telefone'), col('origem'),
-      col('campanha'), col('midia'), col('veio_de'), col('criativo'), col('ad_id'),
+      col('campanha'), col('campaign_id'), col('midia'), col('veio_de'), col('criativo'), col('ad_id'),
       col('landing_url'), col('data'), col('created_at'),
     ],
   )
