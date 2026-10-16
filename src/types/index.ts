@@ -180,6 +180,14 @@ export interface Purchase {
   subscriberCode?: string | null
   /** Momento em que a venda entrou no sistema (ISO). */
   createdAt?: string
+  /** Origem do checkout na Hotmart (src), ex.: live, essentials_live. */
+  src?: string | null
+  /** Rastreio do checkout: ad_<ID da campanha>|var_<variante>|l_<lead>. */
+  xcod?: string | null
+  /** ID da campanha da Meta que trouxe a venda (quando o anúncio mandou o utm_id). */
+  campaignId?: string | null
+  /** Forma de pagamento da Hotmart (PIX, CREDIT_CARD, BILLET...). */
+  pagamentoTipo?: string | null
   [key: string]: unknown
 }
 

@@ -238,3 +238,20 @@ create unique index if not exists leads_fonte_id_idx on leads (fonte_id);
 -- a partir do nome da campanha (server/siteLeads.js). Cadastros antigos ficam com null até serem resolvidos.
 alter table leads add column if not exists campaign_id text;
 create index if not exists leads_campaign_id_idx on leads (campaign_id);
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Vendas copiadas do banco do site (server/salesSync.js) e origem do checkout da Hotmart.
+-- fonte_id = "venda:<id>" da tabela vendas do banco do site (evita copiar duas vezes).
+-- src/xcod = origin.src e origin.xcod da Hotmart; campaign_id sai do "ad_<ID>" do xcod.
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table purchases add column if not exists fonte_id text;
+alter table purchases add column if not exists transacao text;
+alter table purchases add column if not exists pagamento_tipo text;
+alter table purchases add column if not exists src text;
+alter table purchases add column if not exists xcod text;
+alter table purchases add column if not exists campaign_id text;
+alter table purchases add column if not exists recorrencia integer;
+create unique index if not exists purchases_fonte_id_idx on purchases (fonte_id);
+create index if not exists purchases_campaign_id_idx on purchases (campaign_id);
+-- Vendas importadas da planilha da Hotmart guardavam o "Origem" (src) em campanha.
+update purchases set src = nullif(btrim(campanha), '') where src is null and fonte_id is null;

@@ -20,6 +20,21 @@ interface PurchaseModalProps {
 
 const UNIDENTIFIED = 'Sem identificação'
 
+const PAYMENT_LABELS: Record<string, string> = {
+  PIX: 'Pix',
+  PIX_AUTOMATIC: 'Pix automático',
+  CREDIT_CARD: 'Cartão de crédito',
+  DEBIT_CARD: 'Cartão de débito',
+  BILLET: 'Boleto',
+  PAYPAL: 'PayPal',
+  HOTPAY: 'Hotpay',
+}
+
+function paymentLabel(value?: string | null): string {
+  if (!value) return '—'
+  return PAYMENT_LABELS[value.toUpperCase()] ?? value
+}
+
 function formatMoment(iso?: string, fallback = '—'): string {
   if (!iso) return fallback
   const date = new Date(iso)
@@ -176,10 +191,16 @@ export function PurchaseModal({
             </Field>
             <Field label="Data da venda">{formatMoment(purchase.createdAt, purchase.data || '—')}</Field>
             <Field label="Origem da venda">{campaign}</Field>
+            <Field label="Forma de pagamento">{paymentLabel(purchase.pagamentoTipo)}</Field>
             <Field label="Acesso">
               {String(purchase.liberacao ?? '').trim().toLowerCase() === 'sim' ? 'Liberado' : purchase.liberacao || '—'}
             </Field>
             <Field label="Código do assinante">{purchase.subscriberCode || '—'}</Field>
+            {(purchase.src || purchase.xcod) && (
+              <Field label="Rastreio do checkout (Hotmart)">
+                {[purchase.src, purchase.xcod].filter(Boolean).join(' · ')}
+              </Field>
+            )}
             {canceled && <Field label="Cancelada em">{formatMoment(purchase.canceledAt ?? undefined)}</Field>}
           </div>
         </section>

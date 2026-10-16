@@ -13,7 +13,9 @@ function toPurchase(row) {
     email: row.email,
     telefone: row.telefone,
     curso: row.curso,
-    campanha: row.campanha,
+    // Quando o checkout trouxe o ID da campanha da Meta, mostra o nome dela (pelo cadastro do site);
+    // senão fica o rótulo de origem da página (live, essentials_live...).
+    campanha: row.campanha_meta || row.campanha,
     liberacao: row.liberacao,
     data: row.data,
     valor: row.valor != null ? Number(row.valor) : null,
@@ -21,6 +23,10 @@ function toPurchase(row) {
     canceledAt: row.canceled_at,
     subscriberCode: row.subscriber_code,
     createdAt: row.created_at,
+    src: row.src,
+    xcod: row.xcod,
+    campaignId: row.campaign_id,
+    pagamentoTipo: row.pagamento_tipo,
   }
 }
 
@@ -38,7 +44,13 @@ export async function handlePurchasesRequest(req, res, env) {
   try {
     const result = await query(
       env,
-      'select id, nome, email, telefone, curso, campanha, liberacao, data, valor, status, canceled_at, subscriber_code, created_at from purchases order by created_at desc',
+      `select p.id, p.nome, p.email, p.telefone, p.curso, p.campanha, p.liberacao, p.data, p.valor, p.status,
+              p.canceled_at, p.subscriber_code, p.created_at, p.src, p.xcod, p.campaign_id, p.pagamento_tipo,
+              (select l.campanha from leads l
+                where p.campaign_id is not null and l.campaign_id = p.campaign_id and btrim(l.campanha) <> ''
+                order by l.created_at desc limit 1) as campanha_meta
+         from purchases p
+        order by p.created_at desc`,
     )
     const purchases = result.rows.map(toPurchase)
 
