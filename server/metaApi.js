@@ -1,4 +1,5 @@
 import { inferirTipo } from '../src/lib/campaignType.js'
+import { comCache, limparCache } from './cacheCurto.js'
 import { aplicarFichas, listarFichas } from './fichas.js'
 import {
   daysAgoLocal,
@@ -139,7 +140,12 @@ function isMainAccount(name) {
   return MAIN_ACCOUNT_PATTERNS.some((pattern) => pattern.test(name ?? ''))
 }
 
-export async function getAdAccounts(token, { allowedIds } = {}) {
+/** Contas de anúncios liberadas (guardadas por 5 minutos: raramente mudam e quase toda tela pede). */
+export function getAdAccounts(token, { allowedIds } = {}) {
+  return comCache(`contas|${[...(allowedIds ?? [])].sort().join(',')}`, 5 * 60_000, () => lerAdAccounts(token, { allowedIds }))
+}
+
+async function lerAdAccounts(token, { allowedIds } = {}) {
   const accounts = await fetchAllPages(
     '/me/adaccounts',
     { fields: 'id,name,account_status,currency', limit: '100' },
@@ -260,7 +266,12 @@ function anotarTipo(row, campaignMeta, extras, accountId) {
   }
 }
 
-export async function getCampaignMetaMap(token, accountId) {
+/** Campanhas da conta com objetivo, status e data final (guardada por 1 minuto: cada tela pedia 3 a 4 vezes). */
+export function getCampaignMetaMap(token, accountId) {
+  return comCache(`campanhas|${accountId}`, 60_000, () => lerCampaignMetaMap(token, accountId))
+}
+
+async function lerCampaignMetaMap(token, accountId) {
   const campaigns = await fetchAllPages(
     `/${accountId}/campaigns`,
     { fields: 'id,name,status,effective_status,objective,stop_time', limit: '500' },
@@ -442,21 +453,33 @@ function round(value) {
   return Math.round(value * 100) / 100
 }
 
-export async function getDashboardData(token, accountId, period, options = {}) {
-  const [campaigns, adSets, ads] = await Promise.all([
+/**
+ * Tudo que as telas pedem para um período: campanhas, conjuntos, anúncios e a série diária.
+ * O resultado fica guardado por 3 minutos (e quem pede junto espera o mesmo); `options.fresh` ignora o cache.
+ */
+export function getDashboardData(token, accountId, period, options = {}) {
+  const chave = `painel|${accountId}|${period}|${options.since ?? ''}|${options.until ?? ''}`
+  if (options.fresh) limparCache(chave)
+  return comCache(chave, 3 * 60_000, () => lerDashboardData(token, accountId, period, options))
+}
+
+async function lerDashboardData(token, accountId, period, options = {}) {
+  // A série diária (tendência) é complementar: não derruba o painel se falhar, e roda junto com o resto.
+  const diaria = (async () => {
+    try {
+      const window = resolveDailyWindow(period, options)
+      return await getDailyCampaignInsights(token, accountId, { ...window, env: options.env })
+    } catch {
+      return {}
+    }
+  })()
+
+  const [campaigns, adSets, ads, dailyByCampaign] = await Promise.all([
     getInsights(token, accountId, period, 'campaigns', options),
     getInsights(token, accountId, period, 'adSets', options),
     getInsights(token, accountId, period, 'ads', options),
+    diaria,
   ])
-
-  let dailyByCampaign = {}
-  try {
-    const window = resolveDailyWindow(period, options)
-    dailyByCampaign = await getDailyCampaignInsights(token, accountId, { ...window, env: options.env })
-  } catch {
-    // Tendência é complementar — não derruba o dashboard se a série diária falhar.
-    dailyByCampaign = {}
-  }
 
   return { campaigns, adSets, ads, dailyByCampaign }
 }

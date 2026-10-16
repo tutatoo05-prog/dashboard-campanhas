@@ -88,3 +88,24 @@ test('análise: live fica fora da média e do custo por lead da conta', async ()
   assert.equal(live.analysis.verdict, 'monitor')
   assert.equal(live.analysis.primary.label, 'Live / vídeo')
 })
+
+test('cache curto: quem pede junto espera o mesmo resultado; erro não fica guardado; limpar apaga', async () => {
+  const { comCache, limparCache } = await import('./cacheCurto.js')
+  let chamadas = 0
+  const ler = async () => {
+    chamadas += 1
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    return { n: chamadas }
+  }
+  const [a, b, c] = await Promise.all([comCache('t|1', 1000, ler), comCache('t|1', 1000, ler), comCache('t|1', 1000, ler)])
+  assert.equal(chamadas, 1)
+  assert.deepEqual([a.n, b.n, c.n], [1, 1, 1])
+  assert.equal((await comCache('t|1', 1000, ler)).n, 1) // ainda guardado
+
+  limparCache('t|')
+  assert.equal((await comCache('t|1', 1000, ler)).n, 2) // refez a leitura
+
+  await assert.rejects(comCache('t|erro', 1000, async () => { throw new Error('Meta fora do ar') }))
+  assert.equal((await comCache('t|erro', 1000, async () => 'voltou')), 'voltou') // o erro não ficou
+  limparCache()
+})

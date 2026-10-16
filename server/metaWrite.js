@@ -1,4 +1,5 @@
 import { getAdAccounts, graphGet, normalizeAccountId, parseAllowedAccountIds } from './metaApi.js'
+import { limparCache } from './cacheCurto.js'
 import { readRequestBody } from './readBody.js'
 import { query } from './db.js'
 
@@ -40,6 +41,8 @@ async function graphPost(path, params, token) {
     body,
   })
   const data = await response.json().catch(() => ({}))
+  // Qualquer alteração na Meta (com sucesso ou não) invalida o que o painel guardou: status, orçamento...
+  limparCache()
 
   if (!response.ok || data?.error) {
     const code = data?.error?.code

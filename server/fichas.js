@@ -2,6 +2,7 @@ import { query } from './db.js'
 import { readRequestBody } from './readBody.js'
 import { TIPOS_ESCOLHIVEIS } from '../src/lib/campaignType.js'
 import { isAdmin } from './roles.js'
+import { limparCache } from './cacheCurto.js'
 
 /**
  * Ficha da campanha: o que o usuário confirmou (ou corrigiu) sobre ela. O que não estiver aqui o dash
@@ -78,6 +79,7 @@ export async function handleFichasRequest(req, res, env, user) {
           [accountId, campaignId, tipo, metaCusto, user?.email ?? null],
         )
       }
+      limparCache('painel|') // o tipo aparece em todas as telas: refaz a leitura
       return sendJson(res, 200, { ok: true })
     }
 

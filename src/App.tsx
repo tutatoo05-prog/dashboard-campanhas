@@ -24,6 +24,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
+      // Trocar de tela não refaz a leitura de quem acabou de carregar (o servidor também guarda por alguns minutos).
+      staleTime: 60_000,
     },
   },
 })
