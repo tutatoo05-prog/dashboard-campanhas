@@ -14,6 +14,8 @@ interface PurchaseModalProps {
   leadsError: boolean
   onClose: () => void
   onSelect: (purchase: Purchase) => void
+  /** Texto do botão de baixo (ex.: "Voltar à lista" quando a venda foi aberta de dentro de uma lista). */
+  closeLabel?: string
 }
 
 const UNIDENTIFIED = 'Sem identificação'
@@ -63,7 +65,15 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 /** Janela com tudo da venda e de quem comprou (abre ao clicar numa linha de "Todas as vendas"). */
-export function PurchaseModal({ purchase, purchases, leads, leadsError, onClose, onSelect }: PurchaseModalProps) {
+export function PurchaseModal({
+  purchase,
+  purchases,
+  leads,
+  leadsError,
+  onClose,
+  onSelect,
+  closeLabel = 'Fechar',
+}: PurchaseModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const canceled = purchase.status === 'cancelado'
   const whatsapp = whatsappLink(purchase.telefone)
@@ -236,7 +246,7 @@ export function PurchaseModal({ purchase, purchases, leads, leadsError, onClose,
 
         <div className="dialog-actions">
           <button type="button" className="btn-gold" onClick={onClose}>
-            Fechar
+            {closeLabel}
           </button>
         </div>
       </div>

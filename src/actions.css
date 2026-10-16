@@ -322,6 +322,8 @@
 .sale-list-main, .sale-list-side { display: flex; flex-direction: column; min-width: 0; font-size: 0.82rem; font-weight: 700; }
 .sale-list-side { align-items: flex-end; text-align: right; }
 .sale-list-btn .sale-list-side { flex-direction: row; align-items: center; gap: 0.6rem; }
+.sale-scroll { max-height: min(52vh, 26rem); overflow-y: auto; padding-right: 0.15rem; }
+.sale-tag-bad { padding: 0.05rem 0.45rem; border: 1.5px solid var(--r); border-radius: 999px; font-size: 0.64rem; font-style: normal; font-weight: 800; text-transform: uppercase; color: var(--bad, #b3261e); }
 .sale-list small { font-size: 0.7rem; font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
 
 /* ── Resultado depois da ação ── */
