@@ -23,6 +23,7 @@ const PAGES = [
   { to: '/leads', label: 'Leads', hint: 'Quem se inscreveu', icon: 'fa-user-plus' },
   { to: '/registros', label: 'Registros', hint: 'Tabela de registros', icon: 'fa-table-list' },
   { to: '/purchases', label: 'Compras', hint: 'Vendas aprovadas', icon: 'fa-bag-shopping' },
+  { to: '/acessos', label: 'Acessos', hint: 'Liberação de curso e alunos', icon: 'fa-key' },
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
   { to: '/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },
 ]

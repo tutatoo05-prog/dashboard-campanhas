@@ -12,7 +12,8 @@
     "prestart": "npm run build:server-libs",
     "start": "node server/production.js",
     "start:prod": "npm run build && node server/production.js",
-    "live:check": "node server/scripts/liveCheck.js"
+    "live:check": "node server/scripts/liveCheck.js",
+    "test:acesso": "node --test server/acesso/acesso.test.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

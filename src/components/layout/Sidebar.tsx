@@ -34,7 +34,13 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/purchases', label: 'Compras', sticker: 'coin' },
     ],
   },
-  { title: 'Operação', items: [{ to: '/live', label: 'Live', sticker: 'lighthouse' }] },
+  {
+    title: 'Operação',
+    items: [
+      { to: '/live', label: 'Live', sticker: 'lighthouse' },
+      { to: '/acessos', label: 'Acessos', sticker: 'crown', adminOnly: true },
+    ],
+  },
   { title: 'Admin', items: [{ to: '/usuarios', label: 'Usuários', sticker: 'skull', adminOnly: true }] },
 ]
 

@@ -11,6 +11,7 @@ import DashboardPage from '@/pages/DashboardPage.tsx'
 import ActionsPage from '@/pages/ActionsPage.tsx'
 import ComparePage from '@/pages/ComparePage.tsx'
 import PurchasesPage from '@/pages/PurchasesPage.tsx'
+import AcessosPage from '@/pages/AcessosPage.tsx'
 import LeadsPage from '@/pages/LeadsPage.tsx'
 import RegistrosPage from '@/pages/RegistrosPage.tsx'
 import LivePage from '@/pages/LivePage.tsx'
@@ -131,6 +132,14 @@ function AppRoutes() {
         <Route path="acoes" element={<ActionsPage />} />
         <Route path="compare" element={<ComparePage />} />
         <Route path="purchases" element={<PurchasesPage />} />
+        <Route
+          path="acessos"
+          element={
+            <RequireAdmin>
+              <AcessosPage />
+            </RequireAdmin>
+          }
+        />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="registros" element={<RegistrosPage />} />
         <Route path="live" element={<LivePage />} />

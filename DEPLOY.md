@@ -91,6 +91,49 @@ Antes de usar pela primeira vez:
 3. Plesk → Node.js → **Run script** → `run live:check`. Ele mostra o usuário do processo e se ele pode escrever na pasta, **sem criar nada**. Se der erro de permissão, não abra 777: ajuste o dono/grupo da pasta (mesmo usuário de sistema da assinatura) ou fale com o suporte do Plesk.
 4. Rodar **só uma instância** do app: as duas convergiriam para o mesmo estado (é idempotente), mas não há motivo para duplicar.
 
+## Liberação de acesso pelo dash (tela `/acessos`, substitui o fluxo "HOTMART PAGAMENTOS" do n8n)
+
+Código em `server/acesso/`. O dash recebe os eventos da Hotmart, grava, e executa o mesmo caminho do n8n: **CPF → liberar-curso → e-mail com o acesso (Brevo) → venda no banco → WhatsApp ao aluno → aviso ao Tuzinho**, mais carrinho abandonado e parcela atrasada.
+
+**Como não perder nada**
+- O webhook grava o evento ANTES de responder. Banco fora do ar → responde 500 e a Hotmart reenvia. Evento repetido (mesmo `id`) não faz nada em dobro.
+- Cada passo grava seu resultado no próprio evento. Se um falha, a tentativa seguinte refaz só ele (1, 2, 5, 10, 30 e 60 min; 7 tentativas). `liberar` é o único que trava os demais: sem acesso liberado ninguém é avisado.
+- A equipe recebe WhatsApp na 3ª tentativa, ao desistir, e sempre que algo exige gente (compra sem CPF, e-mail inválido, produto sem regra).
+- Tela **Acessos → Eventos da Hotmart**: etapa por etapa, com botão "Tentar de novo agora".
+
+**Regras**
+- Pix parcelado (plano `REC_*` pago por `PIX`/`PIX_AUTOMATIC`): **30 dias** por parcela paga. Cada nova parcela (`recorrencia` > 1, ou mesmo assinante com outra transação) chama `liberar-curso` de novo com 30 dias e soma ao fim do acesso (`acessos.liberado_ate`). Todo o resto: 365 dias.
+- Parcela atrasada (`PURCHASE_DELAYED`): só quem está em Pix parcelado entra na regra. Bloqueio no **2º dia de atraso**, à meia-noite de São Paulo (`ACESSO_BLOQUEIO_DIA`, padrão 2). Pagou antes → cancela o bloqueio; pagou depois de bloqueado → liberado de novo. Todos os atrasos recebem o e-mail de apoio.
+- Sem `TEKWAY_BLOQUEAR_URL` (endpoint ainda a combinar com a Tekway) o dash **não bloqueia sozinho**: avisa a equipe por WhatsApp e o aluno aparece como "Bloquear na mão" em Acessos → Alunos.
+- Mentoria Particular e Workshop Presencial: só e-mail e aviso (não liberam curso), como no n8n.
+
+**Migration:** rodar o bloco "Liberação de acesso dentro do dash" do fim de `db/schema.sql` (tabelas `hotmart_eventos`, `acessos`, `abandonos`).
+
+**Variáveis (Plesk → Node.js → Variáveis).** Os valores vêm dos nós do workflow no n8n:
+
+| Variável | De onde vem |
+|---|---|
+| `ACESSO_MODO` | `teste` (só grava e simula) → depois `ativo`. Vazio/`desligado` = o n8n segue sozinho |
+| `HOTMART_HOTTOK` | Hotmart → Ferramentas → Webhook → Hottok (já usada pelo cancelamento) |
+| `TEKWAY_LIBERAR_URL`, `TEKWAY_TOKEN` | nó "LIBERA ACESSO" (URL e cabeçalho `Authorization: Bearer …`) |
+| `TEKWAY_BLOQUEAR_URL` | a combinar com a Tekway (opcional) |
+| `BREVO_API_KEY`, `BREVO_REMETENTE_EMAIL` (`nao-responda@tuzinho.academy`, remetente verificado na Brevo), `BREVO_REMETENTE_NOME` | Brevo |
+| `EVOLUTION_URL` | `https://evo01.tuzinho.academy` |
+| `EVOLUTION_ALUNO_INSTANCIA` / `_APIKEY` | nós "MSG ACESSO" (instância `iphone-branco`) |
+| `EVOLUTION_EQUIPE_INSTANCIA` / `_APIKEY` | nós "AVISA TUZINHO" (instância `tuzinho`) |
+| `ACESSO_AVISO_NUMERO` | número do Tuzinho (campo "Numero Tu" dos nós "Edit Fields") |
+
+A tela Acessos lista o que ainda falta configurar.
+
+**Entrada em produção (sem risco de liberar duas vezes)**
+1. Migration + variáveis, `ACESSO_MODO=teste`, Restart.
+2. Hotmart → Webhook: **adicionar** (sem remover o do n8n) `https://dash.tuzinho.academy/api/hotmart/webhook` com os eventos de compra aprovada, atrasada, carrinho abandonado e cancelamento.
+3. Acompanhar em Acessos por alguns dias: cada compra aparece como "simulado" com a decisão tomada. Conferir contra o que o n8n fez.
+4. Virada: **no mesmo momento**, remover o webhook do n8n na Hotmart (ou desativar o workflow) e trocar `ACESSO_MODO=ativo` + Restart. Os dois ativos ao mesmo tempo liberariam e avisariam em dobro.
+5. O n8n fica desativado (não apagado) como volta.
+
+**Pendente com a Tekway:** o que `liberar-curso` faz numa segunda chamada para o mesmo aluno (soma dias? substitui? erro?), `day` como texto (como o n8n manda), e endpoint de bloqueio.
+
 ## Cargos (tela `/usuarios`)
 
 Coluna `users.cargo`: **admin** tem acesso a tudo, inclusive alterações (metas, Live, cargos de outros usuários); **usuario** usa todas as telas e pode gerar relatório, mas não altera nada. A regra fica no `server/middleware.js`: qualquer requisição que não seja GET (exceto `/api/report`) e toda a rota `/api/users` exigem admin, e respondem 403 para os demais. O cargo é lido a cada requisição, então a mudança vale na hora, sem novo login. Cadastro novo entra como `usuario`. O sistema não deixa remover o último admin ativo.

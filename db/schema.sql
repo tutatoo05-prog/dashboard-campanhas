@@ -255,3 +255,82 @@ create unique index if not exists purchases_fonte_id_idx on purchases (fonte_id)
 create index if not exists purchases_campaign_id_idx on purchases (campaign_id);
 -- Vendas importadas da planilha da Hotmart guardavam o "Origem" (src) em campanha.
 update purchases set src = nullif(btrim(campanha), '') where src is null and fonte_id is null;
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Liberação de acesso dentro do dash (substitui o fluxo "HOTMART PAGAMENTOS" do n8n).
+-- server/acesso/*. Modo por ACESSO_MODO: desligado (padrão) | teste (só grava e simula) | ativo.
+--
+-- hotmart_eventos: um registro por evento do webhook da Hotmart (event_id é único, então a Hotmart
+--   reenviando o mesmo evento não faz nada em dobro). "passos" guarda o resultado de cada etapa
+--   (liberar, e-mail, WhatsApp...) para uma nova tentativa só refazer o que falhou.
+-- acessos: um registro por aluno e curso, com até quando o acesso vale (cruza as parcelas pagas).
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists hotmart_eventos (
+  id bigserial primary key,
+  event_id text not null unique,
+  evento text not null,
+  transacao text,
+  email text,
+  nome text,
+  curso text,
+  payload jsonb not null,
+  estado text not null default 'novo',          -- novo | processando | ok | erro | falhou | atencao | ignorado
+  decisao text,                                  -- liberar | renovar | sem_liberacao | abandono | atraso | ...
+  passos jsonb not null default '{}'::jsonb,
+  tentativas integer not null default 0,
+  proxima_tentativa timestamptz not null default now(),
+  erro text,
+  simulado boolean not null default false,       -- processado em modo teste
+  recebido_em timestamptz not null default now(),
+  iniciado_em timestamptz,
+  processado_em timestamptz
+);
+create index if not exists hotmart_eventos_fila_idx on hotmart_eventos (estado, proxima_tentativa);
+create index if not exists hotmart_eventos_email_idx on hotmart_eventos (lower(email));
+create index if not exists hotmart_eventos_recebido_idx on hotmart_eventos (recebido_em desc);
+
+create table if not exists acessos (
+  id bigserial primary key,
+  email text not null,
+  curso text not null,
+  nome text,
+  telefone text,
+  documento text,
+  plano text,
+  pagamento_tipo text,
+  subscriber_code text,
+  dias_regra integer,
+  liberado_ate timestamptz,
+  status text not null default 'ativo',          -- ativo | atrasado | bloqueado
+  parcelas_pagas integer not null default 0,
+  ultima_transacao text,
+  ultima_liberacao_em timestamptz,
+  atraso_desde timestamptz,
+  bloquear_em timestamptz,
+  bloqueado_em timestamptz,
+  bloqueio_tentativas integer not null default 0,
+  bloqueio_proxima timestamptz,
+  bloqueio_erro text,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  unique (email, curso)
+);
+create index if not exists acessos_assinante_idx on acessos (subscriber_code);
+create index if not exists acessos_bloqueio_idx on acessos (status, bloquear_em);
+
+-- Quem abandonou o carrinho / atrasou o pagamento e recebeu (ou não) o e-mail de apoio
+-- (era a planilha "Abandono de carrinho").
+create table if not exists abandonos (
+  id bigserial primary key,
+  email text not null,
+  tipo text not null,                            -- carrinho | atraso
+  nome text,
+  telefone text,
+  curso text,
+  ocorrido_em timestamptz,
+  msg_apoio text not null default 'pendente',    -- pendente | enviado
+  enviado_em timestamptz,
+  evento_id bigint,
+  atualizado_em timestamptz not null default now(),
+  unique (email, tipo)
+);

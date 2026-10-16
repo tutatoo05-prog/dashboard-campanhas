@@ -22,7 +22,7 @@ export function normalizeCourse(value) {
     .trim()
 }
 
-function toPurchase(row) {
+export function toPurchase(row) {
   const when = row.aprovada_em ?? row.criado_em
   const isBrl = !row.moeda || String(row.moeda).toUpperCase() === 'BRL'
   const valor = Number(row.valor)
@@ -50,7 +50,7 @@ function toPurchase(row) {
   }
 }
 
-async function insertBatch(env, rows) {
+export async function insertBatch(env, rows) {
   const col = (key) => rows.map((row) => row[key])
   const result = await query(
     env,

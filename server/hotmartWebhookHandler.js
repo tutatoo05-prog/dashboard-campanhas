@@ -1,5 +1,11 @@
 import { readRequestBody } from './readBody.js'
 import { query } from './db.js'
+import { modoAcesso } from './acesso/motor.js'
+import { inserirEvento } from './acesso/repo.js'
+import { rodarAgora } from './acesso/scheduler.js'
+
+// Eventos que a liberação de acesso trata; os demais ficam gravados só para consulta.
+const EVENTOS_DE_ACESSO = new Set(['PURCHASE_APPROVED', 'PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_DELAYED'])
 
 function sendJson(res, status, payload) {
   res.statusCode = status
@@ -89,6 +95,14 @@ export async function handleHotmartWebhookRequest(req, res, env) {
   const data = payload?.data || {}
 
   try {
+    // Liberação de acesso: grava o evento ANTES de responder. Se o banco falhar, a resposta é 500 e a Hotmart
+    // reenvia — nada se perde. O processamento acontece em seguida, fora da resposta.
+    if (modoAcesso(env) !== 'desligado') {
+      const gravado = await inserirEvento(env, payload, { estadoInicial: EVENTOS_DE_ACESSO.has(event) ? 'novo' : 'ignorado' })
+      if (gravado.novo && EVENTOS_DE_ACESSO.has(event)) setImmediate(() => void rodarAgora(env))
+      if (EVENTOS_DE_ACESSO.has(event)) return sendJson(res, 200, { success: true, registrado: true, repetido: !gravado.novo, event })
+    }
+
     if (event === 'SUBSCRIPTION_CANCELLATION') {
       const email = data?.subscriber?.email
       const subscriberCode = data?.subscriber?.code
