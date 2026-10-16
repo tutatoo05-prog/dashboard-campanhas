@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Registro } from '@/types'
+import type { RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 
@@ -11,15 +11,17 @@ interface RegistrosGroupModalProps {
   label: string
   /** Texto pequeno que diz o escopo (ex.: "Aba Essentials" ou "Todas as abas"). */
   scope: string
-  /** Só os registros deste grupo. */
-  records: Registro[]
+  /** Só os registros deste grupo, com quem aparece em várias planilhas já junto. */
+  records: RegistroAgrupado[]
+  /** Linhas nas planilhas antes de juntar (o número que a barra clicada mostra). */
+  totalRegistros: number
   onClose: () => void
-  onOpenRecord: (record: Registro) => void
+  onOpenRecord: (record: RegistroAgrupado) => void
 }
 
 const PAGE = 150
 
-function timeOf(record: Registro): number {
+function timeOf(record: RegistroAgrupado): number {
   const time = record.data ? new Date(record.data).getTime() : NaN
   return Number.isFinite(time) ? time : 0
 }
@@ -32,7 +34,7 @@ function shortDate(value: string): string {
 }
 
 /** Lista, em janela, dos registros de uma origem ou de uma campanha (abre ao clicar nas listas de "Registros"). */
-export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOpenRecord }: RegistrosGroupModalProps) {
+export function RegistrosGroupModal({ kind, label, scope, records, totalRegistros, onClose, onOpenRecord }: RegistrosGroupModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(PAGE)
@@ -85,8 +87,9 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
               {label}
             </h3>
             <p className="sale-sub">
-              {formatNumber(records.length)} {records.length === 1 ? 'registro' : 'registros'}
-              {people !== records.length && <> · {formatNumber(people)} {people === 1 ? 'pessoa' : 'pessoas'}</>}
+              {formatNumber(totalRegistros)} {totalRegistros === 1 ? 'registro' : 'registros'}
+              {' · '}
+              {formatNumber(people)} {people === 1 ? 'pessoa' : 'pessoas'}
               {' · '}
               {scope}
             </p>
@@ -98,10 +101,11 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
               onClick={() =>
                 exportCsv(
                   `registros-${kind}.csv`,
-                  ['Planilha', 'Aba', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
+                  ['Planilha', 'Aba', 'Aparece em', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
                   filtered.map((record) => [
                     record.planilha,
                     record.aba,
+                    record.aparece.map((item) => `${item.aba} (${item.planilha})`).join(' · '),
                     record.nome,
                     record.email,
                     record.telefone,
@@ -150,6 +154,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
                       {record.nome || record.email || record.telefone || 'Sem nome'}
                       <small>
                         {[kind === 'origem' ? record.campanha || 'Sem campanha' : record.canal, record.aba].filter(Boolean).join(' · ')} · {shortDate(record.data)}
+                        {record.aparece.length > 1 && <> · em {record.aparece.length} planilhas</>}
                       </small>
                     </span>
                     <span className="sale-list-side">

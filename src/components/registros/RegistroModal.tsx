@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Purchase, Registro } from '@/types'
+import type { Purchase } from '@/types'
+import type { RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency } from '@/lib/format.ts'
 import { whatsappLink } from '@/lib/buyerLeads.ts'
 
 interface RegistroModalProps {
-  record: Registro
+  record: RegistroAgrupado
   /** Compras carregadas (para mostrar se esta pessoa já comprou); `undefined` enquanto carrega. */
   purchases: Purchase[] | undefined
   onClose: () => void
@@ -162,6 +163,22 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
             </Field>
           </div>
         </section>
+
+        {record.aparece.length > 1 && (
+          <section className="sale-section">
+            <p className="sale-section-title">Aparece em {record.aparece.length} planilhas</p>
+            <ul className="sale-list">
+              {record.aparece.map((item) => (
+                <li key={`${item.planilha}-${item.aba}`}>
+                  <span className="sale-list-main">
+                    {item.aba}
+                    <small>{item.planilha}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="sale-section">
           <p className="sale-section-title">De onde veio</p>

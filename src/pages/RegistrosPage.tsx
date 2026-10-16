@@ -7,6 +7,7 @@ import { RegistrosGroupModal, type RegistroGroupKind } from '@/components/regist
 import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
+import { agruparRegistros, apareceTexto, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import type { Registro, RegistroTab } from '@/types'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
@@ -105,7 +106,7 @@ export default function RegistrosPage() {
   const queryClient = useQueryClient()
   const [selectedTab, setSelectedTab] = useState('')
   const [group, setGroup] = useState<{ kind: RegistroGroupKind; label: string } | null>(null)
-  const [selected, setSelected] = useState<Registro | null>(null)
+  const [selected, setSelected] = useState<RegistroAgrupado | null>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [refreshing, setRefreshing] = useState(false)
@@ -142,9 +143,12 @@ export default function RegistrosPage() {
   const byCanal = useMemo(() => countBy(scoped, (record) => record.canal), [scoped])
   const byCampanha = useMemo(() => countBy(scoped, campaignOf), [scoped])
 
+  // Quem aparece em mais de uma planilha, na mesma campanha, vira um registro só (com a contagem de planilhas).
+  const grouped = useMemo(() => agruparRegistros(scoped), [scoped])
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return scoped
+    return grouped
       .filter(
         (record) =>
           !term ||
@@ -153,7 +157,7 @@ export default function RegistrosPage() {
             .some((value) => value.toLowerCase().includes(term)),
       )
       .sort((a, b) => (b.data || '').localeCompare(a.data || ''))
-  }, [scoped, search])
+  }, [grouped, search])
 
   const totalRecords = records.length
   const totalUnique = useMemo(() => uniqueContacts(records), [records])
@@ -165,6 +169,7 @@ export default function RegistrosPage() {
     if (!group) return []
     return scoped.filter((record) => (group.kind === 'origem' ? record.canal === group.label : campaignOf(record) === group.label))
   }, [group, scoped])
+  const groupMerged = useMemo(() => agruparRegistros(groupRecords), [groupRecords])
 
   function selectTab(key: string) {
     setSelectedTab((current) => (current === key ? '' : key))
@@ -386,9 +391,14 @@ export default function RegistrosPage() {
                 <h3 className="section-title mt-1">
                   {formatNumber(filtered.length)} {filtered.length === 1 ? 'registro' : 'registros'}
                   {filtersActive && (
-                    <span className="ml-2 text-sm text-zinc-500">de {formatNumber(totalRecords)}</span>
+                    <span className="ml-2 text-sm text-zinc-500">de {formatNumber(grouped.length)}</span>
                   )}
                 </h3>
+                {grouped.length < scoped.length && (
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {formatNumber(scoped.length)} linhas nas planilhas · quem aparece em mais de uma, na mesma campanha, vira um registro só (a etiqueta mostra em quantas).
+                  </p>
+                )}
                 {filtersActive && (
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                     {selectedInfo && <span>Aba: {selectedInfo.aba}</span>}
@@ -414,10 +424,11 @@ export default function RegistrosPage() {
                   onClick={() =>
                     exportCsv(
                       'registros.csv',
-                      ['Planilha', 'Aba', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
+                      ['Planilha', 'Aba', 'Aparece em', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
                       filtered.map((record) => [
                         record.planilha,
                         record.aba,
+                        apareceTexto(record),
                         record.nome,
                         record.email,
                         record.telefone,
@@ -471,7 +482,17 @@ export default function RegistrosPage() {
                         {record.email || record.telefone || '—'}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-zinc-400">
-                        <span className="text-zinc-300">{record.aba}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-zinc-300">{record.aba}</span>
+                          {record.aparece.length > 1 && (
+                            <span
+                              className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-200"
+                              title={`Aparece em ${record.aparece.length} planilhas: ${apareceTexto(record)}`}
+                            >
+                              {record.aparece.length}
+                            </span>
+                          )}
+                        </span>
                         <span className="block text-[10px] text-zinc-600">{record.planilha}</span>
                       </td>
                       <td className="px-4 py-2.5 text-zinc-300">{record.canal}</td>
@@ -527,7 +548,8 @@ export default function RegistrosPage() {
           kind={group.kind}
           label={group.label}
           scope={selectedInfo ? `Aba ${selectedInfo.aba}` : 'Todas as abas'}
-          records={groupRecords}
+          records={groupMerged}
+          totalRegistros={groupRecords.length}
           onClose={() => setGroup(null)}
           onOpenRecord={setSelected}
         />

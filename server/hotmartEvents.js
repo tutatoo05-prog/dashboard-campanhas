@@ -120,6 +120,14 @@ export function normalizeEvent(raw) {
  *    ou "vencido" (mais de 3 dias sem pagar);
  *  - carrinho abandonado: "recuperado" (a pessoa comprou depois) ou "em aberto".
  */
+/** O que de fato aconteceu num evento de "cancelamento ou atraso": cancelada, atrasada ou expirada. */
+function cancelSituation(evento) {
+  const key = String(evento ?? '').toLowerCase()
+  if (/atras/.test(key)) return 'atrasada'
+  if (/expir/.test(key)) return 'expirada'
+  return 'cancelada'
+}
+
 export function withSituations(events, now = Date.now()) {
   const byTransaction = new Map()
   const buyers = new Map() // e-mail -> momento da primeira compra aprovada
@@ -146,6 +154,8 @@ export function withSituations(events, now = Date.now()) {
       const boughtAt = buyers.get(event.email)
       return { ...event, situacao: boughtAt && boughtAt >= event.data ? 'recuperado' : 'em aberto' }
     }
+    if (event.categoria === 'cancelamento') return { ...event, situacao: cancelSituation(event.evento) }
+    if (event.categoria === 'reembolso') return { ...event, situacao: /charge/i.test(event.evento) ? 'chargeback' : 'reembolsada' }
     return { ...event, situacao: null }
   })
 }
@@ -182,7 +192,12 @@ export function summarize(events) {
       emAberto: cartOpen.length,
       recuperadas: cartPeople.length - cartOpen.length,
     },
-    cancelamentos: { total: canceled.length },
+    cancelamentos: {
+      total: canceled.length,
+      canceladas: canceled.filter((event) => event.situacao === 'cancelada').length,
+      atrasadas: canceled.filter((event) => event.situacao === 'atrasada').length,
+      expiradas: canceled.filter((event) => event.situacao === 'expirada').length,
+    },
     reembolsos: { total: refunds.length },
   }
 }

@@ -190,7 +190,19 @@ export interface HotmartEvent {
   campaignId: string | null
   canal: string
   campanha: string
-  situacao: 'pago' | 'cancelado' | 'pendente' | 'vencido' | 'recuperado' | 'em aberto' | null
+  situacao:
+    | 'pago'
+    | 'cancelado'
+    | 'pendente'
+    | 'vencido'
+    | 'recuperado'
+    | 'em aberto'
+    | 'cancelada'
+    | 'atrasada'
+    | 'expirada'
+    | 'reembolsada'
+    | 'chargeback'
+    | null
 }
 
 export interface HotmartEventsSummary {
@@ -198,7 +210,7 @@ export interface HotmartEventsSummary {
   vendas: { total: number }
   pixBoleto: { gerados: number; pagos: number; pendentes: number; vencidos: number; valorPendente: number }
   abandono: { eventos: number; pessoas: number; emAberto: number; recuperadas: number }
-  cancelamentos: { total: number }
+  cancelamentos: { total: number; canceladas: number; atrasadas: number; expiradas: number }
   reembolsos: { total: number }
 }
 

@@ -16,6 +16,11 @@ const SITUATION_LABEL: Record<string, string> = {
   vencido: 'Vencido?',
   recuperado: 'Comprou depois',
   'em aberto': 'Em aberto',
+  cancelada: 'Cancelada',
+  atrasada: 'Atrasada',
+  expirada: 'Expirada',
+  reembolsada: 'Reembolsada',
+  chargeback: 'Chargeback',
 }
 
 function brDate(iso: string): string {
@@ -147,7 +152,13 @@ export function HotmartEventsPanel({ onOpen }: { onOpen: (group: EventGroup) => 
           label="Cancelamentos e atrasos"
           value={resumo.cancelamentos.total}
           tone="zinc"
-          hint="cancelada, expirada ou atrasada"
+          hint={[
+            resumo.cancelamentos.canceladas ? `${resumo.cancelamentos.canceladas} cancelada(s)` : '',
+            resumo.cancelamentos.atrasadas ? `${resumo.cancelamentos.atrasadas} atrasada(s)` : '',
+            resumo.cancelamentos.expiradas ? `${resumo.cancelamentos.expiradas} expirada(s)` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'nenhum'}
           onClick={() => open('Cancelamentos e atrasos', 'Cancelamento ou atraso', canceled)}
         />
         <Card
