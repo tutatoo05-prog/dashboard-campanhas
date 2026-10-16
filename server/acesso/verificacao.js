@@ -114,11 +114,16 @@ export async function verificarConexoes(env, { emailTeste = '' } = {}) {
     } catch (erro) {
       add('Envio de teste', 'erro', `E-mail de teste falhou: ${erro.message}`)
     }
-    try {
-      await enviarWhatsapp(env, { conta: 'equipe', numero: env.ACESSO_AVISO_NUMERO, texto: '✅ Teste da liberação de acesso: o aviso à equipe está funcionando.' })
-      add('Envio de teste', 'ok', 'WhatsApp de teste enviado ao número da equipe')
-    } catch (erro) {
-      add('Envio de teste', 'erro', `WhatsApp de teste falhou: ${erro.message}`)
+    for (const [conta, rotulo, texto] of [
+      ['equipe', 'dos avisos à equipe', '✅ Teste da liberação de acesso: o aviso à equipe está funcionando.'],
+      ['aluno', 'que fala com o aluno', '✅ Teste da liberação de acesso: a instância que fala com o aluno está funcionando.'],
+    ]) {
+      try {
+        await enviarWhatsapp(env, { conta, numero: env.ACESSO_AVISO_NUMERO, texto })
+        add('Envio de teste', 'ok', `WhatsApp de teste enviado pela instância ${rotulo} (chegou no número da equipe?)`)
+      } catch (erro) {
+        add('Envio de teste', 'erro', `WhatsApp pela instância ${rotulo} falhou: ${erro.message}`)
+      }
     }
   }
 
