@@ -93,7 +93,7 @@ export async function handleAcessosRequest(req, res, env, user) {
     }
 
     if (req.method === 'GET' && caminho === '/api/acessos/lista') {
-      const { rows } = await query(env, `select * from acessos order by atualizado_em desc limit 300`)
+      const { rows } = await query(env, `select * from acessos order by (origem = 'dash') desc, liberado_ate asc nulls last limit 1000`)
       return sendJson(res, 200, {
         acessos: rows.map((linha) => ({
           id: Number(linha.id),
@@ -112,6 +112,8 @@ export async function handleAcessosRequest(req, res, env, user) {
           bloqueadoEm: linha.bloqueado_em,
           bloqueioErro: linha.bloqueio_erro,
           ultimaLiberacaoEm: linha.ultima_liberacao_em,
+          origem: linha.origem,
+          plataformaId: linha.plataforma_id,
         })),
       })
     }

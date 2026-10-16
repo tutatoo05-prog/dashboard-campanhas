@@ -31,3 +31,7 @@ src/lib/userName.js
 *.sln
 *.sw?
 .claude/settings.local.json
+
+# Listas com dados de alunos (não vão para o repositório)
+db/alunos-*.json
+db/importar-*.sql

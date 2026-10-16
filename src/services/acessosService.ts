@@ -43,7 +43,7 @@ export interface AcessoEvento {
 
 export interface AcessoAluno {
   id: number
-  email: string
+  email: string | null
   nome: string | null
   telefone: string | null
   curso: string
@@ -58,6 +58,9 @@ export interface AcessoAluno {
   bloqueadoEm: string | null
   bloqueioErro: string | null
   ultimaLiberacaoEm: string | null
+  /** 'plataforma' = aluno que já estava na plataforma de cursos (lista importada); 'dash' = liberado pelo dash. */
+  origem: 'plataforma' | 'dash'
+  plataformaId: string | null
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {

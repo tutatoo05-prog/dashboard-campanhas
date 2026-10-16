@@ -51,7 +51,6 @@ export async function verificarConexoes(env, { emailTeste = '' } = {}) {
   } else {
     add('Variáveis', 'ok', 'Todas as variáveis obrigatórias estão preenchidas')
   }
-  faltando.opcionais.forEach((item) => add('Variáveis', 'aviso', `Opcional: ${item.nome} — ${item.descricao}`))
 
   // Brevo
   if (String(env.BREVO_API_KEY ?? '').trim()) {
@@ -61,9 +60,6 @@ export async function verificarConexoes(env, { emailTeste = '' } = {}) {
       if (!conta.resposta.ok) add('Brevo (e-mail)', 'erro', `Chave recusada pela Brevo (HTTP ${conta.resposta.status})`)
       else {
         add('Brevo (e-mail)', 'ok', `Chave válida (conta ${conta.json?.email ?? 'encontrada'})`)
-        const creditos = (conta.json?.plan ?? []).find((plano) => plano.type === 'free')?.credits
-        if (creditos !== undefined) add('Brevo (e-mail)', 'aviso', `Plano grátis: ${creditos} e-mails por dia`)
-
         const remetente = String(env.BREVO_REMETENTE_EMAIL ?? '').toLowerCase()
         const dominio = remetente.split('@')[1]
         const dominios = await consultar('https://api.brevo.com/v3/senders/domains', cabecalho)
@@ -72,10 +68,8 @@ export async function verificarConexoes(env, { emailTeste = '' } = {}) {
         else {
           const senders = await consultar('https://api.brevo.com/v3/senders', cabecalho)
           const unico = (senders.json?.senders ?? []).find((item) => String(item.email).toLowerCase() === remetente)
-          if (unico?.active) {
-            add('Brevo (e-mail)', 'ok', `Remetente ${remetente} verificado`)
-            if (/@(gmail|hotmail|outlook|yahoo)\./.test(remetente)) add('Brevo (e-mail)', 'aviso', 'Remetente de e-mail pessoal: pode cair em spam. Troque por um do domínio quando o DNS estiver autenticado')
-          } else add('Brevo (e-mail)', 'erro', `O remetente ${remetente || '(vazio)'} não está verificado na Brevo e o domínio ${dominio || ''} não está autenticado`)
+          if (unico?.active) add('Brevo (e-mail)', 'ok', `Remetente ${remetente} verificado`)
+          else add('Brevo (e-mail)', 'erro', `O remetente ${remetente || '(vazio)'} não está verificado na Brevo e o domínio ${dominio || ''} não está autenticado`)
         }
       }
     } catch (erro) {
@@ -99,11 +93,6 @@ export async function verificarConexoes(env, { emailTeste = '' } = {}) {
     } catch (erro) {
       add('WhatsApp (Evolution)', 'erro', `Instância "${instancia}" (${rotulo}): ${erro.message}`)
     }
-  }
-
-  // Tekway: o liberar-curso só tem POST (criaria aluno), então só dá para conferir a configuração.
-  if (String(env.TEKWAY_LIBERAR_URL ?? '').trim() && String(env.TEKWAY_TOKEN ?? '').trim()) {
-    add('Plataforma de cursos', 'aviso', 'O liberar-curso não pode ser testado sem criar um aluno: acompanhe a primeira venda real em Acessos')
   }
 
   // Envio de teste (opcional)

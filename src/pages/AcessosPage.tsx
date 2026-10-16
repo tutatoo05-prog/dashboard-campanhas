@@ -216,16 +216,18 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
   const status = STATUS_ALUNO[aluno.status] ?? { texto: aluno.status, classe: 'text-zinc-300' }
   return (
     <tr className="border-b border-zinc-900/80">
-      <td className="max-w-[220px] truncate px-4 py-2.5 text-zinc-200" title={aluno.email}>
-        {aluno.nome || aluno.email}
-        <span className="block truncate text-xs text-zinc-500">{aluno.email}</span>
+      <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={aluno.email ?? ''}>
+        {aluno.nome || aluno.email || '—'}
+        <span className="block truncate text-xs text-zinc-500">{aluno.email || 'e-mail ainda não conhecido'}</span>
       </td>
       <td className="px-4 py-2.5 text-zinc-300">{aluno.curso}</td>
       <td className="px-4 py-2.5 text-zinc-400">
-        {[aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
+        {aluno.origem === 'plataforma'
+          ? `Já na plataforma${aluno.plataformaId ? ` · nº ${aluno.plataformaId}` : ''}`
+          : [aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
       </td>
       <td className="px-4 py-2.5 text-zinc-300">{soData(aluno.liberadoAte)}</td>
-      <td className="px-4 py-2.5 text-center text-zinc-400">{aluno.parcelasPagas}</td>
+      <td className="px-4 py-2.5 text-center text-zinc-400">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
       <td className={`px-4 py-2.5 font-medium ${status.classe}`}>
         {status.texto}
         {aluno.status === 'atrasado' && aluno.bloquearEm && <span className="block text-xs font-normal text-zinc-500">bloqueia {soData(aluno.bloquearEm)}</span>}
@@ -249,12 +251,18 @@ export default function AcessosPage() {
   const [aba, setAba] = useState<Aba>('eventos')
   const [estado, setEstado] = useState('todos')
   const [busca, setBusca] = useState('')
+  const [buscaAluno, setBuscaAluno] = useState('')
 
   const resumo = useQuery({ queryKey: ['acessos', 'resumo'], queryFn: fetchAcessoResumo, retry: false, refetchInterval: 30_000 })
   const eventos = useQuery({ queryKey: ['acessos', 'eventos', estado, busca], queryFn: () => fetchAcessoEventos(estado, busca), retry: false, refetchInterval: 30_000, enabled: aba === 'eventos' })
   const alunos = useQuery({ queryKey: ['acessos', 'alunos'], queryFn: fetchAcessoAlunos, retry: false, refetchInterval: 60_000, enabled: aba === 'alunos' })
 
   const dados = resumo.data
+  const alunosFiltrados = (alunos.data ?? []).filter((aluno) => {
+    const termo = buscaAluno.trim().toLowerCase()
+    if (!termo) return true
+    return [aluno.nome, aluno.email, aluno.curso, aluno.telefone].filter(Boolean).some((valor) => String(valor).toLowerCase().includes(termo))
+  })
   const porEstado = dados?.porEstado ?? {}
   const problemas = (porEstado.falhou ?? 0) + (porEstado.atencao ?? 0)
   const erro = resumo.error as Error | undefined
@@ -329,6 +337,18 @@ export default function AcessosPage() {
               </button>
             ))}
           </div>
+          {aba === 'alunos' && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-zinc-500">{alunosFiltrados.length} aluno(s)</span>
+              <input
+                type="text"
+                value={buscaAluno}
+                onChange={(evento) => setBuscaAluno(evento.target.value)}
+                placeholder="Buscar nome, e-mail ou curso..."
+                className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+              />
+            </div>
+          )}
           {aba === 'eventos' && (
             <div className="flex flex-wrap items-center gap-2">
               <select value={estado} onChange={(evento) => setEstado(evento.target.value)} className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200">
@@ -381,14 +401,14 @@ export default function AcessosPage() {
                 </tr>
               </thead>
               <tbody>
-                {(alunos.data ?? []).map((aluno) => (
+                {alunosFiltrados.map((aluno) => (
                   <AlunoLinha key={aluno.id} aluno={aluno} />
                 ))}
               </tbody>
             </table>
           )}
           {aba === 'eventos' && eventos.isSuccess && !eventos.data.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum evento por aqui ainda.</p>}
-          {aba === 'alunos' && alunos.isSuccess && !alunos.data.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum aluno registrado ainda — os acessos aparecem conforme as compras forem processadas pelo dash.</p>}
+          {aba === 'alunos' && alunos.isSuccess && !alunos.data.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum aluno registrado ainda.</p>}
           {(eventos.isError && aba === 'eventos') && <p className="p-6 text-center text-sm text-red-300">{(eventos.error as Error).message}</p>}
           {(alunos.isError && aba === 'alunos') && <p className="p-6 text-center text-sm text-red-300">{(alunos.error as Error).message}</p>}
         </div>

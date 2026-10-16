@@ -334,3 +334,14 @@ create table if not exists abandonos (
   atualizado_em timestamptz not null default now(),
   unique (email, tipo)
 );
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Alunos que já estavam na plataforma de cursos (lista exportada de lá, só os ativos).
+-- plataforma_id = número do aluno na lista da plataforma; origem = 'plataforma' (importado) ou 'dash'.
+-- Quem não tem e-mail conhecido fica com email nulo (o e-mail entra quando comprar de novo).
+-- server/scripts/importarAlunosAtivos.js
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table acessos alter column email drop not null;
+alter table acessos add column if not exists plataforma_id text;
+alter table acessos add column if not exists origem text not null default 'dash';
+create unique index if not exists acessos_plataforma_id_idx on acessos (plataforma_id);
