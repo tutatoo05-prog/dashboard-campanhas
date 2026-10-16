@@ -137,3 +137,5 @@ A tela Acessos lista o que ainda falta configurar.
 ## Cargos (tela `/usuarios`)
 
 Coluna `users.cargo`: **admin** tem acesso a tudo, inclusive alterações (metas, Live, cargos de outros usuários); **usuario** usa todas as telas e pode gerar relatório, mas não altera nada. A regra fica no `server/middleware.js`: qualquer requisição que não seja GET (exceto `/api/report`) e toda a rota `/api/users` exigem admin, e respondem 403 para os demais. O cargo é lido a cada requisição, então a mudança vale na hora, sem novo login. Cadastro novo entra como `usuario`. O sistema não deixa remover o último admin ativo.
+
+**Conferir as chaves antes de ligar (não toca em aluno nenhum):** Plesk → Node.js → Run script → `acesso:verificar`. Mostra o que falta, se a chave da Brevo e o remetente estão válidos e se as instâncias do WhatsApp estão conectadas. Com `--enviar seu@email.com` (na linha de comando) também manda 1 e-mail e 1 WhatsApp de teste.

@@ -13,6 +13,7 @@
     "start": "node server/production.js",
     "start:prod": "npm run build && node server/production.js",
     "live:check": "node server/scripts/liveCheck.js",
+    "acesso:verificar": "node server/scripts/verificarAcesso.js",
     "test:acesso": "node --test server/acesso/acesso.test.js"
   },
   "devDependencies": {
