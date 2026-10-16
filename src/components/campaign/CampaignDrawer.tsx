@@ -110,7 +110,7 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
       <aside className="drawer-panel">
         <header className="drawer-head">
           <div className="min-w-0">
-            <p className="section-label">{item.status === 'Ativa' ? 'Campanha ativa' : 'Campanha pausada'}</p>
+            <p className="section-label">{item.status === 'Ativa' ? 'Campanha ativa' : item.status === 'Concluída' ? 'Campanha concluída' : 'Campanha pausada'}</p>
             <h3 className="drawer-title" title={item.name}>
               {item.name}
             </h3>

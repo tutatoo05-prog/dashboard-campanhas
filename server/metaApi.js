@@ -158,7 +158,7 @@ export async function getAdAccounts(token, { allowedIds } = {}) {
 export async function getCampaignMetaMap(token, accountId) {
   const campaigns = await fetchAllPages(
     `/${accountId}/campaigns`,
-    { fields: 'id,name,status,effective_status,objective', limit: '500' },
+    { fields: 'id,name,status,effective_status,objective,stop_time', limit: '500' },
     token,
   )
 
@@ -168,6 +168,7 @@ export async function getCampaignMetaMap(token, accountId) {
       {
         status: campaign.effective_status ?? campaign.status,
         objective: campaign.objective,
+        stopTime: campaign.stop_time ?? null,
         name: campaign.name,
       },
     ]),
@@ -223,7 +224,7 @@ function normalizeInsightRow(row, campaignMeta) {
     campaignId: row.campaign_id ? String(row.campaign_id) : null,
     adsetId: row.adset_id ? String(row.adset_id) : null,
     name,
-    status: mapStatus(meta.status),
+    status: mapStatus(meta.status, meta.stopTime),
     objective: mapObjective(meta.objective),
     spend,
     impressions,
@@ -285,20 +286,31 @@ function extractConversions(actions) {
   return 0
 }
 
-function mapStatus(status) {
+/** Campanha com data final já vencida (ex.: a live de ontem) não está mais rodando, mesmo que a Meta ainda a chame de ativa. */
+export function hasEnded(stopTime) {
+  if (!stopTime) return false
+  const when = new Date(stopTime)
+  return Number.isFinite(when.getTime()) && when.getFullYear() >= 2000 && when.getTime() < Date.now()
+}
+
+export function mapStatus(status, stopTime) {
+  if (status === 'ACTIVE' && hasEnded(stopTime)) return 'Concluída'
   if (status === 'ACTIVE') return 'Ativa'
   if (status === 'PAUSED') return 'Pausada'
   if (!status) return 'Ativa'
   return status
 }
 
-function mapObjective(objective) {
+export function mapObjective(objective) {
   if (!objective) return 'traffic'
 
   const value = objective.toUpperCase()
 
   if (value.includes('LEAD')) return 'leads'
-  if (value.includes('TRAFFIC') || value.includes('AWARENESS')) return 'traffic'
+  // Visualização de live/vídeo, curtidas, alcance: o resultado NÃO é lead, então não se cobra lead dela.
+  if (value.includes('ENGAGEMENT') || value.includes('VIDEO') || value.includes('POST')) return 'engagement'
+  if (value.includes('AWARENESS') || value.includes('REACH') || value.includes('BRAND')) return 'awareness'
+  if (value.includes('TRAFFIC')) return 'traffic'
   if (
     value.includes('SALES') ||
     value.includes('CONVERSION') ||

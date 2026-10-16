@@ -1,4 +1,5 @@
 import { EVIDENCE } from '@/lib/stats.js'
+import { NON_LEAD_OBJECTIVES } from '@/lib/analysis.js'
 import { formatCurrency, formatDecimal, formatNumber } from '@/lib/format.ts'
 import type { CampaignItem, EnrichedCampaignItem } from '@/types'
 import {
@@ -224,7 +225,8 @@ function campaignAction(item: EnrichedCampaignItem, averageCpl: number, stepCtx:
 /** Gera as ações da conta, já ordenadas por prioridade e dinheiro em jogo. */
 export function buildActions(enriched: EnrichedCampaignItem[], options: BuildOptions): ActionItem[] {
   const { totals, previousTotals, ads = [], goal, periodDays: days = 7, accountId } = options
-  const active = enriched.filter((item) => item.status === 'Ativa')
+  // Só campanhas de leads entram nas ações de leads (engajamento/alcance não geram lead).
+  const active = enriched.filter((item) => item.status === 'Ativa' && !NON_LEAD_OBJECTIVES.includes(item.objective))
   const actions: ActionItem[] = []
   const ctx: ActionContext = { averageCpl: totals.cpl, totalSpend: totals.spend, weekly: 7 / Math.max(1, days) }
   // Contexto dos passo a passo: conta, dias do período e as campanhas mais barata/cara para citar pelo nome.

@@ -56,7 +56,15 @@ export const ANALYSIS_TAGS = {
     label: 'Anúncio cansado',
     tone: 'warning',
   },
+  engagement: {
+    emoji: '🎥',
+    label: 'Engajamento',
+    tone: 'success',
+  },
 }
+
+/** Objetivos em que o resultado não é lead (visualização de live/vídeo, alcance). */
+export const NON_LEAD_OBJECTIVES = ['engagement', 'awareness']
 
 export const TONE_CLASSES = {
   success: 'border-amber-500/25 bg-amber-500/8 text-amber-200',
@@ -131,6 +139,21 @@ export function analyzeCampaign(item, averages, allItems = [], trend = null) {
     trend && typeof trend === 'object' && 'available' in trend
       ? trend
       : buildCampaignTrend(Array.isArray(trend) ? trend : [])
+
+  // Campanha de visualização/engajamento (ex.: a live no Instagram): o resultado é ThruPlay, não lead.
+  // Cobrar lead dela geraria alerta falso de "gastando sem leads".
+  if (NON_LEAD_OBJECTIVES.includes(item.objective)) {
+    const tag = ANALYSIS_TAGS.engagement
+    return {
+      tags: [tag],
+      primary: tag,
+      score: 60,
+      notes: ['Campanha de engajamento (visualização ou alcance): o resultado dela não é lead, por isso não entra nas contas de custo por lead.'],
+      trend: resolvedTrend,
+      verdict: 'monitor',
+      evidence: { volume: {}, significance: {}, tests: {} },
+    }
+  }
 
   const clicks = Number(item.clicks) || 0
   const leads = Number(item.leads) || 0

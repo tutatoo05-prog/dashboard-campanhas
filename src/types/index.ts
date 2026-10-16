@@ -31,7 +31,7 @@ export interface AdAccount {
   [key: string]: unknown
 }
 
-export type CampaignStatus = 'Ativa' | 'Pausada'
+export type CampaignStatus = 'Ativa' | 'Pausada' | 'Concluída'
 
 export interface CampaignItem {
   id: string

@@ -21,6 +21,9 @@ const DEFAULTS = {
   budget_used: { pct: 90 },
 }
 
+/** Campanhas cujo resultado não é lead (visualização de live, alcance...): ficam fora das regras de lead. */
+export const OBJETIVOS_SEM_LEAD = new Set(['engagement', 'awareness'])
+
 export function brl(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0)
 }
@@ -63,12 +66,13 @@ export function evaluateRules(rules, ctx) {
   const { campaigns = [], dailyByCampaign = {}, monthSpend = null, spendTarget = null, today } = ctx
   const out = []
 
-  const totals = campaigns.reduce(
+  const leadCampaigns = campaigns.filter((item) => !OBJETIVOS_SEM_LEAD.has(item.objective))
+  const totals = leadCampaigns.reduce(
     (acc, item) => ({ spend: acc.spend + (item.spend || 0), leads: acc.leads + (item.leads || 0) }),
     { spend: 0, leads: 0 },
   )
   const averageCpl = totals.leads > 0 ? totals.spend / totals.leads : 0
-  const active = campaigns.filter((item) => item.status === 'Ativa')
+  const active = leadCampaigns.filter((item) => item.status === 'Ativa')
 
   for (const rule of rules) {
     const p = rule.params ?? {}
