@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPurchases } from '@/services/purchaseService.ts'
+import { fetchLeads } from '@/services/leadService.ts'
+import { PurchaseModal } from '@/components/purchases/PurchaseModal.tsx'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Purchase } from '@/types'
@@ -97,10 +99,19 @@ export default function PurchasesPage() {
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null)
   const [courseFilter, setCourseFilter] = useState<string | null>(null)
   const listRef = useRef<HTMLElement>(null)
+  const [selected, setSelected] = useState<Purchase | null>(null)
 
   const purchasesQuery = useQuery({
     queryKey: ['purchases'],
     queryFn: fetchPurchases,
+    retry: false,
+  })
+
+  // Os cadastros do site só são buscados quando alguém abre uma venda (o modal mostra de onde a pessoa veio).
+  const leadsQuery = useQuery({
+    queryKey: ['leads'],
+    queryFn: fetchLeads,
+    enabled: Boolean(selected),
     retry: false,
   })
 
@@ -360,11 +371,22 @@ export default function PurchasesPage() {
                 <tbody>
                   {filtered.map((purchase, index) => (
                     <tr
-                      key={`${purchase.email}-${index}`}
-                      className="border-b border-zinc-900/80 last:border-0"
+                      key={purchase.id || `${purchase.email}-${index}`}
+                      onClick={() => setSelected(purchase)}
+                      className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                     >
                       <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={purchase.nome}>
-                        {purchase.nome || '—'}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setSelected(purchase)
+                          }}
+                          className="max-w-full cursor-pointer truncate text-left font-medium hover:underline"
+                          title="Ver os dados da venda"
+                        >
+                          {purchase.nome || '—'}
+                        </button>
                       </td>
                       <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-400" title={purchase.email}>
                         {purchase.email || purchase.telefone || '—'}
@@ -403,6 +425,17 @@ export default function PurchasesPage() {
               </table>
             </div>
           </section>
+
+          {selected && (
+            <PurchaseModal
+              purchase={selected}
+              purchases={purchases}
+              leads={leadsQuery.data}
+              leadsError={leadsQuery.isError}
+              onClose={() => setSelected(null)}
+              onSelect={setSelected}
+            />
+          )}
         </>
       )}
     </div>

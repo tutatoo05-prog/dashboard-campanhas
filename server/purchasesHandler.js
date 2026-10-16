@@ -8,6 +8,7 @@ function sendJson(res, status, payload) {
 
 function toPurchase(row) {
   return {
+    id: row.id,
     nome: row.nome,
     email: row.email,
     telefone: row.telefone,
@@ -18,6 +19,8 @@ function toPurchase(row) {
     valor: row.valor != null ? Number(row.valor) : null,
     status: row.status,
     canceledAt: row.canceled_at,
+    subscriberCode: row.subscriber_code,
+    createdAt: row.created_at,
   }
 }
 
@@ -35,7 +38,7 @@ export async function handlePurchasesRequest(req, res, env) {
   try {
     const result = await query(
       env,
-      'select nome, email, telefone, curso, campanha, liberacao, data, valor, status, canceled_at from purchases order by created_at desc',
+      'select id, nome, email, telefone, curso, campanha, liberacao, data, valor, status, canceled_at, subscriber_code, created_at from purchases order by created_at desc',
     )
     const purchases = result.rows.map(toPurchase)
 

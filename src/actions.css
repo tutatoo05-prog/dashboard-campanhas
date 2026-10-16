@@ -286,6 +286,44 @@
 }
 .btn-danger:disabled, .dialog .btn-gold:disabled { opacity: 0.6; cursor: wait; }
 
+/* ── Modal de venda (tela Compras) ── */
+.dialog.sale-dialog { width: min(42rem, 100%); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.sale-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sale-head-side { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+.sale-sub { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+.sale-close {
+  display: grid; place-items: center; width: 2rem; height: 2rem; cursor: pointer;
+  border: 2px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink);
+}
+.sale-close:hover { background: var(--gold-dim); }
+.sale-section { margin-top: 1.1rem; }
+.sale-section-title { margin: 0 0 0.5rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.sale-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+@media (max-width: 520px) { .sale-grid { grid-template-columns: minmax(0, 1fr); } }
+.sale-field { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; padding: 0.5rem 0.7rem; border: 2px solid var(--line); border-radius: 8px; background: var(--white); }
+.sale-field-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.sale-field-value { font-size: 0.86rem; font-weight: 700; overflow-wrap: anywhere; }
+.sale-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; }
+.sale-chip-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.55rem; cursor: pointer;
+  border: 2px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+  font-size: 0.7rem; font-weight: 800; text-decoration: none;
+}
+.sale-chip-btn:hover { background: var(--gold-dim); }
+.sale-note { margin: 0 0 0.5rem; font-size: 0.8rem; font-weight: 600; line-height: 1.45; color: var(--muted); }
+.sale-list { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.sale-list li, .sale-list-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;
+  padding: 0.45rem 0.7rem; border: 2px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); text-align: left;
+}
+.sale-list li:has(.sale-list-btn) { padding: 0; border: 0; background: none; }
+.sale-list-btn { cursor: pointer; }
+.sale-list-btn:hover { background: var(--gold-dim); }
+.sale-list-main, .sale-list-side { display: flex; flex-direction: column; min-width: 0; font-size: 0.82rem; font-weight: 700; }
+.sale-list-side { align-items: flex-end; text-align: right; }
+.sale-list-btn .sale-list-side { flex-direction: row; align-items: center; gap: 0.6rem; }
+.sale-list small { font-size: 0.7rem; font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
+
 /* ── Resultado depois da ação ── */
 .result-card {
   display: flex;

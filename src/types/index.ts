@@ -176,6 +176,10 @@ export interface Purchase {
   valor?: number | null
   status?: string
   canceledAt?: string | null
+  /** Código do assinante na Hotmart (agrupa as parcelas de uma assinatura). */
+  subscriberCode?: string | null
+  /** Momento em que a venda entrou no sistema (ISO). */
+  createdAt?: string
   [key: string]: unknown
 }
 
