@@ -33,9 +33,16 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: false,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks: undefined,
+          // Bibliotecas em pacotes próprios: o navegador guarda cada um em cache e só rebaixa o que mudou.
+          codeSplitting: {
+            groups: [
+              { name: 'vendor-charts', test: /node_modules[\/](recharts|d3-[^\/]+|victory-vendor|internmap|decimal.js-light|immer|reselect|redux|@reduxjs)[\/]/, priority: 30 },
+              { name: 'vendor-query', test: /node_modules[\/]@tanstack[\/]/, priority: 20 },
+              { name: 'vendor-react', test: /node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler|zustand)[\/]/, priority: 10 },
+            ],
+          },
         },
       },
     },

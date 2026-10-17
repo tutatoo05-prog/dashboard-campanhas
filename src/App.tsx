@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { fetchSession } from '@/services/authService.ts'
@@ -7,17 +7,19 @@ import LoginPage from '@/pages/LoginPage.tsx'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.tsx'
 import ResetPasswordPage from '@/pages/ResetPasswordPage.tsx'
 import AppShell from '@/components/layout/AppShell.tsx'
-import DashboardPage from '@/pages/DashboardPage.tsx'
-import ActionsPage from '@/pages/ActionsPage.tsx'
-import ComparePage from '@/pages/ComparePage.tsx'
-import PurchasesPage from '@/pages/PurchasesPage.tsx'
-import AcessosPage from '@/pages/AcessosPage.tsx'
-import LeadsPage from '@/pages/LeadsPage.tsx'
-import RegistrosPage from '@/pages/RegistrosPage.tsx'
-import LivePage from '@/pages/LivePage.tsx'
-import UsersPage from '@/pages/UsersPage.tsx'
 import { isAdmin } from '@/lib/roles.ts'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
+
+// Cada tela é baixada só quando é aberta (Login e recuperação de senha ficam no pacote inicial).
+const DashboardPage = lazy(() => import('@/pages/DashboardPage.tsx'))
+const ActionsPage = lazy(() => import('@/pages/ActionsPage.tsx'))
+const ComparePage = lazy(() => import('@/pages/ComparePage.tsx'))
+const PurchasesPage = lazy(() => import('@/pages/PurchasesPage.tsx'))
+const AcessosPage = lazy(() => import('@/pages/AcessosPage.tsx'))
+const LeadsPage = lazy(() => import('@/pages/LeadsPage.tsx'))
+const RegistrosPage = lazy(() => import('@/pages/RegistrosPage.tsx'))
+const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
+const UsersPage = lazy(() => import('@/pages/UsersPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,6 +133,7 @@ function AppRoutes() {
   }
 
   return (
+    <Suspense fallback={<AppLoading />}>
     <Routes>
       <Route
         path="/login"
@@ -190,6 +193,7 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 
