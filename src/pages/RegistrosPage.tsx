@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchRegistros } from '@/services/registrosService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
 import { RegistrosGroupModal, type RegistroGroupKind } from '@/components/registros/RegistrosGroupModal.tsx'
 import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
+import { RegistrosMapa } from '@/components/registros/RegistrosMapa.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import { agruparRegistros, apareceTexto, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
@@ -58,6 +59,10 @@ function formatDate(value: string): string {
     minute: '2-digit',
     timeZone: 'America/Sao_Paulo',
   })
+}
+
+function rolarPara(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function BarList({
@@ -194,6 +199,16 @@ export default function RegistrosPage() {
     }
   }
 
+  // Ao filtrar, leva a pessoa até o resultado; ao limpar, devolve ela para o quadro de abas.
+  const abaAnterior = useRef('')
+  useEffect(() => {
+    const anterior = abaAnterior.current
+    abaAnterior.current = selectedTab
+    if (selectedTab === anterior) return undefined
+    const espera = window.setTimeout(() => rolarPara(selectedTab ? 'registros-filtrados' : 'registros-por-lugar'), 80)
+    return () => window.clearTimeout(espera)
+  }, [selectedTab])
+
   const error = registrosQuery.error as Error | null
   const isLoading = registrosQuery.isLoading
 
@@ -277,113 +292,30 @@ export default function RegistrosPage() {
             </section>
           )}
 
-          <section className="surface-card p-4">
-            <p className="section-label">Por planilha e aba</p>
-            <h3 className="section-title mt-1 mb-1">Quantos registros em cada lugar</h3>
-            <p className="mb-4 text-xs text-zinc-600">Clique numa aba para filtrar tudo abaixo. Clique de novo para desfazer.</p>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {sheets.map(([sheetName, sheetTabs]) => {
-                const sheetTotal = sheetTabs.reduce((sum, tab) => sum + (tab.count ?? 0), 0)
-                return (
-                  <div key={sheetName} className="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-3">
-                    <div className="mb-2 flex items-baseline justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-zinc-100">{sheetName}</p>
-                      <p className="shrink-0 text-xs text-zinc-500">
-                        <span className="text-base font-semibold text-amber-200">{formatNumber(sheetTotal)}</span>{' '}
-                        registros
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
-                      {sheetTabs.map((tab) => {
-                        const key = tabKey(tab)
-                        const active = selectedTab === key
-                        const max = Math.max(...sheetTabs.map((item) => item.count ?? 0), 1)
-                        return (
-                          <div key={key} className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => selectTab(key)}
-                              className={`relative flex min-w-0 flex-1 items-center justify-between gap-3 overflow-hidden rounded-lg border px-3 py-2 text-left text-sm transition ${
-                                active
-                                  ? 'border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/40'
-                                  : `border-zinc-800/60 bg-zinc-950/40 hover:border-zinc-700 ${selectedTab ? 'opacity-55 hover:opacity-100' : ''}`
-                              }`}
-                            >
-                              <span
-                                className="absolute inset-y-0 left-0 bg-amber-500/10"
-                                style={{ width: `${((tab.count ?? 0) / max) * 100}%` }}
-                              />
-                              <span className="relative flex min-w-0 items-center gap-2">
-                                {active && <i className="fa-solid fa-circle-check filtro-selo shrink-0 text-amber-500" />}
-                                <span className={`truncate ${active ? 'font-semibold text-zinc-50' : 'text-zinc-200'}`}>{tab.aba}</span>
-                                {tab.tipo === 'evento' && (
-                                  <span className="shrink-0 rounded-full border border-sky-500/25 px-1.5 text-[10px] text-sky-300">
-                                    hotmart
-                                  </span>
-                                )}
-                                {tab.tipo === 'comprador' && (
-                                  <span className="shrink-0 rounded-full border border-emerald-500/25 px-1.5 text-[10px] text-emerald-300">
-                                    compradores
-                                  </span>
-                                )}
-                              </span>
-                              <span className="relative shrink-0 text-zinc-300">
-                                {tab.count === null ? 'erro' : formatNumber(tab.count)}
-                              </span>
-                            </button>
-                            <a
-                              href={tab.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Abrir a aba no Google Sheets"
-                              className="shrink-0 rounded-lg border border-zinc-800/60 px-2 py-2 text-[11px] text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                            >
-                              <i className="fa-solid fa-arrow-up-right-from-square" />
-                            </a>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+          <section id="registros-por-lugar" className="surface-card scroll-mt-24 p-4">
+            <RegistrosMapa sheets={sheets} selectedTab={selectedTab} tabKey={tabKey} onSelect={selectTab} totalRecords={totalRecords} />
           </section>
 
           {selectedInfo && (
-            <div
-              key={selectedTab}
-              role="status"
-              className="filtro-barra flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-500/60 bg-amber-100/95 px-4 py-2.5 text-sm shadow-lg backdrop-blur"
-            >
-              <i className="fa-solid fa-filter text-amber-600" />
-              <span className="text-zinc-700">Filtrando tudo abaixo por</span>
-              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-zinc-950">
+            <div key={selectedTab} role="status" className="filtro-barra">
+              <i className="fa-solid fa-filter" />
+              <span>Filtrando tudo abaixo por</span>
+              <span className="filtro-barra-pilula">
                 {selectedInfo.planilha} · {selectedInfo.aba}
               </span>
-              <span className="text-zinc-600">{formatNumber(scoped.length)} registros</span>
-              <span className="ml-auto flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('lista-registros')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className="rounded-lg border border-amber-600/40 px-3 py-1 text-xs font-medium text-zinc-800 hover:bg-amber-200"
-                >
-                  <i className="fa-solid fa-arrow-down mr-1.5" />
-                  Ver a lista
+              <span>{formatNumber(scoped.length)} registros</span>
+              <span className="filtro-barra-acoes">
+                <button type="button" onClick={() => rolarPara('lista-registros')} className="filtro-btn">
+                  <i className="fa-solid fa-arrow-down" /> Ver a lista
                 </button>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="rounded-lg bg-zinc-900 px-3 py-1 text-xs font-medium text-amber-100 hover:bg-zinc-700"
-                >
-                  <i className="fa-solid fa-xmark mr-1.5" />
-                  Limpar filtro
+                <button type="button" onClick={clearFilters} className="filtro-btn filtro-btn-escuro">
+                  <i className="fa-solid fa-xmark" /> Limpar filtro
                 </button>
               </span>
             </div>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div id="registros-filtrados" className="grid scroll-mt-36 gap-4 lg:grid-cols-2">
             <section key={`origem-${selectedTab}`} className={`surface-card p-4 ${selectedTab ? 'filtro-flash' : ''}`}>
               <p className="section-label">Origem do lead</p>
               <h3 className="section-title mt-1 mb-1">De onde vieram {selectedInfo && (
