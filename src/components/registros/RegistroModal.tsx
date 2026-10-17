@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Purchase } from '@/types'
-import type { RegistroAgrupado } from '@/lib/mergeRegistros.ts'
+import { STATUS_ROTULO, type CategoriaEvento, type Passagem, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency } from '@/lib/format.ts'
 import { whatsappLink } from '@/lib/buyerLeads.ts'
 
@@ -31,6 +31,51 @@ function formatMoment(iso?: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const ICONE_PASSAGEM: Record<CategoriaEvento | 'lead', { icone: string; classe: string }> = {
+  lead: { icone: 'fa-user-plus', classe: 'tl-lead' },
+  venda: { icone: 'fa-circle-check', classe: 'tl-venda' },
+  pix_boleto: { icone: 'fa-barcode', classe: 'tl-pix' },
+  abandono: { icone: 'fa-cart-shopping', classe: 'tl-abandono' },
+  cancelamento: { icone: 'fa-ban', classe: 'tl-cancela' },
+  reembolso: { icone: 'fa-rotate-left', classe: 'tl-cancela' },
+}
+
+function detalhesDaPassagem(passagem: Passagem): string {
+  const partes = [
+    passagem.produto,
+    typeof passagem.valor === 'number' ? formatCurrency(passagem.valor) : '',
+    passagem.pagamento,
+    passagem.situacao ? `situação: ${passagem.situacao}` : '',
+  ]
+  if (!passagem.categoria) partes.push(passagem.campanha || '', passagem.canal || '')
+  return [...new Set(partes.filter(Boolean))].join(' · ')
+}
+
+function LinhaDoTempo({ passagens }: { passagens: Passagem[] }) {
+  return (
+    <ol className="tl">
+      {passagens.map((passagem, indice) => {
+        const estilo = ICONE_PASSAGEM[passagem.categoria ?? 'lead']
+        const detalhe = detalhesDaPassagem(passagem)
+        return (
+          <li key={`${passagem.planilha}-${passagem.aba}-${passagem.data}-${indice}`} className={`tl-item ${estilo.classe}`} style={{ animationDelay: `${Math.min(indice, 12) * 40}ms` }}>
+            <span className="tl-ponto" aria-hidden="true">
+              <i className={`fa-solid ${estilo.icone}`} />
+            </span>
+            <div className="tl-corpo">
+              <p className="tl-titulo">
+                {passagem.categoria ? passagem.evento || passagem.aba : `Entrou em ${passagem.aba}`}
+                <small>{formatMoment(passagem.data)}</small>
+              </p>
+              <p className="tl-sub">{passagem.planilha}{detalhe ? ` · ${detalhe}` : ''}</p>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -67,7 +112,6 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar' }: RegistroModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const whatsapp = whatsappLink(record.telefone)
-  const isEvent = record.tipo === 'evento'
 
   const email = record.email.trim().toLowerCase()
   const phone = digitsKey(record.telefone)
@@ -106,26 +150,18 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
       <div className="dialog sale-dialog" role="dialog" aria-modal="true" aria-labelledby="registro-title">
         <div className="sale-head">
           <div className="min-w-0">
-            <p className="section-label">{isEvent ? record.evento || 'Evento da Hotmart' : 'Registro'}</p>
+            <p className="section-label">Pessoa · {record.historico.length} {record.historico.length === 1 ? 'passagem' : 'passagens'}</p>
             <h3 id="registro-title" className="dialog-title">
               {record.nome || 'Sem nome'}
             </h3>
             <p className="sale-sub">
-              {record.aba} · {record.planilha}
+              {record.aparece.length} {record.aparece.length === 1 ? 'aba' : 'abas'} · {STATUS_ROTULO[record.status]}
             </p>
           </div>
           <div className="sale-head-side">
-            {purchases && (
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-                  bought.length
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                    : 'border-zinc-700 text-zinc-400'
-                }`}
-              >
-                {bought.length ? 'Já comprou' : 'Ainda não comprou'}
-              </span>
-            )}
+            <span className={`tl-status tl-status-${record.status === 'comprou' || bought.length ? 'comprou' : record.status}`}>
+              {record.status === 'comprou' || bought.length ? 'Já comprou' : record.status === 'lead' ? 'Ainda não comprou' : STATUS_ROTULO[record.status]}
+            </span>
             <button ref={closeRef} type="button" className="sale-close" onClick={onClose} aria-label="Fechar">
               <i className="fa-solid fa-xmark" aria-hidden="true" />
             </button>
@@ -164,44 +200,26 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
           </div>
         </section>
 
-        {record.aparece.length > 1 && (
-          <section className="sale-section">
-            <p className="sale-section-title">Aparece em {record.aparece.length} planilhas</p>
-            <ul className="sale-list">
-              {record.aparece.map((item) => (
-                <li key={`${item.planilha}-${item.aba}`}>
-                  <span className="sale-list-main">
-                    {item.aba}
-                    <small>{item.planilha}</small>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         <section className="sale-section">
           <p className="sale-section-title">De onde veio</p>
           <div className="sale-grid">
             <Field label="Origem">{record.canal || '—'}</Field>
             <Field label="Campanha">{record.campanha || 'Sem campanha'}</Field>
             <Field label="Criativo">{record.criativo || '—'}</Field>
-            <Field label="Data">{formatMoment(record.data)}</Field>
+            <Field label="Primeiro contato">{formatMoment(record.primeiraEm)}</Field>
           </div>
         </section>
 
-        {isEvent && (
-          <section className="sale-section">
-            <p className="sale-section-title">O evento</p>
-            <div className="sale-grid">
-              <Field label="Evento">{record.evento || '—'}</Field>
-              <Field label="Situação">{record.situacao || '—'}</Field>
-              <Field label="Produto">{record.produto || '—'}</Field>
-              <Field label="Valor">{typeof record.valor === 'number' ? formatCurrency(record.valor) : '—'}</Field>
-              <Field label="Pagamento">{record.pagamento || '—'}</Field>
-            </div>
-          </section>
-        )}
+        <section className="sale-section">
+          <p className="sale-section-title">Linha do tempo · tudo o que as planilhas têm desta pessoa</p>
+          <div className="tl-resumo">
+            <span><b>{record.historico.length}</b> {record.historico.length === 1 ? 'passagem' : 'passagens'}</span>
+            <span><b>{record.aparece.length}</b> {record.aparece.length === 1 ? 'aba' : 'abas'}</span>
+            <span>1º contato <b>{formatMoment(record.primeiraEm)}</b></span>
+            <span>último <b>{formatMoment(record.ultimaEm)}</b></span>
+          </div>
+          <LinhaDoTempo passagens={record.historico} />
+        </section>
 
         <section className="sale-section">
           <p className="sale-section-title">Compras desta pessoa</p>

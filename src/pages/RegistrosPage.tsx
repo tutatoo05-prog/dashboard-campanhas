@@ -8,11 +8,10 @@ import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
 import { RegistrosMapa } from '@/components/registros/RegistrosMapa.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
-import { agruparRegistros, apareceTexto, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
-import type { Registro, RegistroTab } from '@/types'
+import { agruparRegistros, apareceTexto, campanhaDe, STATUS_ROTULO, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
+import type { RegistroTab } from '@/types'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
-const NO_CAMPAIGN = 'Sem campanha'
 const PAGE_SIZE = 200
 
 interface CountRow {
@@ -24,19 +23,7 @@ function tabKey(item: { planilha: string; aba: string }): string {
   return `${item.planilha}||${item.aba}`
 }
 
-function contactKey(record: Registro): string {
-  return record.email || record.telefone.replace(/\D/g, '') || record.nome.toLowerCase()
-}
-
-function uniqueContacts(records: Registro[]): number {
-  return new Set(records.map(contactKey).filter(Boolean)).size
-}
-
-function campaignOf(record: Registro): string {
-  return record.campanha || NO_CAMPAIGN
-}
-
-function countBy(records: Registro[], pick: (record: Registro) => string): CountRow[] {
+function countBy(records: RegistroAgrupado[], pick: (record: RegistroAgrupado) => string): CountRow[] {
   const map = new Map<string, number>()
   for (const record of records) {
     const label = pick(record)
@@ -140,16 +127,18 @@ export default function RegistrosPage() {
     return [...map.entries()]
   }, [tabs])
 
-  const scoped = useMemo(
-    () => (selectedTab ? records.filter((record) => tabKey(record) === selectedTab) : records),
-    [records, selectedTab],
+  // Uma linha por PESSOA: quem está em várias abas/planilhas (lead, Pix gerado, venda...) vira um registro só, com linha do tempo.
+  const people = useMemo(() => agruparRegistros(records), [records])
+
+  // Com uma aba escolhida, ficam as pessoas que aparecem nela (cada uma com a história completa).
+  const grouped = useMemo(
+    () => (selectedTab ? people.filter((person) => person.historico.some((passagem) => tabKey(passagem) === selectedTab)) : people),
+    [people, selectedTab],
   )
+  const scoped = grouped
 
-  const byCanal = useMemo(() => countBy(scoped, (record) => record.canal), [scoped])
-  const byCampanha = useMemo(() => countBy(scoped, campaignOf), [scoped])
-
-  // Quem aparece em mais de uma planilha, na mesma campanha, vira um registro só (com a contagem de planilhas).
-  const grouped = useMemo(() => agruparRegistros(scoped), [scoped])
+  const byCanal = useMemo(() => countBy(grouped, (person) => person.canal || 'Sem rastreamento'), [grouped])
+  const byCampanha = useMemo(() => countBy(grouped, campanhaDe), [grouped])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -165,16 +154,16 @@ export default function RegistrosPage() {
   }, [grouped, search])
 
   const totalRecords = records.length
-  const totalUnique = useMemo(() => uniqueContacts(records), [records])
+  const rowsInScope = useMemo(() => grouped.reduce((soma, person) => soma + person.historico.length, 0), [grouped])
+  const totalUnique = people.length
   const failedTabs = tabs.filter((tab) => tab.error)
   const selectedInfo = tabs.find((tab) => tabKey(tab) === selectedTab)
   const filtersActive = Boolean(selectedTab || search)
 
-  const groupRecords = useMemo(() => {
+  const groupMerged = useMemo(() => {
     if (!group) return []
-    return scoped.filter((record) => (group.kind === 'origem' ? record.canal === group.label : campaignOf(record) === group.label))
-  }, [group, scoped])
-  const groupMerged = useMemo(() => agruparRegistros(groupRecords), [groupRecords])
+    return grouped.filter((person) => (group.kind === 'origem' ? (person.canal || 'Sem rastreamento') === group.label : campanhaDe(person) === group.label))
+  }, [group, grouped])
 
   function selectTab(key: string) {
     setSelectedTab((current) => (current === key ? '' : key))
@@ -259,11 +248,11 @@ export default function RegistrosPage() {
         <>
           <section className="kpi-scroll">
             <div className="kpi-card">
-              <p className="section-label">Total de registros</p>
+              <p className="section-label">Linhas nas planilhas</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(totalRecords)}</p>
             </div>
             <div className="kpi-card">
-              <p className="section-label">Contatos únicos</p>
+              <p className="section-label">Pessoas (sem repetir)</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(totalUnique)}</p>
             </div>
             <div className="kpi-card">
@@ -279,10 +268,9 @@ export default function RegistrosPage() {
           {totalRecords > totalUnique && (
             <p className="-mt-3 text-xs leading-relaxed text-zinc-500">
               <i className="fa-solid fa-circle-info mr-1.5 text-amber-200/70" />
-              Total de registros soma todas as abas; <b className="text-zinc-400">contatos únicos</b>{' '}
-              conta cada e-mail/telefone uma vez só. A diferença existe porque a mesma pessoa aparece
-              em mais de uma aba (por exemplo, a aba Geral repete leads de Essentials, Prompt e Work
-              Cobertura).
+              <b className="text-zinc-400">Linhas nas planilhas</b> soma todas as abas. <b className="text-zinc-400">Pessoas</b>{' '}
+              conta cada pessoa uma vez só, ligando por e-mail e telefone: quem aparece como lead repetido, gerou Pix e
+              comprou é uma pessoa, com a linha do tempo no detalhe.
             </p>
           )}
 
@@ -303,7 +291,7 @@ export default function RegistrosPage() {
               <span className="filtro-barra-pilula">
                 {selectedInfo.planilha} · {selectedInfo.aba}
               </span>
-              <span>{formatNumber(scoped.length)} registros</span>
+              <span>{formatNumber(grouped.length)} pessoas</span>
               <span className="filtro-barra-acoes">
                 <button type="button" onClick={() => rolarPara('lista-registros')} className="filtro-btn">
                   <i className="fa-solid fa-arrow-down" /> Ver a lista
@@ -325,7 +313,7 @@ export default function RegistrosPage() {
               )}</h3>
               <p className="mb-3 text-xs text-zinc-600">
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
-                {formatNumber(scoped.length)} registros. Clique para ver a lista.
+                {formatNumber(grouped.length)} pessoas. Clique para ver a lista.
 
               </p>
               <BarList
@@ -363,7 +351,7 @@ export default function RegistrosPage() {
               <div>
                 <p className="section-label">Lista</p>
                 <h3 className="section-title mt-1">
-                  {formatNumber(filtered.length)} {filtered.length === 1 ? 'registro' : 'registros'}
+                  {formatNumber(filtered.length)} {filtered.length === 1 ? 'pessoa' : 'pessoas'}
                   {filtersActive && (
                     <span className="ml-2 text-sm text-zinc-500">de {formatNumber(grouped.length)}</span>
                   )}
@@ -373,11 +361,9 @@ export default function RegistrosPage() {
                 </span>
               )}
                 </h3>
-                {grouped.length < scoped.length && (
-                  <p className="mt-1 text-xs text-zinc-600">
-                    {formatNumber(scoped.length)} linhas nas planilhas · quem aparece em mais de uma, na mesma campanha, vira um registro só (a etiqueta mostra em quantas).
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-zinc-600">
+                  {formatNumber(rowsInScope)} linhas nas planilhas viram {formatNumber(grouped.length)} pessoas · a etiqueta mostra em quantas abas cada uma aparece.
+                </p>
                 {filtersActive && (
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                     {selectedInfo && <span>Aba: {selectedInfo.aba}</span>}
@@ -403,11 +389,12 @@ export default function RegistrosPage() {
                   onClick={() =>
                     exportCsv(
                       'registros.csv',
-                      ['Planilha', 'Aba', 'Aparece em', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
+                      ['Planilha', 'Aba', 'Aparece em', 'Situação comercial', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
                       filtered.map((record) => [
                         record.planilha,
                         record.aba,
                         apareceTexto(record),
+                        STATUS_ROTULO[record.status],
                         record.nome,
                         record.email,
                         record.telefone,
@@ -440,8 +427,8 @@ export default function RegistrosPage() {
                     <th className="px-4 py-2 font-medium">Planilha · Aba</th>
                     <th className="px-4 py-2 font-medium">Origem</th>
                     <th className="px-4 py-2 font-medium">Campanha</th>
-                    <th className="px-4 py-2 font-medium">Detalhe</th>
-                    <th className="px-4 py-2 font-medium">Data</th>
+                    <th className="px-4 py-2 font-medium">Situação</th>
+                    <th className="px-4 py-2 font-medium">Última passagem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -479,6 +466,7 @@ export default function RegistrosPage() {
                         {record.campanha || '—'}
                       </td>
                       <td className="max-w-[220px] px-4 py-2.5 text-xs text-zinc-400">
+                        {record.status !== 'lead' && <span className={`tl-status tl-status-${record.status} mb-1`}>{STATUS_ROTULO[record.status]}</span>}
                         {record.tipo === 'evento' ? (
                           <>
                             <span className="block truncate text-zinc-300">
@@ -528,7 +516,6 @@ export default function RegistrosPage() {
           label={group.label}
           scope={selectedInfo ? `Aba ${selectedInfo.aba}` : 'Todas as abas'}
           records={groupMerged}
-          totalRegistros={groupRecords.length}
           onClose={() => setGroup(null)}
           onOpenRecord={setSelected}
         />

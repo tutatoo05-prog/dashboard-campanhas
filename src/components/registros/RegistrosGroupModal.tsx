@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { RegistroAgrupado } from '@/lib/mergeRegistros.ts'
+import { STATUS_ROTULO, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 
@@ -13,8 +13,6 @@ interface RegistrosGroupModalProps {
   scope: string
   /** Só os registros deste grupo, com quem aparece em várias planilhas já junto. */
   records: RegistroAgrupado[]
-  /** Linhas nas planilhas antes de juntar (o número que a barra clicada mostra). */
-  totalRegistros: number
   onClose: () => void
   onOpenRecord: (record: RegistroAgrupado) => void
 }
@@ -34,7 +32,7 @@ function shortDate(value: string): string {
 }
 
 /** Lista, em janela, dos registros de uma origem ou de uma campanha (abre ao clicar nas listas de "Registros"). */
-export function RegistrosGroupModal({ kind, label, scope, records, totalRegistros, onClose, onOpenRecord }: RegistrosGroupModalProps) {
+export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOpenRecord }: RegistrosGroupModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(PAGE)
@@ -50,10 +48,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, totalRegistro
     )
   }, [sorted, search])
 
-  const people = useMemo(
-    () => new Set(records.map((record) => record.email || record.telefone.replace(/\D/g, '') || record.nome.toLowerCase()).filter(Boolean)).size,
-    [records],
-  )
+  const linhasNasPlanilhas = useMemo(() => records.reduce((soma, record) => soma + record.historico.length, 0), [records])
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -87,9 +82,9 @@ export function RegistrosGroupModal({ kind, label, scope, records, totalRegistro
               {label}
             </h3>
             <p className="sale-sub">
-              {formatNumber(totalRegistros)} {totalRegistros === 1 ? 'registro' : 'registros'}
+              {formatNumber(records.length)} {records.length === 1 ? 'pessoa' : 'pessoas'}
               {' · '}
-              {formatNumber(people)} {people === 1 ? 'pessoa' : 'pessoas'}
+              {formatNumber(linhasNasPlanilhas)} {linhasNasPlanilhas === 1 ? 'linha' : 'linhas'} nas planilhas
               {' · '}
               {scope}
             </p>
@@ -101,11 +96,12 @@ export function RegistrosGroupModal({ kind, label, scope, records, totalRegistro
               onClick={() =>
                 exportCsv(
                   `registros-${kind}.csv`,
-                  ['Planilha', 'Aba', 'Aparece em', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
+                  ['Planilha', 'Aba', 'Aparece em', 'Situação comercial', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
                   filtered.map((record) => [
                     record.planilha,
                     record.aba,
                     record.aparece.map((item) => `${item.aba} (${item.planilha})`).join(' · '),
+                    STATUS_ROTULO[record.status],
                     record.nome,
                     record.email,
                     record.telefone,
@@ -132,7 +128,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, totalRegistro
         </div>
 
         <section className="sale-section">
-          <p className="sale-note">Clique numa pessoa para ver os dados e chamar no WhatsApp.</p>
+          <p className="sale-note">Cada pessoa aparece uma vez só. Clique para ver a linha do tempo e chamar no WhatsApp.</p>
           <input
             type="text"
             value={search}
@@ -154,7 +150,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, totalRegistro
                       {record.nome || record.email || record.telefone || 'Sem nome'}
                       <small>
                         {[kind === 'origem' ? record.campanha || 'Sem campanha' : record.canal, record.aba].filter(Boolean).join(' · ')} · {shortDate(record.data)}
-                        {record.aparece.length > 1 && <> · em {record.aparece.length} planilhas</>}
+                        {record.aparece.length > 1 && <> · em {record.aparece.length} abas</>}
                       </small>
                     </span>
                     <span className="sale-list-side">

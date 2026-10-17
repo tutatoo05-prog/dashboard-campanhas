@@ -569,3 +569,36 @@ kbd { background: var(--paper); border: 2px solid var(--line); color: var(--ink)
 @media (prefers-reduced-motion: reduce) {
   .mapa-seg, .mapa-planilha, .mapa-aba-barra { animation: none; }
 }
+
+/* ───── Registros: linha do tempo da pessoa ───── */
+.tl-resumo { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 14px; font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+.tl-resumo span { background: var(--white); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; }
+.tl-resumo b { color: var(--ink); }
+
+.tl { position: relative; list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 10px; }
+.tl::before { content: ''; position: absolute; left: 20px; top: 14px; bottom: 14px; width: 3px; background: var(--ink); opacity: 0.85; border-radius: 2px; }
+.tl-item { position: relative; display: flex; gap: 12px; align-items: flex-start; animation: filtro-desce 0.3s ease both; }
+.tl-ponto {
+  position: relative; z-index: 1; flex-shrink: 0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--ink); border-radius: 50%; background: var(--cor-tl, var(--white)); color: var(--ink); font-size: 0.8rem; box-shadow: 2px 2px 0 var(--ink);
+}
+.tl-corpo { flex: 1; min-width: 0; background: var(--white); border: 2.5px solid var(--ink); border-radius: 12px; padding: 7px 12px; }
+.tl-titulo { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; font-size: 0.85rem; font-weight: 800; color: var(--ink); }
+.tl-titulo small { font-size: 0.68rem; font-weight: 700; color: var(--muted); }
+.tl-sub { font-size: 0.72rem; font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
+.tl-lead { --cor-tl: var(--paper); }
+.tl-venda { --cor-tl: #8fd18a; }
+.tl-venda .tl-corpo { background: #eaf7e6; }
+.tl-pix { --cor-tl: var(--y); }
+.tl-abandono { --cor-tl: #bfe3ff; }
+.tl-cancela { --cor-tl: #f3a49c; }
+
+.tl-status { display: inline-flex; align-items: center; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 9px; font-size: 0.68rem; font-weight: 800; background: var(--white); color: var(--ink); white-space: nowrap; }
+.tl-status-comprou { background: #8fd18a; }
+.tl-status-pagamento_gerado { background: var(--y); }
+.tl-status-abandonou { background: #bfe3ff; }
+.tl-status-cancelou, .tl-status-reembolsou { background: #f3a49c; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-item { animation: none; }
+}
