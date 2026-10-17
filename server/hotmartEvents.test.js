@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { summarize, withSituations } from './hotmartEvents.js'
+import { eventoDoPayload, juntarEventos, normalizeEvent, summarize, withSituations } from './hotmartEvents.js'
 
 const AGORA = new Date('2026-10-17T12:00:00Z').getTime()
 
@@ -97,4 +97,111 @@ test('Pix gerado duas vezes pela mesma pessoa conta como uma pendência', () => 
   )
   assert.deepEqual(resultado.map((e) => e.situacao), ['repetido', 'pendente'])
   assert.equal(summarize(resultado).pixBoleto.pendentes, 1)
+})
+
+// ── Eventos que chegam direto do webhook (tabela hotmart_eventos) ──────────────────────────────
+
+function linhaBanco({ event = 'PURCHASE_APPROVED', id = 'ev1', data = {}, creation = Date.parse('2026-10-16T13:00:00Z'), ...resto } = {}) {
+  return {
+    event_id: id,
+    evento: event,
+    recebido_em: '2026-10-16T13:00:05Z',
+    payload: {
+      id,
+      event,
+      creation_date: creation,
+      data: {
+        product: { name: 'Mentoria Essentials' },
+        buyer: { name: 'Ana Souza', email: 'Ana@X.com', checkout_phone: '63992125838', address: { city: 'Palmas', state: 'TO', country_iso: 'BR' } },
+        purchase: {
+          transaction: 'HP100',
+          price: { value: 1497, currency_value: 'BRL' },
+          payment: { type: 'PIX', installments_number: 1 },
+          offer: { code: 'abc123' },
+          origin: { src: 'live', xcod: 'x|ad_120212345678901234|y' },
+        },
+        ...data,
+      },
+      ...resto,
+    },
+  }
+}
+
+test('webhook vira o mesmo formato da planilha: categoria, origem, valor e pagamento', () => {
+  const evento = eventoDoPayload(linhaBanco())
+  assert.equal(evento.categoria, 'venda')
+  assert.equal(evento.id, 'ev1')
+  assert.equal(evento.data, '2026-10-16T13:00:00.000Z')
+  assert.equal(evento.email, 'ana@x.com')
+  assert.equal(evento.valor, 1497)
+  assert.equal(evento.pagamento, 'PIX')
+  assert.equal(evento.transacao, 'HP100')
+  assert.equal(evento.campaignId, '120212345678901234')
+  assert.equal(evento.canal, 'Meta Ads (pago)')
+  assert.equal(evento.estado, 'TO')
+})
+
+test('webhook: categorias dos demais eventos', () => {
+  const cat = (event) => eventoDoPayload(linhaBanco({ event }))?.categoria
+  assert.equal(cat('PURCHASE_BILLET_PRINTED'), 'pix_boleto')
+  assert.equal(cat('PURCHASE_OUT_OF_SHOPPING_CART'), 'abandono')
+  assert.equal(cat('PURCHASE_CANCELED'), 'cancelamento')
+  assert.equal(cat('PURCHASE_DELAYED'), 'cancelamento')
+  assert.equal(cat('PURCHASE_REFUNDED'), 'reembolso')
+  assert.equal(cat('PURCHASE_CHARGEBACK'), 'reembolso')
+  assert.equal(cat('SUBSCRIPTION_CANCELLATION'), 'cancelamento')
+  assert.equal(cat('PURCHASE_APPROVED'), 'venda')
+  assert.equal(cat('SWITCH_PLAN'), undefined)
+})
+
+test('webhook: carrinho abandonado usa os campos buyer_* e e-mail de teste é ignorado', () => {
+  const abandono = eventoDoPayload(
+    linhaBanco({ event: 'PURCHASE_OUT_OF_SHOPPING_CART', data: { buyer: undefined, buyer_name: 'Bia', buyer_email: 'BIA@x.com', buyer_phone: '11999990000', purchase: undefined } }),
+  )
+  assert.equal(abandono.nome, 'Bia')
+  assert.equal(abandono.email, 'bia@x.com')
+  assert.equal(abandono.telefone, '11999990000')
+  assert.equal(eventoDoPayload(linhaBanco({ data: { buyer: { email: 'x@teste.com' } } })), null)
+})
+
+test('webhook: compra em outra moeda fica sem valor em reais', () => {
+  const evento = eventoDoPayload(linhaBanco({ data: { purchase: { transaction: 'HP9', price: { value: 50, currency_value: 'EUR' } } } }))
+  assert.equal(evento.valor, null)
+  assert.equal(evento.valorOriginal, 50)
+})
+
+test('juntar: evento da planilha repetido no banco (mesmo id ou mesma transação) não duplica', () => {
+  const planilha = [
+    normalizeEvent({ id_evento: 'ev1', data_hora: '2026-10-16 10:00:00', evento: 'compra_aprovada', email: 'a@x.com', transacao: 'HP100' }),
+    normalizeEvent({ id_evento: 'outro-id', data_hora: '2026-10-16 10:00:05', evento: 'boleto_pix_gerado', email: 'a@x.com', transacao: 'HP200' }),
+    normalizeEvent({ id_evento: 'velho', data_hora: '2026-09-01 10:00:00', evento: 'compra_aprovada', email: 'b@x.com', transacao: 'HP001' }),
+  ]
+  const banco = [
+    eventoDoPayload(linhaBanco({ id: 'ev1' })),
+    eventoDoPayload(linhaBanco({ id: 'ev2', event: 'PURCHASE_BILLET_PRINTED', data: { purchase: { transaction: 'HP200' } } })),
+  ]
+  const juntos = juntarEventos(planilha, banco)
+  assert.equal(juntos.length, 3)
+  assert.deepEqual(juntos.map((e) => e.id).sort(), ['ev1', 'ev2', 'velho'])
+})
+
+test('juntar: carrinho abandonado sem transação só repete se for a mesma pessoa em até 10 minutos', () => {
+  const abandono = (id, hora) => normalizeEvent({ id_evento: id, data_hora: hora, evento: 'abandono_carrinho', email: 'ana@x.com' })
+  const banco = [eventoDoPayload(linhaBanco({ id: 'ab1', event: 'PURCHASE_OUT_OF_SHOPPING_CART', data: { purchase: undefined } }))]
+  // banco: 13:00Z = 10:00 em Brasília
+  const juntos = juntarEventos([abandono('p1', '2026-10-16 10:00:30'), abandono('p2', '2026-10-16 15:00:00')], banco)
+  assert.deepEqual(juntos.map((e) => e.id).sort(), ['ab1', 'p2'])
+})
+
+test('juntar: sem eventos no banco devolve a planilha como está', () => {
+  const planilha = [normalizeEvent({ id_evento: 'a', data_hora: '2026-10-16 10:00:00', evento: 'compra_aprovada', email: 'a@x.com' })]
+  assert.equal(juntarEventos(planilha, []), planilha)
+})
+
+test('evento novo do webhook entra nas situações: Pix do banco pago por venda do banco vira "pago"', () => {
+  const eventos = [
+    eventoDoPayload(linhaBanco({ id: 'p', event: 'PURCHASE_BILLET_PRINTED', creation: Date.parse('2026-10-17T10:00:00Z') })),
+    eventoDoPayload(linhaBanco({ id: 'v', creation: Date.parse('2026-10-17T10:05:00Z') })),
+  ]
+  assert.equal(withSituations(eventos, AGORA, [])[0].situacao, 'pago')
 })

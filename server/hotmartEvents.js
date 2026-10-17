@@ -1,7 +1,9 @@
-// Eventos da Hotmart registrados pelo n8n na planilha "tracking essentials" (aba "Hotmart (todos)").
-// O n8n grava uma linha por evento do webhook da Hotmart: compra aprovada/completa, boleto/Pix gerado,
-// carrinho abandonado, cancelamento, atraso, reembolso...
-// Aqui a aba é lida, normalizada e cruzada para responder: quem gerou Pix/boleto e ainda não pagou?
+// Eventos da Hotmart: compra aprovada/completa, boleto/Pix gerado, carrinho abandonado, cancelamento,
+// atraso, reembolso...
+// Fonte principal: a tabela hotmart_eventos, que o dash preenche direto pelo webhook da Hotmart (aparece em
+// segundos). A planilha "tracking essentials" (aba "Hotmart (todos)", gravada pelo n8n) continua só como
+// histórico antigo e como reserva: as duas fontes são juntadas sem repetir o mesmo evento.
+// Tudo é normalizado e cruzado para responder: quem gerou Pix/boleto e ainda não pagou?
 // quem abandonou o carrinho e não comprou?
 
 import { csvToObjects, fetchSheetCsv } from './sheetsCsv.js'
@@ -270,6 +272,123 @@ export function summarize(events) {
   }
 }
 
+// Nome do evento do webhook (v2.0.0) -> nome que o n8n gravava na planilha (categoryOf já entende estes).
+const EVENTO_DO_WEBHOOK = {
+  PURCHASE_APPROVED: 'compra_aprovada',
+  PURCHASE_COMPLETE: 'compra_completa',
+  PURCHASE_BILLET_PRINTED: 'boleto_pix_gerado',
+  PURCHASE_OUT_OF_SHOPPING_CART: 'abandono_carrinho',
+  PURCHASE_CANCELED: 'compra_cancelada',
+  PURCHASE_EXPIRED: 'compra_expirada',
+  PURCHASE_DELAYED: 'compra_atrasada',
+  SUBSCRIPTION_CANCELLATION: 'assinatura_cancelada',
+  PURCHASE_REFUNDED: 'compra_reembolsada',
+  PURCHASE_CHARGEBACK: 'chargeback',
+  PURCHASE_PROTEST: 'compra_reclamacao',
+}
+export const EVENTOS_DO_WEBHOOK = Object.keys(EVENTO_DO_WEBHOOK)
+
+const txt = (value) => String(value ?? '').trim()
+
+function dataDoPayload(payload, recebidoEm) {
+  for (const candidato of [payload?.creation_date, payload?.data?.purchase?.order_date]) {
+    if (candidato === undefined || candidato === null || candidato === '') continue
+    const data = typeof candidato === 'number' || /^\d+$/.test(String(candidato)) ? new Date(Number(candidato)) : new Date(candidato)
+    if (!Number.isNaN(data.getTime())) return data.toISOString()
+  }
+  const recebido = new Date(recebidoEm)
+  return Number.isNaN(recebido.getTime()) ? '' : recebido.toISOString()
+}
+
+/**
+ * Linha de hotmart_eventos (payload cru do webhook) -> evento no mesmo formato da planilha, sem situação.
+ * Devolve null para eventos que a tela não mostra (assinatura criada, troca de plano...) e e-mails de teste.
+ */
+export function eventoDoPayload(linha) {
+  const payload = linha?.payload ?? {}
+  const nomeEvento = EVENTO_DO_WEBHOOK[txt(payload.event || linha?.evento)]
+  if (!nomeEvento) return null
+  const data = payload.data ?? {}
+  const compra = data.purchase ?? {}
+  const comprador = data.buyer ?? {}
+  const origem = compra.origin ?? {}
+  const email = txt(comprador.email || data.buyer_email || linha?.email)
+  if (TEST_EMAIL.test(email)) return null
+  const evento = normalizeEvent({
+    id_evento: txt(linha?.event_id || payload.id),
+    // Já em ISO (UTC): toIso entende.
+    data_hora: dataDoPayload(payload, linha?.recebido_em),
+    evento: nomeEvento,
+    nome: comprador.name || data.buyer_name || linha?.nome,
+    email,
+    telefone: comprador.checkout_phone || comprador.phone || data.buyer_phone,
+    cidade: comprador.address?.city,
+    estado: comprador.address?.state,
+    pais: comprador.address?.country_iso || data.checkout_country?.iso,
+    produto: data.product?.name || linha?.curso,
+    oferta: compra.offer?.code || data.offer?.code,
+    valor: compra.price?.value ?? compra.full_price?.value,
+    moeda: compra.price?.currency_value ?? compra.full_price?.currency_value,
+    pagamento: compra.payment?.type,
+    parcelas: compra.payment?.installments_number,
+    transacao: compra.transaction || linha?.transacao,
+    src: origem.src,
+    sck: origem.sck,
+    xcod: origem.xcod,
+  })
+  return evento.data ? evento : null
+}
+
+const DEZ_MINUTOS = 10 * 60 * 1000
+
+function chaveTransacao(evento) {
+  if (!evento.transacao) return null
+  return `${evento.categoria}|${evento.categoria === 'cancelamento' ? cancelSituation(evento.evento) : ''}|${evento.transacao}`
+}
+
+/**
+ * Junta o histórico da planilha com os eventos do banco sem repetir. O banco manda: um evento da planilha
+ * é descartado se o banco já tem o mesmo id, a mesma transação na mesma categoria, ou (sem transação,
+ * como o carrinho abandonado) a mesma pessoa e categoria com diferença de até 10 minutos.
+ */
+export function juntarEventos(daPlanilha, doBanco) {
+  if (!doBanco.length) return daPlanilha
+  const ids = new Set(doBanco.map((evento) => evento.id))
+  const transacoes = new Set(doBanco.map(chaveTransacao).filter(Boolean))
+  const porPessoa = new Map()
+  for (const evento of doBanco) {
+    if (evento.transacao || !evento.email) continue
+    const chave = `${evento.categoria}|${evento.email}`
+    porPessoa.set(chave, [...(porPessoa.get(chave) ?? []), new Date(evento.data).getTime()])
+  }
+  const repetido = (evento) => {
+    if (ids.has(evento.id)) return true
+    const chave = chaveTransacao(evento)
+    if (chave) return transacoes.has(chave)
+    if (!evento.email) return false
+    const quando = new Date(evento.data).getTime()
+    return (porPessoa.get(`${evento.categoria}|${evento.email}`) ?? []).some((outro) => Math.abs(outro - quando) <= DEZ_MINUTOS)
+  }
+  return [...daPlanilha.filter((evento) => !repetido(evento)), ...doBanco]
+}
+
+/** Eventos que o dash recebeu direto da Hotmart (tabela hotmart_eventos). Banco fora do ar: lista vazia. */
+export async function lerEventosDoBanco(env) {
+  if (!env?.DATABASE_URL) return { eventos: [], ok: false }
+  try {
+    const { rows } = await query(
+      env,
+      `select event_id, evento, transacao, email, nome, curso, payload, recebido_em
+         from hotmart_eventos where evento = any($1::text[]) order by recebido_em`,
+      [EVENTOS_DO_WEBHOOK],
+    )
+    return { eventos: rows.map(eventoDoPayload).filter(Boolean), ok: true }
+  } catch (error) {
+    if (error?.code !== '42P01') console.error('Erro ao ler os eventos da Hotmart do banco:', error.message || error)
+    return { eventos: [], ok: false }
+  }
+}
+
 /** Lê a aba "Hotmart (todos)" do Google e devolve os eventos já normalizados (sem as situações). Leva ~1,5 s. */
 export async function lerEventosAoVivo() {
   const csv = await fetchSheetCsv(TRACKING_SHEET_ID, HOTMART_ALL_GID)
@@ -283,28 +402,39 @@ function montarResposta(eventosPuros, buyers, fetchedAt) {
 }
 
 /**
- * Eventos da Hotmart para as telas. Lê da cópia no banco (milésimos); só vai ao Google se ainda não houver
- * cópia ou se pedirem atualização na hora (force), e então atualiza a cópia.
+ * Eventos da Hotmart para as telas: os do banco (webhook direto, sempre frescos) + o histórico da planilha.
+ * A planilha vem da cópia no banco (milésimos); só vai ao Google se ainda não houver cópia ou se pedirem
+ * atualização na hora (force). Se a leitura do banco falhar, segue só com a planilha.
  */
 export async function loadHotmartEvents({ force = false, env = null } = {}) {
+  const doBanco = env ? await comCache('planilhas|eventos-banco', 5_000, () => lerEventosDoBanco(env)) : { eventos: [], ok: false }
+  const montar = (planilha, fetchedAt, buyers) => montarResposta(juntarEventos(planilha, doBanco.eventos), buyers, fetchedAt)
+
   if (env && !force) {
     const copia = await comCache('planilhas|eventos', 300_000, () => lerCopia(env, CHAVE_EVENTOS_HOTMART))
     if (copia?.dados?.events) {
       const buyers = await loadExtraBuyers(env)
-      return montarResposta(copia.dados.events, buyers, copia.atualizadoEm)
+      return montar(copia.dados.events, doBanco.ok ? new Date().toISOString() : copia.atualizadoEm, buyers)
     }
   }
 
   if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data
 
-  const eventos = await lerEventosAoVivo()
-  if (env) {
-    await gravarCopia(env, CHAVE_EVENTOS_HOTMART, { events: eventos }).catch((erro) => {
-      if (erro?.code !== '42P01') console.error('[planilhas] não consegui guardar a cópia:', erro.message || erro)
-    })
+  let eventos = []
+  try {
+    eventos = await lerEventosAoVivo()
+    if (env) {
+      await gravarCopia(env, CHAVE_EVENTOS_HOTMART, { events: eventos }).catch((erro) => {
+        if (erro?.code !== '42P01') console.error('[planilhas] não consegui guardar a cópia:', erro.message || erro)
+      })
+    }
+  } catch (erro) {
+    // Google fora do ar: com os eventos do banco a tela ainda funciona (só sem o histórico antigo).
+    if (!doBanco.ok) throw erro
+    console.error('[planilhas] não consegui ler a planilha de eventos:', erro.message || erro)
   }
   const buyers = env ? await loadExtraBuyers(env, { force }) : extraBuyers
-  const data = montarResposta(eventos, buyers, new Date().toISOString())
+  const data = montar(eventos, new Date().toISOString(), buyers)
   cache = { at: Date.now(), data }
   return data
 }

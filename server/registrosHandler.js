@@ -4,7 +4,7 @@
 // (guarda credenciais).
 
 import { csvToObjects, fetchSheetCsv, normalizeKey } from './sheetsCsv.js'
-import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv, loadExtraBuyers } from './hotmartEvents.js'
+import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv, loadExtraBuyers, loadHotmartEvents } from './hotmartEvents.js'
 import { comCache } from './cacheCurto.js'
 import { CHAVE_REGISTROS, gravarCopia, lerCopia } from './planilhasCopia.js'
 
@@ -132,28 +132,58 @@ function resolveCampaign(raw) {
   return value
 }
 
+function registroDeEvento(sheet, tab, event) {
+  return {
+    planilha: sheet.name,
+    aba: tab.name,
+    tipo: tab.kind,
+    nome: event.nome,
+    email: event.email,
+    telefone: event.telefone,
+    data: event.data,
+    canal: event.canal,
+    campanha: event.campanha,
+    criativo: '',
+    evento: CATEGORY_LABELS[event.categoria] ?? event.evento,
+    situacao: event.situacao ?? '',
+    produto: event.produto,
+    valor: event.valor,
+    pagamento: event.pagamento,
+  }
+}
+
+/**
+ * Troca os registros de eventos da Hotmart (abas "virtuais" da planilha de tracking) pelos eventos juntados
+ * do banco (webhook direto, em segundos) + histórico da planilha. Os leads e as demais planilhas ficam como estão.
+ * Se não der para ler os eventos, devolve os dados da cópia sem mexer.
+ */
+export async function comEventosHotmart(dados, env) {
+  if (!env || !dados?.records) return dados
+  let eventos
+  try {
+    eventos = (await loadHotmartEvents({ env })).events
+  } catch (erro) {
+    console.error('Erro ao juntar os eventos da Hotmart nos registros:', erro.message || erro)
+    return dados
+  }
+  const sheet = SHEETS.find((item) => item.id === TRACKING_SHEET_ID)
+  const abas = sheet.tabs.filter((tab) => tab.source === 'hotmart')
+  const nomesAbas = new Set(abas.map((tab) => tab.name))
+  const novos = abas.flatMap((tab) => eventos.filter((event) => event.categoria === tab.categoria).map((event) => registroDeEvento(sheet, tab, event)))
+  const contagem = new Map(abas.map((tab) => [tab.name, novos.filter((registro) => registro.aba === tab.name).length]))
+  return {
+    ...dados,
+    tabs: dados.tabs.map((aba) => (aba.planilha === sheet.name && nomesAbas.has(aba.aba) ? { ...aba, count: contagem.get(aba.aba), error: null } : aba)),
+    records: [...dados.records.filter((registro) => !(registro.planilha === sheet.name && nomesAbas.has(registro.aba))), ...novos],
+  }
+}
+
 function toRecords(sheet, tab, csvText) {
   // Eventos da Hotmart: já vêm normalizados (origem, valor em reais, situação do Pix/boleto e do carrinho).
   if (tab.source === 'hotmart') {
     return eventsFromCsv(csvText)
       .filter((event) => event.categoria === tab.categoria)
-      .map((event) => ({
-        planilha: sheet.name,
-        aba: tab.name,
-        tipo: tab.kind,
-        nome: event.nome,
-        email: event.email,
-        telefone: event.telefone,
-        data: event.data,
-        canal: event.canal,
-        campanha: event.campanha,
-        criativo: '',
-        evento: CATEGORY_LABELS[event.categoria] ?? event.evento,
-        situacao: event.situacao ?? '',
-        produto: event.produto,
-        valor: event.valor,
-        pagamento: event.pagamento,
-      }))
+      .map((event) => registroDeEvento(sheet, tab, event))
   }
 
   const records = []
@@ -251,7 +281,7 @@ export async function handleRegistrosRequest(req, res, env = null) {
     // Caminho normal: lê a cópia no banco, em milésimos.
     const copia = env ? await comCache('planilhas|registros', 300_000, () => lerCopia(env, CHAVE_REGISTROS)) : null
     if (copia?.dados?.records) {
-      return sendJson(res, 200, { success: true, fetchedAt: copia.atualizadoEm, ...copia.dados })
+      return sendJson(res, 200, { success: true, fetchedAt: copia.atualizadoEm, ...(await comEventosHotmart(copia.dados, env)) })
     }
 
     // Sem cópia ainda (primeira vez, ou migração pendente): lê o Google ao vivo e guarda para a próxima.
@@ -262,7 +292,7 @@ export async function handleRegistrosRequest(req, res, env = null) {
     return sendJson(res, 200, {
       success: true,
       fetchedAt: new Date(cache.at).toISOString(),
-      ...cache.data,
+      ...(await comEventosHotmart(cache.data, env)),
     })
   } catch (error) {
     console.error('Erro ao buscar registros:', error)
