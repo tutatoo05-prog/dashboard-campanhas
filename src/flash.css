@@ -259,7 +259,8 @@ table tbody tr { border-bottom-style: dashed; }
 
 /* ───── Menu: adesivos ───── */
 @media (min-width: 1280px) {
-  .app-shell.sidebar-open, .app-shell.sidebar-collapsed { --sidebar-width: 16.5rem; }
+  .app-shell.sidebar-open { --sidebar-width: 16.5rem; }
+  .app-shell.sidebar-collapsed { --sidebar-width: 5.75rem; }
   .sidebar.fx-menu { top: 0; bottom: 0; left: 0; width: var(--sidebar-width); }
 }
 .sidebar.fx-menu {

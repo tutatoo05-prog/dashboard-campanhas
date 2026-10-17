@@ -2,11 +2,11 @@ import { create } from 'zustand'
 
 const SIDEBAR_KEY = 'dash-sidebar-open'
 
-/** Sem preferência salva, o menu começa recolhido (só ícones). */
+/** No computador o menu começa aberto; a pessoa recolhe (só ícones) e a escolha fica salva. */
 function readSidebarPreference(): boolean {
   try {
     if (window.innerWidth < 1280) return false
-    return localStorage.getItem(SIDEBAR_KEY) === 'true'
+    return localStorage.getItem(SIDEBAR_KEY) !== 'false'
   } catch {
     return false
   }
