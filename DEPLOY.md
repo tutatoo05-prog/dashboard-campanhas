@@ -192,8 +192,8 @@ O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exp
 ## Deploy automático (sem os 4 passos manuais)
 O Plesk puxa e publica sozinho a cada `git push`:
 1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → ícone de ajustes do repositório (**Repository settings**).
-2. **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única (o Node deste servidor vem do nodenv; o final reinicia o app, como o botão Restart App):
-   `export PATH="$HOME/.nodenv/bin:$PATH" && eval "$(nodenv init -)" && npm install && npm run build && mkdir -p tmp && touch tmp/restart.txt`
+2. **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única (usa o Node que o próprio Plesk instala em /opt/plesk/node; o final reinicia o app, como o botão Restart App; o ambiente das ações do Plesk tem o PATH quase vazio: nem nodenv nem comandos como sort existem, por isso a linha usa só recursos do shell):
+   `for d in /opt/plesk/node/*/bin; do PATH="$d:$PATH"; done; export PATH="$PATH:/usr/local/bin:/usr/bin:/bin"; command -v npm && npm install && npm run build && mkdir -p tmp && touch tmp/restart.txt`
 3. Copie a **Webhook URL** dessa mesma tela. No GitHub: repositório → **Settings → Webhooks → Add webhook**; *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**. Só desative a verificação de SSL se o GitHub reclamar do certificado.
 4. Teste: depois do próximo push, o commit aparece sozinho em Git → *Latest commits* e a entrega do webhook fica verde (200) em *Recent Deliveries*; `/api/saude` mostra o servidor ligado há poucos minutos.
 - O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o app anterior continua no ar até o próximo build bem-sucedido.

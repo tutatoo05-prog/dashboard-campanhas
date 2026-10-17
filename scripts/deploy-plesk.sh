@@ -1,18 +1,13 @@
 #!/bin/sh
-# Passos do deploy no Plesk (referência; no servidor da Telway as "ações pós-implantação" usam a linha única do DEPLOY.md).
+# Passos do deploy no Plesk (referência; no Plesk as "ações pós-implantação" usam a linha única do DEPLOY.md).
 #   sh scripts/deploy-plesk.sh
 set -e
 
-# As ações de implantação do Plesk nem sempre enxergam o Node. Neste servidor ele vem do nodenv;
-# se não houver, usa o mais novo instalado pelo próprio Plesk.
-if [ -d "$HOME/.nodenv" ]; then
-  export PATH="$HOME/.nodenv/bin:$PATH"
-  eval "$(nodenv init -)"
-elif [ -d /opt/plesk/node ]; then
-  NODE_BIN="$(ls -d /opt/plesk/node/*/bin 2>/dev/null | sort -V | tail -1)"
-  [ -n "$NODE_BIN" ] && PATH="$NODE_BIN:$PATH"
-  export PATH
-fi
+# As ações de implantação do Plesk rodam com um PATH quase vazio (nem `sort` existe): acha o Node do Plesk só
+# com o próprio shell e junta os diretórios padrão do sistema.
+for d in /opt/plesk/node/*/bin; do PATH="$d:$PATH"; done
+export PATH="$PATH:/usr/local/bin:/usr/bin:/bin"
+command -v npm || { echo "npm não encontrado: confira onde o Node está instalado no servidor"; exit 1; }
 
 # Dependências (inclui as de desenvolvimento: o build precisa delas)
 npm install --no-audit --no-fund
