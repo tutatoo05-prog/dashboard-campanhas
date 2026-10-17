@@ -1,4 +1,7 @@
 import { useLocation } from 'react-router-dom'
+import { LiveQuick } from '@/components/layout/LiveQuick.tsx'
+import { isAdmin } from '@/lib/roles.ts'
+import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
@@ -19,6 +22,7 @@ const TITLES: Record<string, string> = {
 
 export default function TopBar() {
   const location = useLocation()
+  const admin = isAdmin(useAuthStore((state) => state.user))
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen)
   const startTour = useTourStore((state) => state.start)
@@ -71,6 +75,7 @@ export default function TopBar() {
         >
           <i className={`fa-regular ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
         </button>
+        {admin && <LiveQuick />}
         <button type="button" className="topbar-icon-btn" onClick={handleTour} title="Tour com o TaTuzinho" aria-label="Tour guiado com o TaTuzinho">
           <i className="fa-regular fa-circle-question" />
         </button>

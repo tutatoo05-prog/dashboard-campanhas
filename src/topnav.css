@@ -219,3 +219,23 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
   .app-shell.sidebar-collapsed .fx-user { flex-direction: column; padding: 6px 0; }
   .app-shell.sidebar-collapsed .fx-user-txt { display: none; }
 }
+
+/* ───── Botão da Live no topo ───── */
+.lq { position: relative; }
+.lq-btn { position: relative; }
+.lq-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: #9a8f78; border: 2px solid var(--white); }
+.lq-on .lq-dot { background: #2fa84f; box-shadow: 0 0 0 3px rgba(47, 168, 79, 0.25); }
+.lq-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 120; width: 290px; padding: 10px; }
+.lq-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 4px 8px; }
+.lq-info { padding: 2px 8px 6px; font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+.lq-field { display: block; padding: 4px 8px 8px; }
+.lq-field > span:first-child { display: block; font-size: 0.74rem; font-weight: 800; margin-bottom: 4px; }
+.lq-field small { display: block; margin-top: 4px; color: var(--muted); font-weight: 600; font-size: 0.72rem; }
+.lq-time { display: flex; gap: 8px; align-items: center; }
+.lq-time .ac-in { padding: 6px 10px; }
+.lq-time .ac-btn { padding: 6px 12px; font-size: 0.78rem; }
+.lq-link { border-top: 2px dashed rgba(21, 17, 13, 0.2); margin-top: 4px; border-radius: 0 0 8px 8px; }
+@media (max-width: 520px) { .lq-pop { position: fixed; right: 10px; left: 10px; width: auto; top: 64px; } }
+@media (min-width: 1280px) {
+  .app-shell.sidebar-collapsed .fx-plus { display: none; }
+}

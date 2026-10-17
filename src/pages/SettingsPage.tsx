@@ -112,11 +112,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {(id === 'operacao' || id === 'integracoes' || id === 'geral') && (
       <PageHero>
         <p className="section-label">Configurações</p>
         <Typewriter as="h2" className="section-title mt-1" text={atual.label} />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">Coisas do sistema inteiro. Só administradores veem esta área.</p>
       </PageHero>
+      )}
       <div className="cfg-layout">
         <nav className="cfg-side" aria-label="Seções de configurações">
           {CONFIG_SECTIONS.map((item) => (
