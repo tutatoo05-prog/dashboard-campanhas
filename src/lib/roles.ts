@@ -7,10 +7,11 @@ export function isAdmin(user: User | null | undefined): boolean {
 
 /** Páginas liberadas pro cargo "usuario" (por enquanto só Leads). */
 const USER_PATHS = ['/leads']
+const ALWAYS_PATHS = ['/perfil']
 
 export function canAccessPath(user: User | null | undefined, pathname: string): boolean {
   if (isAdmin(user)) return true
-  return USER_PATHS.includes(pathname)
+  return USER_PATHS.includes(pathname) || ALWAYS_PATHS.includes(pathname)
 }
 
 export function homePath(user: User | null | undefined): string {

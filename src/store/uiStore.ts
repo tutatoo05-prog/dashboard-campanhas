@@ -1,41 +1,33 @@
 import { create } from 'zustand'
 
-const SIDEBAR_KEY = 'dash-sidebar-open'
+const LABELS_KEY = 'dash-menu-labels'
 
-/** Sem preferência salva, o menu começa recolhido (só ícones). */
-function readSidebarPreference(): boolean {
+function readMenuLabels(): boolean {
   try {
-    if (window.innerWidth < 1280) return false
-    return localStorage.getItem(SIDEBAR_KEY) === 'true'
+    return localStorage.getItem(LABELS_KEY) === 'true'
   } catch {
     return false
   }
 }
 
 interface UiState {
-  sidebarOpen: boolean
   paletteOpen: boolean
-  toggleSidebar: () => void
-  closeSidebarOnMobile: () => void
+  /** Mostrar o nome embaixo dos ícones do menu (preferência de cada pessoa, salva no navegador). */
+  menuLabels: boolean
   setPaletteOpen: (open: boolean) => void
+  setMenuLabels: (on: boolean) => void
 }
 
-export const useUiStore = create<UiState>((set, get) => ({
-  sidebarOpen: readSidebarPreference(),
+export const useUiStore = create<UiState>((set) => ({
   paletteOpen: false,
-  toggleSidebar: () => {
-    const next = !get().sidebarOpen
-    set({ sidebarOpen: next })
+  menuLabels: readMenuLabels(),
+  setPaletteOpen: (open) => set({ paletteOpen: open }),
+  setMenuLabels: (on) => {
+    set({ menuLabels: on })
     try {
-      localStorage.setItem(SIDEBAR_KEY, String(next))
+      localStorage.setItem(LABELS_KEY, String(on))
     } catch {
       /* ignore */
     }
   },
-  closeSidebarOnMobile: () => {
-    if (window.innerWidth < 1280 && get().sidebarOpen) {
-      set({ sidebarOpen: false })
-    }
-  },
-  setPaletteOpen: (open) => set({ paletteOpen: open }),
 }))

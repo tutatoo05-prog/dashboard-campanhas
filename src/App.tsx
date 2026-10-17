@@ -19,8 +19,8 @@ const AcessosPage = lazy(() => import('@/pages/AcessosPage.tsx'))
 const LeadsPage = lazy(() => import('@/pages/LeadsPage.tsx'))
 const RegistrosPage = lazy(() => import('@/pages/RegistrosPage.tsx'))
 const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
-const UsersPage = lazy(() => import('@/pages/UsersPage.tsx'))
-const SegurancaPage = lazy(() => import('@/pages/SegurancaPage.tsx'))
+const AccountPage = lazy(() => import('@/pages/AccountPage.tsx'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -183,22 +183,17 @@ function AppRoutes() {
         <Route path="leads" element={<LeadsPage />} />
         <Route path="registros" element={<RegistrosPage />} />
         <Route path="live" element={<LivePage />} />
+        <Route path="perfil" element={<AccountPage />} />
         <Route
-          path="usuarios"
+          path="config/:secao?"
           element={
             <RequireAdmin>
-              <UsersPage />
+              <SettingsPage />
             </RequireAdmin>
           }
         />
-        <Route
-          path="seguranca"
-          element={
-            <RequireAdmin>
-              <SegurancaPage />
-            </RequireAdmin>
-          }
-        />
+        <Route path="usuarios" element={<Navigate to="/config/usuarios" replace />} />
+        <Route path="seguranca" element={<Navigate to="/config/seguranca" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

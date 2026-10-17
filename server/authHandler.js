@@ -11,21 +11,12 @@ import {
   setSessionCookie,
 } from './session.js'
 import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
+import { atualizarPerfil, senhaForte as isStrongPassword, trocarSenha } from './perfil.js'
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000
 
 function isEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
-function isStrongPassword(value) {
-  return (
-    value.length >= 8 &&
-    /[A-Z]/.test(value) &&
-    /[a-z]/.test(value) &&
-    /[0-9]/.test(value) &&
-    /[^A-Za-z0-9]/.test(value)
-  )
 }
 
 function sendJson(res, status, payload) {
@@ -36,7 +27,7 @@ function sendJson(res, status, payload) {
 
 function toPublicUser(row) {
   if (!row) return null
-  return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario, cargo: row.cargo ?? 'usuario' }
+  return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario, cargo: row.cargo ?? 'usuario', avatar: row.avatar ?? null }
 }
 
 /** Avisa o n8n (WhatsApp) sobre um novo cadastro pendente de aprovação. Não bloqueia a resposta se falhar. */
@@ -97,6 +88,18 @@ export async function handleAuthRequest(req, res, env) {
     return sendJson(res, 200, { authenticated: true, user: toPublicUser(user) })
   }
 
+  if (pathname === '/api/auth/me' && req.method === 'PATCH') {
+    const user = await getUserFromRequest(env, req)
+    if (!user) return sendJson(res, 401, { error: 'Não autenticado.', code: 'UNAUTHORIZED' })
+    return atualizarPerfil(req, res, env, user)
+  }
+
+  if (pathname === '/api/auth/senha' && req.method === 'POST') {
+    const user = await getUserFromRequest(env, req)
+    if (!user) return sendJson(res, 401, { error: 'Não autenticado.', code: 'UNAUTHORIZED' })
+    return trocarSenha(req, res, env, user)
+  }
+
   if (pathname === '/api/auth/logout' && req.method === 'POST') {
     await destroySession(env, getSessionToken(req))
     clearSessionCookie(res)
@@ -130,7 +133,7 @@ export async function handleAuthRequest(req, res, env) {
 
       const result = await query(
         env,
-        'select id, nome, email, usuario, senha_hash, ativo, cargo from users where usuario = $1 or email = $1',
+        'select id, nome, email, usuario, senha_hash, ativo, cargo, avatar from users where usuario = $1 or email = $1',
         [usuario],
       )
       const row = result.rows[0]

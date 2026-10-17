@@ -31,8 +31,8 @@ const ROUTE_TIPS: Record<string, string[]> = {
   '/registros': ['Use os filtros pra achar o registro que precisa.'],
   '/purchases': ['Vendas fechadas! Cruze com o investimento pra achar o ROAS.'],
   '/live': ['Lembra de desligar a Live quando ela acabar!'],
-  '/usuarios': ['Aprove os novos cadastros por aqui.'],
-  '/seguranca': ['Backup, avisos e quem está logado: dá uma conferida de vez em quando.'],
+  '/config/usuarios': ['Aprove os novos cadastros por aqui.'],
+  '/config/seguranca': ['Backup, avisos e quem está logado: dá uma conferida de vez em quando.'],
 }
 
 const SEEN_KEY = 'dash-mascot-seen'

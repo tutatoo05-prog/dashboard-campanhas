@@ -381,3 +381,8 @@ create table if not exists planilhas_copia (
   atualizado_em timestamptz not null default now(),
   erro text
 );
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Minha conta: foto/adesivo de cada pessoa. 'sticker:rose' (adesivo) ou 'data:image/...' (foto reduzida) ou nulo (inicial do nome).
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table users add column if not exists avatar text;

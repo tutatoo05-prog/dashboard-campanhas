@@ -21,6 +21,7 @@ export interface User {
   email?: string | null
   usuario?: string | null
   cargo?: Cargo | null
+  avatar?: string | null
   [key: string]: unknown
 }
 

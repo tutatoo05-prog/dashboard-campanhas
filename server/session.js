@@ -35,7 +35,7 @@ export async function getSessionUser(env, token) {
 
   const result = await query(
     env,
-    `select u.id, u.nome, u.email, u.usuario, u.ativo, u.cargo
+    `select u.id, u.nome, u.email, u.usuario, u.ativo, u.cargo, u.avatar
        from sessions s
        join users u on u.id = s.user_id
       where s.token = $1 and s.expires_at > now()`,

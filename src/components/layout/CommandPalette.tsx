@@ -25,8 +25,8 @@ const PAGES = [
   { to: '/purchases', label: 'Compras', hint: 'Vendas aprovadas', icon: 'fa-bag-shopping' },
   { to: '/acessos', label: 'Acessos', hint: 'Liberação de curso e alunos', icon: 'fa-key' },
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
-  { to: '/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },
-  { to: '/seguranca', label: 'Segurança', hint: 'Backup, avisos e sessões', icon: 'fa-shield-halved' },
+  { to: '/config/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },
+  { to: '/config/seguranca', label: 'Segurança', hint: 'Backup, avisos e sessões', icon: 'fa-shield-halved' },
 ]
 
 /** Paleta de comandos (Ctrl/Cmd + K): navegar entre páginas e acionar atalhos. */
