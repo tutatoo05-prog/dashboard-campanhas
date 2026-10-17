@@ -8,7 +8,6 @@ import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
 import { useThemeStore, type ThemeMode } from '@/store/themeStore.ts'
-import { useUiStore } from '@/store/uiStore.ts'
 
 const ABAS = [
   { id: 'perfil', rotulo: 'Perfil', icone: 'fa-user' },
@@ -37,8 +36,6 @@ export default function AccountPage() {
   const setMode = useThemeStore((state) => state.setMode)
   const mascotEnabled = useMascotStore((state) => state.enabled)
   const setMascotEnabled = useMascotStore((state) => state.setEnabled)
-  const menuLabels = useUiStore((state) => state.menuLabels)
-  const setMenuLabels = useUiStore((state) => state.setMenuLabels)
 
   const [aba, setAba] = useState<Aba>('perfil')
   const [nome, setNome] = useState(getDisplayName(user))
@@ -195,13 +192,6 @@ export default function AccountPage() {
                 <small>Dicas e avisos no canto da tela</small>
               </div>
               <Interruptor ligado={mascotEnabled} aoMudar={setMascotEnabled} rotulo="Mascote TaTuzinho" />
-            </div>
-            <div className="ac-row">
-              <div>
-                <b>Nomes embaixo dos ícones do menu</b>
-                <small>Mostra o nome de cada tela sem precisar passar o mouse</small>
-              </div>
-              <Interruptor ligado={menuLabels} aoMudar={setMenuLabels} rotulo="Nomes embaixo dos ícones" />
             </div>
           </div>
         </div>
