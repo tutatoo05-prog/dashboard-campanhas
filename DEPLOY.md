@@ -191,11 +191,11 @@ O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exp
 
 ## Deploy automático (sem os 4 passos manuais)
 O Plesk puxa e publica sozinho a cada `git push`:
-1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → clique no repositório → **Configurações do repositório**.
-2. Em **Modo de implantação** escolha **Automático** (o Plesk passa a mostrar uma **URL de webhook**; copie).
-3. Em **Ações adicionais de implantação** cole `sh scripts/deploy-plesk.sh` (faz `npm ci`, `npm run build` e reinicia o app) e salve com **OK**.
-4. No GitHub: repositório → **Settings → Webhooks → Add webhook**. *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**. Se o GitHub reclamar do certificado do Plesk (endereço por IP), desmarque a verificação de SSL (**Disable**) nessa tela.
-5. Teste: faça um push pequeno, abra o Plesk → Git e veja o histórico de implantação; ou abra "Recent Deliveries" no webhook do GitHub (deve estar verde, 200).
+1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → ícone de ajustes do repositório (**Repository settings**).
+2. **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única (o Node deste servidor vem do nodenv; o final reinicia o app, como o botão Restart App):
+   `export PATH="$HOME/.nodenv/bin:$PATH" && eval "$(nodenv init -)" && npm install && npm run build && mkdir -p tmp && touch tmp/restart.txt`
+3. Copie a **Webhook URL** dessa mesma tela. No GitHub: repositório → **Settings → Webhooks → Add webhook**; *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**. Só desative a verificação de SSL se o GitHub reclamar do certificado.
+4. Teste: depois do próximo push, o commit aparece sozinho em Git → *Latest commits* e a entrega do webhook fica verde (200) em *Recent Deliveries*; `/api/saude` mostra o servidor ligado há poucos minutos.
 - O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o app anterior continua no ar até o próximo build bem-sucedido.
-- Se o log do Plesk mostrar `npm: command not found`, o `scripts/deploy-plesk.sh` já procura o Node em `/opt/plesk/node/*/bin`; confira lá a versão instalada.
-- Para desligar: volte o modo de implantação para **Manual**.
+- `scripts/deploy-plesk.sh` é a mesma sequência em arquivo, para rodar à mão se precisar.
+- Para desligar: **Deployment mode: Manual**.
