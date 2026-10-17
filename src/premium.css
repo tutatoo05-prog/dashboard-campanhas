@@ -1829,3 +1829,41 @@ kbd {
   .drawer-panel,
   .drawer-backdrop { animation: none; }
 }
+
+/* ── Registros: avisos de filtro ativo ─────────────────────────────────────── */
+.filtro-barra {
+  position: sticky;
+  top: 4.25rem;
+  z-index: 20;
+  animation: filtro-desce 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes filtro-desce {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Os quadros filtrados piscam um halo âmbar e sobem de leve, para o olho entender que mudaram. */
+.filtro-flash {
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  animation: filtro-pulso 0.9s ease-out both;
+}
+
+@keyframes filtro-pulso {
+  0% { opacity: 0.35; transform: translateY(8px); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  45% { opacity: 1; transform: none; box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.16); }
+  100% { opacity: 1; transform: none; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.filtro-selo {
+  animation: filtro-selo-entra 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes filtro-selo-entra {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filtro-barra, .filtro-flash, .filtro-selo { animation: none; }
+}

@@ -280,7 +280,7 @@ export default function RegistrosPage() {
           <section className="surface-card p-4">
             <p className="section-label">Por planilha e aba</p>
             <h3 className="section-title mt-1 mb-1">Quantos registros em cada lugar</h3>
-            <p className="mb-4 text-xs text-zinc-600">Clique numa aba para filtrar tudo abaixo.</p>
+            <p className="mb-4 text-xs text-zinc-600">Clique numa aba para filtrar tudo abaixo. Clique de novo para desfazer.</p>
             <div className="grid gap-4 lg:grid-cols-2">
               {sheets.map(([sheetName, sheetTabs]) => {
                 const sheetTotal = sheetTabs.reduce((sum, tab) => sum + (tab.count ?? 0), 0)
@@ -305,8 +305,8 @@ export default function RegistrosPage() {
                               onClick={() => selectTab(key)}
                               className={`relative flex min-w-0 flex-1 items-center justify-between gap-3 overflow-hidden rounded-lg border px-3 py-2 text-left text-sm transition ${
                                 active
-                                  ? 'border-amber-500/50 bg-amber-500/10'
-                                  : 'border-zinc-800/60 bg-zinc-950/40 hover:border-zinc-700'
+                                  ? 'border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/40'
+                                  : `border-zinc-800/60 bg-zinc-950/40 hover:border-zinc-700 ${selectedTab ? 'opacity-55 hover:opacity-100' : ''}`
                               }`}
                             >
                               <span
@@ -314,7 +314,8 @@ export default function RegistrosPage() {
                                 style={{ width: `${((tab.count ?? 0) / max) * 100}%` }}
                               />
                               <span className="relative flex min-w-0 items-center gap-2">
-                                <span className="truncate text-zinc-200">{tab.aba}</span>
+                                {active && <i className="fa-solid fa-circle-check filtro-selo shrink-0 text-amber-500" />}
+                                <span className={`truncate ${active ? 'font-semibold text-zinc-50' : 'text-zinc-200'}`}>{tab.aba}</span>
                                 {tab.tipo === 'evento' && (
                                   <span className="shrink-0 rounded-full border border-sky-500/25 px-1.5 text-[10px] text-sky-300">
                                     hotmart
@@ -349,10 +350,47 @@ export default function RegistrosPage() {
             </div>
           </section>
 
+          {selectedInfo && (
+            <div
+              key={selectedTab}
+              role="status"
+              className="filtro-barra flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-500/60 bg-amber-100/95 px-4 py-2.5 text-sm shadow-lg backdrop-blur"
+            >
+              <i className="fa-solid fa-filter text-amber-600" />
+              <span className="text-zinc-700">Filtrando tudo abaixo por</span>
+              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-zinc-950">
+                {selectedInfo.planilha} · {selectedInfo.aba}
+              </span>
+              <span className="text-zinc-600">{formatNumber(scoped.length)} registros</span>
+              <span className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('lista-registros')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="rounded-lg border border-amber-600/40 px-3 py-1 text-xs font-medium text-zinc-800 hover:bg-amber-200"
+                >
+                  <i className="fa-solid fa-arrow-down mr-1.5" />
+                  Ver a lista
+                </button>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="rounded-lg bg-zinc-900 px-3 py-1 text-xs font-medium text-amber-100 hover:bg-zinc-700"
+                >
+                  <i className="fa-solid fa-xmark mr-1.5" />
+                  Limpar filtro
+                </button>
+              </span>
+            </div>
+          )}
+
           <div className="grid gap-4 lg:grid-cols-2">
-            <section className="surface-card p-4">
+            <section key={`origem-${selectedTab}`} className={`surface-card p-4 ${selectedTab ? 'filtro-flash' : ''}`}>
               <p className="section-label">Origem do lead</p>
-              <h3 className="section-title mt-1 mb-1">De onde vieram</h3>
+              <h3 className="section-title mt-1 mb-1">De onde vieram {selectedInfo && (
+                <span className="filtro-selo ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-zinc-950">
+                  <i className="fa-solid fa-filter" /> Filtrado: {selectedInfo.aba}
+                </span>
+              )}</h3>
               <p className="mb-3 text-xs text-zinc-600">
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
                 {formatNumber(scoped.length)} registros. Clique para ver a lista.
@@ -366,9 +404,13 @@ export default function RegistrosPage() {
               />
             </section>
 
-            <section className="surface-card p-4">
+            <section key={`camp-${selectedTab}`} className={`surface-card p-4 ${selectedTab ? 'filtro-flash' : ''}`}>
               <p className="section-label">Campanhas</p>
-              <h3 className="section-title mt-1 mb-1">Leads por campanha</h3>
+              <h3 className="section-title mt-1 mb-1">Leads por campanha {selectedInfo && (
+                <span className="filtro-selo ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-zinc-950">
+                  <i className="fa-solid fa-filter" /> Filtrado: {selectedInfo.aba}
+                </span>
+              )}</h3>
               <p className="mb-3 text-xs text-zinc-600">
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
                 {formatNumber(byCampanha.length)} campanhas. Clique para ver a lista.
@@ -384,7 +426,7 @@ export default function RegistrosPage() {
             </section>
           </div>
 
-          <section className="surface-card overflow-hidden">
+          <section id="lista-registros" key={`lista-${selectedTab}`} className={`surface-card scroll-mt-32 overflow-hidden ${selectedTab ? 'filtro-flash' : ''}`}>
             <div className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <p className="section-label">Lista</p>
@@ -393,6 +435,11 @@ export default function RegistrosPage() {
                   {filtersActive && (
                     <span className="ml-2 text-sm text-zinc-500">de {formatNumber(grouped.length)}</span>
                   )}
+                  {selectedInfo && (
+                <span className="filtro-selo ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-zinc-950">
+                  <i className="fa-solid fa-filter" /> Filtrado: {selectedInfo.aba}
+                </span>
+              )}
                 </h3>
                 {grouped.length < scoped.length && (
                   <p className="mt-1 text-xs text-zinc-600">
