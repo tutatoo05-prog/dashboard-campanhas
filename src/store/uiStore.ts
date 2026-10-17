@@ -15,6 +15,8 @@ function readSidebarPreference(): boolean {
 interface UiState {
   sidebarOpen: boolean
   paletteOpen: boolean
+  userModalOpen: boolean
+  setUserModalOpen: (open: boolean) => void
   toggleSidebar: () => void
   closeSidebarOnMobile: () => void
   setPaletteOpen: (open: boolean) => void
@@ -23,6 +25,8 @@ interface UiState {
 export const useUiStore = create<UiState>((set, get) => ({
   sidebarOpen: readSidebarPreference(),
   paletteOpen: false,
+  userModalOpen: false,
+  setUserModalOpen: (open) => set({ userModalOpen: open }),
   toggleSidebar: () => {
     const next = !get().sidebarOpen
     set({ sidebarOpen: next })

@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { Avatar } from '@/components/layout/Avatar.tsx'
-import { ICONS } from '@/components/flash/iconData.ts'
-import { changePassword, resizePhoto, updateProfile } from '@/services/profileService.ts'
+import { AvatarPicker } from '@/components/layout/AvatarPicker.tsx'
+import { changePassword, updateProfile } from '@/services/profileService.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
@@ -15,9 +15,6 @@ const ABAS = [
   { id: 'senha', rotulo: 'Senha', icone: 'fa-key' },
 ] as const
 type Aba = (typeof ABAS)[number]['id']
-
-/** Adesivos que dá para escolher como foto (mesmos aceitos pelo servidor). */
-const ADESIVOS = ['rose', 'skull', 'anchor', 'eye', 'swallow', 'dagger', 'heart', 'star', 'moon', 'bolt', 'crown', 'lighthouse']
 
 const TEMAS: { id: ThemeMode; rotulo: string; fundo: string; barra: string; cartao: string }[] = [
   { id: 'light', rotulo: '☀️ Claro', fundo: '#efe2c4', barra: '#15110d', cartao: '#fcf6e6' },
@@ -42,7 +39,6 @@ export default function AccountPage() {
   const [avatar, setAvatar] = useState<string>(user?.avatar ?? '')
   const [salvando, setSalvando] = useState(false)
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
-  const arquivo = useRef<HTMLInputElement>(null)
 
   const [atual, setAtual] = useState('')
   const [nova, setNova] = useState('')
@@ -61,18 +57,6 @@ export default function AccountPage() {
       setAviso({ tipo: 'erro', texto: (erro as Error).message })
     } finally {
       setSalvando(false)
-    }
-  }
-
-  async function escolherFoto(evento: React.ChangeEvent<HTMLInputElement>) {
-    const foto = evento.target.files?.[0]
-    evento.target.value = ''
-    if (!foto) return
-    try {
-      setAvatar(await resizePhoto(foto))
-      setAviso(null)
-    } catch (erro) {
-      setAviso({ tipo: 'erro', texto: (erro as Error).message })
     }
   }
 
@@ -122,23 +106,8 @@ export default function AccountPage() {
               <Avatar user={user} avatar={avatar || null} nome={nome} size={120} />
             </div>
             <b style={{ fontSize: '1.1rem' }}>{nome.trim() || '—'}</b>
-            <p className="ac-help" style={{ marginTop: 10 }}>Escolha um adesivo de tatuagem ou envie uma foto.</p>
-            <div className="ac-picks">
-              <button type="button" className={`ac-pick ${avatar === '' ? 'ac-sel' : ''}`} onClick={() => setAvatar('')} title="Inicial do nome">
-                {(nome.trim().charAt(0) || '?').toUpperCase()}
-              </button>
-              {ADESIVOS.slice(0, 11).map((nomeAdesivo) => (
-                <button key={nomeAdesivo} type="button" className={`ac-pick ${avatar === `sticker:${nomeAdesivo}` ? 'ac-sel' : ''}`} onClick={() => setAvatar(`sticker:${nomeAdesivo}`)} title={nomeAdesivo}>
-                  <svg className="stk flat" viewBox="0 0 100 100" aria-hidden="true" dangerouslySetInnerHTML={{ __html: ICONS[nomeAdesivo] ?? '' }} />
-                </button>
-              ))}
-            </div>
-            <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button type="button" className="ac-btn" onClick={() => arquivo.current?.click()}>
-                <i className="fa-solid fa-camera" /> Enviar foto
-              </button>
-              <input ref={arquivo} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(evento) => void escolherFoto(evento)} />
-            </div>
+            <p className="ac-help" style={{ marginTop: 10 }}>Escolha um avatar. O envio de foto própria vem em breve.</p>
+            <AvatarPicker value={avatar} inicial={nome} onChange={setAvatar} />
           </div>
           <div className="ac-card">
             <div className="ac-sub">Dados</div>

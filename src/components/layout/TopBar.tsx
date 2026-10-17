@@ -4,7 +4,7 @@ import { useTourStore } from '@/store/tourStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useThemeStore } from '@/store/themeStore.ts'
-import { getDisplayName } from '@/lib/userDisplay.ts'
+import { Avatar } from '@/components/layout/Avatar.tsx'
 
 const TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -23,6 +23,7 @@ export default function TopBar() {
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
+  const setUserModalOpen = useUiStore((state) => state.setUserModalOpen)
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen)
   const startTour = useTourStore((state) => state.start)
   const mascotEnabled = useMascotStore((state) => state.enabled)
@@ -30,7 +31,6 @@ export default function TopBar() {
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggle)
   const title = TITLES[location.pathname] ?? 'Dashboard'
-  const name = getDisplayName(user)
 
   function handleTour() {
     if (!mascotEnabled) setMascotEnabled(true)
@@ -73,20 +73,14 @@ export default function TopBar() {
           aria-label={theme === 'dark' ? 'Mudar para o tema claro' : 'Mudar para o tema escuro'}
           aria-pressed={theme === 'dark'}
         >
-          <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-xs`} />
+          <i className={`fa-regular ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
         </button>
-        <button
-          type="button"
-          className="topbar-icon-btn"
-          onClick={handleTour}
-          title="Tour com o TaTuzinho"
-          aria-label="Tour com o TaTuzinho"
-        >
-          <i className="fa-solid fa-wand-magic-sparkles text-xs" />
+        <button type="button" className="topbar-icon-btn" onClick={handleTour} title="Tour com o TaTuzinho" aria-label="Tour guiado com o TaTuzinho">
+          <i className="fa-regular fa-circle-question" />
         </button>
-        <div className="topbar-user" title={name}>
-          {name.charAt(0).toUpperCase()}
-        </div>
+        <button type="button" className="topbar-user" onClick={() => setUserModalOpen(true)} title="Minha conta" aria-label="Abrir minha conta" aria-haspopup="dialog">
+          <Avatar user={user} size={36} />
+        </button>
       </div>
     </header>
   )

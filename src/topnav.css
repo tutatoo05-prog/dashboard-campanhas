@@ -115,7 +115,7 @@
 .ac-chip.ac-ok { background: #bfe6b6; color: #15110d; }
 .ac-chip.ac-warn { background: var(--y); color: #15110d; }
 .ac-chip.ac-bad { background: #f3a49c; color: #15110d; }
-.ac-picks { display: grid; grid-template-columns: repeat(6, 52px); gap: 10px; justify-content: center; }
+.ac-picks { display: grid; grid-template-columns: repeat(auto-fill, 48px); gap: 10px; justify-content: center; }
 .ac-pick { aspect-ratio: 1; border: 2.5px solid var(--line); border-radius: 50%; background: var(--y); padding: 9px; color: #15110d; display: grid; place-items: center; font-weight: 800; transition: transform 0.15s; }
 .ac-pick:hover { transform: scale(1.08) rotate(-4deg); }
 .ac-pick.ac-sel { outline: 4px solid var(--o); outline-offset: 2px; }
@@ -141,7 +141,7 @@
   .cfg-layout { grid-template-columns: 1fr; }
   .cfg-side { position: static; flex-direction: row; overflow: auto; padding-bottom: 6px; }
   .cfg-side a { white-space: nowrap; }
-  .ac-picks { grid-template-columns: repeat(4, 52px); }
+  .ac-picks { grid-template-columns: repeat(auto-fill, 48px); }
   .ac-themes { grid-template-columns: 1fr; }
 }
 
@@ -175,3 +175,39 @@ button.fx-me:hover { background: var(--y); }
   .app-shell.sidebar-collapsed .fx-ticket::before, .app-shell.sidebar-collapsed .fx-ticket::after { display: none; }
   .app-shell.sidebar-collapsed .fx-me { justify-content: center; padding: 6px; }
 }
+
+/* ───── Botões do topo: mais limpos e fáceis de reconhecer ───── */
+.topbar .topbar-icon-btn, .topbar .cmdk-trigger { height: 2.5rem; min-width: 2.5rem; border-radius: 12px; border: 2px solid var(--line); background: var(--white); color: var(--ink); box-shadow: none; font-size: 1rem; transform: none; transition: background 0.15s, border-color 0.15s; }
+.topbar .topbar-icon-btn:hover, .topbar .cmdk-trigger:hover { background: var(--paper); transform: none; }
+.topbar .topbar-icon-btn:focus-visible, .topbar .cmdk-trigger:focus-visible, .topbar .topbar-user:focus-visible, .topbar-menu-btn:focus-visible { outline: 3px solid var(--o); outline-offset: 2px; }
+.topbar .topbar-user { width: 2.5rem; height: 2.5rem; padding: 0; background: none; border: 0; border-radius: 50%; box-shadow: none; display: inline-grid; place-items: center; cursor: pointer; }
+.topbar .topbar-user .tn-avatar { width: 40px !important; height: 40px !important; }
+.topbar .topbar-user:hover .tn-avatar { box-shadow: 0 0 0 3px var(--o); }
+:root[data-theme='dark'] .topbar .topbar-icon-btn, :root[data-theme='dark'] .topbar .cmdk-trigger { background: var(--card); color: var(--ink); }
+
+/* ───── Janela da conta ───── */
+.um-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(21, 17, 13, 0.5); display: grid; place-items: center; padding: 16px; animation: um-fade 0.15s ease both; }
+.um-dialog { width: min(560px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; background: var(--card); color: var(--ink); border: 3px solid var(--line); border-radius: 20px; box-shadow: 8px 8px 0 var(--shade); overflow: hidden; animation: um-pop 0.18s ease both; }
+.um-head { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-bottom: 2px dashed var(--line); position: relative; }
+.um-head b { display: block; font-size: 1.15rem; }
+.um-head small { display: block; color: var(--muted); font-weight: 600; word-break: break-all; }
+.um-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 2px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); }
+.um-x:hover { background: var(--paper); }
+.um-body { overflow-y: auto; padding: 6px 20px 14px; }
+.um-body section { padding: 14px 0; border-bottom: 2px dashed rgba(21, 17, 13, 0.18); }
+.um-body section:last-child { border-bottom: 0; }
+.um-body h4 { font-size: 0.64rem; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.um-save { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.um-more { display: inline-flex; gap: 8px; align-items: center; margin-top: 12px; font-weight: 700; font-size: 0.82rem; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.um-link { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border-radius: 12px; text-align: left; color: var(--ink); }
+.um-link:hover, .um-link:focus-visible { background: var(--white); }
+.um-link > i:first-child { width: 36px; height: 36px; display: grid; place-items: center; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); flex: none; }
+.um-link span { flex: 1; min-width: 0; }
+.um-link b { display: block; font-size: 0.9rem; }
+.um-link small { color: var(--muted); font-weight: 600; font-size: 0.76rem; }
+.um-go { color: var(--muted); font-size: 0.75rem; }
+.um-foot { padding: 12px 20px; border-top: 2px dashed var(--line); display: flex; justify-content: flex-end; }
+@keyframes um-fade { from { opacity: 0; } }
+@keyframes um-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .um-overlay, .um-dialog { animation: none; } }
+@media (max-width: 520px) { .um-picks, .um-dialog .ac-picks { grid-template-columns: repeat(5, 44px); } .um-dialog .ac-pick { padding: 6px; } }
