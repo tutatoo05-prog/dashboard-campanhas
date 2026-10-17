@@ -4,7 +4,10 @@ import { query } from './db.js'
 import { isAdmin } from './roles.js'
 import { getSessionToken, limparCacheDeSessoes } from './session.js'
 import { driveConfigurado, rodarBackup } from './backup.js'
-import { estatisticasDoWebhook } from './hotmartWebhookHandler.js'
+import { EVENTOS_DE_ACESSO, estatisticasDoWebhook } from './hotmartWebhookHandler.js'
+import { inserirEvento } from './acesso/repo.js'
+import { rodarAgora } from './acesso/scheduler.js'
+import { readRequestBody } from './readBody.js'
 import { telegramConfigurado } from './alertas.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { modoAcesso } from './acesso/motor.js'
@@ -64,6 +67,24 @@ export async function resumoDoWebhook(env, { consultar = (texto) => query(env, t
   return { ...banco, recusadas: memoria.recusadas, ultimaRecusaEm: memoria.ultimaRecusaEm, aceitas: memoria.aceitas, ultimaAceitaEm: memoria.ultimaAceitaEm, hottokConfigurado: Boolean(String(env.HOTMART_HOTTOK ?? '').trim()) }
 }
 
+/**
+ * Prepara o JSON de uma venda da Hotmart colado pelo admin (o "Corpo de postagem" do Histórico de webhooks).
+ * Tira o hottok (segredo da Hotmart) antes de guardar. Devolve { payload } ou { erro }.
+ */
+export function prepararPayloadImportado(texto) {
+  let payload
+  try {
+    payload = typeof texto === 'string' ? JSON.parse(texto) : texto
+  } catch {
+    return { erro: 'Isso não é um JSON válido. Copie o "Corpo de postagem" inteiro da entrega, do { até o }.' }
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { erro: 'O JSON precisa ser um objeto (começa com {).' }
+  if (typeof payload.event !== 'string' || !payload.event) return { erro: 'Não achei o campo "event" no JSON: confira se copiou o corpo da entrega da Hotmart.' }
+  if (!payload.data || typeof payload.data !== 'object') return { erro: 'Não achei o campo "data" no JSON: confira se copiou o corpo inteiro.' }
+  const { hottok: _segredo, ...semSegredo } = payload
+  return { payload: semSegredo }
+}
+
 /** Só diz se cada ajuste está feito. Nunca devolve valor de chave, token ou senha. */
 export function checklistDeConfiguracao(env) {
   const porta = (() => {
@@ -93,6 +114,7 @@ export function checklistDeConfiguracao(env) {
  *   POST /api/seguranca/backup            (faz o backup agora: servidor + Telegram)
  *   POST /api/seguranca/alerta-teste      (manda um aviso de teste pelo canal de alertas)
  *   POST /api/seguranca/encerrar-sessoes  (derruba todos os logins, menos o seu)
+ *   POST /api/seguranca/hotmart/importar  { payload }  (grava e processa uma venda da Hotmart que o webhook não recebeu)
  */
 export async function handleSegurancaRequest(req, res, env, user) {
   if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
@@ -157,6 +179,26 @@ export async function handleSegurancaRequest(req, res, env, user) {
       const canal = telegramConfigurado(env) ? 'Telegram' : 'WhatsApp da equipe'
       await avisarProblema(env, '✅ Teste do dash: se você está lendo isto, os avisos de problema chegam aqui.')
       return sendJson(res, 200, { canal })
+    }
+
+    if (req.method === 'POST' && caminho === '/api/seguranca/hotmart/importar') {
+      if (modoAcesso(env) === 'desligado') return sendJson(res, 409, { error: 'A liberação pelo dash está desligada (ACESSO_MODO).' })
+      const corpo = JSON.parse((await readRequestBody(req)) || '{}')
+      const { payload, erro } = prepararPayloadImportado(corpo.payload)
+      if (erro) return sendJson(res, 400, { error: erro })
+      const processa = EVENTOS_DE_ACESSO.has(payload.event)
+      const gravado = await inserirEvento(env, payload, { estadoInicial: processa ? 'novo' : 'ignorado' })
+      if (gravado.novo && processa) setImmediate(() => void rodarAgora(env))
+      const compra = payload.data?.purchase ?? {}
+      return sendJson(res, 200, {
+        registrado: Boolean(gravado.id),
+        repetido: !gravado.novo,
+        processa,
+        evento: payload.event,
+        email: payload.data?.buyer?.email ?? null,
+        transacao: compra.transaction ?? null,
+        produto: payload.data?.product?.name ?? null,
+      })
     }
 
     if (req.method === 'POST' && caminho === '/api/seguranca/encerrar-sessoes') {

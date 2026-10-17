@@ -8,6 +8,7 @@ import {
   fazerBackupAgora,
   fetchSaude,
   fetchSeguranca,
+  importarVendaHotmart,
   testarAlerta,
 } from '@/services/segurancaService.ts'
 
@@ -71,6 +72,15 @@ export default function SegurancaPage() {
   const saude = useQuery({ queryKey: ['saude'], queryFn: fetchSaude, retry: false, refetchInterval: 30_000 })
   const backup = useMutation({ mutationFn: fazerBackupAgora, onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['seguranca'] }) })
   const alerta = useMutation({ mutationFn: testarAlerta })
+  const [jsonVenda, setJsonVenda] = useState('')
+  const importar = useMutation({
+    mutationFn: () => importarVendaHotmart(jsonVenda),
+    onSuccess: () => {
+      setJsonVenda('')
+      void queryClient.invalidateQueries({ queryKey: ['seguranca'] })
+      void queryClient.invalidateQueries({ queryKey: ['acessos'] })
+    },
+  })
   const sessoes = useMutation({ mutationFn: encerrarOutrasSessoes, onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['seguranca'] }) })
   const { feitos, alternar } = useLembretes()
   const [confirmando, setConfirmando] = useState(false)
@@ -245,6 +255,44 @@ export default function SegurancaPage() {
             <p className="mt-2 text-[11px] text-zinc-500">
               Os contadores de "aceitos" e "recusados" zeram a cada reinício do app. Para ver o histórico completo: Hotmart → Ferramentas → Webhook → Histórico.
             </p>
+          </section>
+
+          <section className="surface-card p-4 text-sm">
+            <p className="section-label">Quando o webhook falhou</p>
+            <h3 className="section-title mt-1">Importar venda da Hotmart</h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Se uma venda não chegou ao dash (webhook com erro), cole aqui o JSON dela: na Hotmart, vá em <b>Ferramentas → Webhook → Histórico</b>, clique na lupa da entrega
+              daquela venda e copie o <b>Corpo de postagem</b> inteiro. O dash grava como se a Hotmart tivesse mandado e faz a liberação normal (curso, e-mail, WhatsApp e aviso à equipe).
+              O código de segurança (hottok) que vier no texto não é guardado.
+            </p>
+            <textarea
+              value={jsonVenda}
+              onChange={(evento) => setJsonVenda(evento.target.value)}
+              rows={5}
+              placeholder='{ "event": "PURCHASE_APPROVED", "data": { ... } }'
+              className="mt-3 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-200"
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={importar.isPending || !jsonVenda.trim()}
+                onClick={() => importar.mutate()}
+                className="rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50"
+              >
+                <i className="fa-solid fa-file-import mr-1.5" />
+                {importar.isPending ? 'Importando...' : 'Importar e liberar'}
+              </button>
+              {importar.data && (
+                <span className={importar.data.repetido ? 'text-amber-200' : 'text-emerald-300'}>
+                  {importar.data.repetido
+                    ? 'Esta venda já estava registrada (nada foi repetido).'
+                    : importar.data.processa
+                      ? `Registrada: ${importar.data.produto ?? 'venda'} de ${importar.data.email ?? 'sem e-mail'}. A liberação já começou, acompanhe em Acessos → Eventos.`
+                      : 'Registrada, mas esse tipo de evento só fica guardado (não libera nada).'}
+                </span>
+              )}
+              {importar.isError && <span className="text-red-300">{(importar.error as Error).message}</span>}
+            </div>
           </section>
 
           <section className="surface-card p-4 text-sm">

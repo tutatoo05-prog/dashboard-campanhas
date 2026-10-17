@@ -61,6 +61,12 @@ export const fazerBackupAgora = () =>
 
 export const testarAlerta = () => pedir<{ canal: string }>('/api/seguranca/alerta-teste', { method: 'POST' })
 
+export const importarVendaHotmart = (payload: string) =>
+  pedir<{ registrado: boolean; repetido: boolean; processa: boolean; evento: string; email: string | null; transacao: string | null; produto: string | null }>(
+    '/api/seguranca/hotmart/importar',
+    { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ payload }) },
+  )
+
 export const encerrarOutrasSessoes = () => pedir<{ encerradas: number }>('/api/seguranca/encerrar-sessoes', { method: 'POST' })
 
 export interface SaudeDoSistema {

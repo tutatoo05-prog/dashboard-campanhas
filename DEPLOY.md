@@ -202,3 +202,6 @@ O ambiente em que o Plesk roda as "ações pós-implantação" é uma **jaula** 
 - Durante o build (1–3 min) o site pode oscilar por alguns segundos, porque a pasta `dist` é refeita.
 - O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o registro mostra o erro e o app anterior continua no ar.
 - Para desligar: apague `DEPLOY_TOKEN` ou volte o **Deployment mode** para **Manual**.
+
+## Venda que o webhook não recebeu (importar pelo dash)
+Se uma venda da Hotmart não chegou ao dash (webhook com erro, endereço errado, app fora do ar), **Admin → Segurança → Importar venda da Hotmart**: na Hotmart, Ferramentas → Webhook → Histórico, clique na lupa da entrega daquela venda e copie o **Corpo de postagem** inteiro; cole na caixa e clique em *Importar e liberar*. O dash grava o evento como se a Hotmart o tivesse mandado (o `hottok` do texto é descartado) e faz a liberação normal (curso, e-mail, WhatsApp, aviso à equipe). É seguro repetir: o mesmo evento não é processado duas vezes (`event_id` único). Só admin (`POST /api/seguranca/hotmart/importar`).
