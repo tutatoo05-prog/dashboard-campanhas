@@ -1,4 +1,5 @@
 import { test } from 'node:test'
+import { existsSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import { normalizarEvento } from './hotmart.js'
 import {
@@ -167,6 +168,13 @@ test('modelos de e-mail: preenchem e escapam os campos', async () => {
   assert.ok(boas.includes('Bem-vindo, Ana &lt;script&gt;'))
   assert.ok(boas.includes('52998224725'))
   assert.ok(!/\{\{\w+\}\}/.test(boas), 'sobrou campo sem preencher')
+  // imagens do e-mail: cada uma precisa existir em public/email (o e-mail aponta para o endereço público do dash)
+  const imagens = [...boas.matchAll(/https:\/\/dash\.tuzinho\.academy\/email\/([\w-]+\.png)/g)].map((m) => m[1])
+  assert.ok(imagens.length >= 5, 'o e-mail deveria ter a logo, a textura e as tatuagens')
+  for (const arquivo of new Set(imagens)) {
+    assert.ok(existsSync(new URL(`../../public/email/${arquivo}`, import.meta.url)), `falta public/email/${arquivo}`)
+  }
+  assert.ok(boas.includes('dark only'), 'o e-mail deve forçar o tema escuro')
   const aband = renderizar(await carregarTemplate('abandono'), { nome: 'Ana', curso: 'Essentials' })
   assert.ok(aband.includes('Essentials'))
   assert.ok(!/\{\{\w+\}\}/.test(aband), 'sobrou campo sem preencher')

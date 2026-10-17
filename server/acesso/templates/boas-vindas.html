@@ -1,399 +1,235 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" style="background:#202023;">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
-
+<meta name="color-scheme" content="dark only">
+<meta name="supported-color-schemes" content="dark only">
 <title>Tuzinho Academy</title>
-
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-
-/* RESET */
-html,
-body {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    background-color: #050505 !important;
-}
-
-body,
-table,
-td,
-a {
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-}
-
-table,
-td {
-    mso-table-lspace: 0pt;
-    mso-table-rspace: 0pt;
-}
-
-table {
-    border-collapse: collapse !important;
-}
-
-img {
-    border: 0;
-    outline: none;
-    text-decoration: none;
-    display: block;
-    max-width: 100%;
-}
-
-a {
-    text-decoration: none !important;
-    color: #fea300 !important;
-}
-
-body {
-    background-color: #050505 !important;
-    font-family: Arial, Helvetica, sans-serif;
-    color: #ffffff;
-}
-
-/* IOS BLUE LINKS */
-a[x-apple-data-detectors] {
-    color: #fea300 !important;
-    text-decoration: none !important;
-}
-
-/* MOBILE */
+:root { color-scheme: dark only; supported-color-schemes: dark only; }
+html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #202023 !important; }
+body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+table { border-collapse: separate !important; }
+img { border: 0; outline: none; text-decoration: none; display: block; -ms-interpolation-mode: bicubic; }
+a { text-decoration: none !important; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+.display { font-family: 'Bebas Neue', Impact, 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif; font-weight: normal; }
 @media screen and (max-width: 600px) {
-
-    .container {
-        width: 100% !important;
-    }
-
-    .mobile-padding {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-    }
-
-    .button {
-        width: 100% !important;
-    }
-
-    .button a {
-        display: block !important;
-        width: 100% !important;
-        box-sizing: border-box;
-    }
-
-    h1 {
-        font-size: 26px !important;
-        line-height: 32px !important;
-    }
-
-    h2 {
-        font-size: 22px !important;
-        line-height: 30px !important;
-    }
-
-    .responsive-text {
-        font-size: 15px !important;
-        line-height: 26px !important;
-    }
+  .container { width: 100% !important; }
+  .pad { padding-left: 18px !important; padding-right: 18px !important; }
+  .hero-title { font-size: 40px !important; line-height: 42px !important; }
+  .fluid { width: 100% !important; max-width: 100% !important; height: auto !important; }
+  .hide-m { display: none !important; max-height: 0 !important; overflow: hidden !important; }
+  .full-m { display: block !important; width: 100% !important; }
+  .btn a { display: block !important; }
 }
-
-/* DARK MODE FIX */
-@media (prefers-color-scheme: dark) {
-
-    body,
-    table,
-    td {
-        background-color: #050505 !important;
-    }
-
-    .card {
-        background-color: #0a0a0a !important;
-        border-color: #232323 !important;
-    }
-
-    a {
-        color: #fea300 !important;
-    }
-}
-
 </style>
 </head>
-
-<body style="margin:0; padding:0; background:#050505 !important;">
+<body style="margin:0; padding:0; background:#202023 url('https://dash.tuzinho.academy/email/textura.png') repeat;" background="https://dash.tuzinho.academy/email/textura.png" bgcolor="#202023">
 
 <!-- PREHEADER -->
-<div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-Seu acesso à Tuzinho Academy foi liberado.
+<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:#202023;">
+Seu acesso à Tuzinho Academy está liberado. Seu login e sua senha estão dentro.
 </div>
 
-<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#050505" style="background:#050505 !important;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#202023" background="https://dash.tuzinho.academy/email/textura.png" style="background-color:#202023; background-image:url('https://dash.tuzinho.academy/email/textura.png'); background-repeat:repeat;">
 <tr>
-<td align="center" bgcolor="#050505" style="background:#050505 !important;">
+<td align="center" bgcolor="#202023" background="https://dash.tuzinho.academy/email/textura.png" style="background-color:#202023; background-image:url('https://dash.tuzinho.academy/email/textura.png'); padding:30px 12px 40px 12px;">
 
-<!-- CONTAINER -->
-<table width="560" border="0" cellspacing="0" cellpadding="0" class="container" style="width:560px; max-width:560px; background:#050505 !important;">
+<table width="580" border="0" cellspacing="0" cellpadding="0" class="container" style="width:580px; max-width:580px;">
 
-<!-- ESPAÇO -->
+<!-- ═════ MARCA ═════ -->
 <tr>
-<td height="40"></td>
-</tr>
-
-<!-- LOGO -->
-<tr>
-<td align="center" class="mobile-padding">
-
-<h1 style="margin:0; font-size:30px; line-height:36px; font-weight:bold; color:#ffffff;">
-<span style="color:#ffffff;">TUZINHO</span>
-<span style="color:#fea300;">ACADEMY</span>
-</h1>
-
-</td>
-</tr>
-
-<!-- ESPAÇO -->
-<tr>
-<td height="45"></td>
-</tr>
-
-<!-- BOAS VINDAS -->
-<tr>
-<td class="mobile-padding">
-
-<h2 style="margin:0 0 14px 0; color:#ffffff; font-size:26px; line-height:34px; font-weight:bold;">
-Bem-vindo, {{nome}} 🎨
-</h2>
-
-<p class="responsive-text" style="margin:0; color:#b3b3b3; font-size:16px; line-height:28px;">
-Parabéns pela inscrição! Seu acesso já está liberado.
-Antes de começar, uma coisa importante:
-</p>
-
-</td>
-</tr>
-
-<!-- ESPAÇO -->
-<tr>
-<td height="30"></td>
-</tr>
-
-<!-- FAVORITAR -->
-<tr>
-<td class="mobile-padding">
-
-<table width="100%" border="0" cellspacing="0" cellpadding="0" class="card" style="background:#0a0a0a; border:1px solid #232323;">
-
-<tr>
-<td style="padding:26px;">
-
-<p style="margin:0 0 14px 0; color:#ffffff; font-size:18px; font-weight:bold;">
-⭐ Favoritar este email
-</p>
-
-<p class="responsive-text" style="margin:0 0 14px 0; color:#b3b3b3; font-size:15px; line-height:28px;">
-Adicione o remetente
-<span style="color:#fea300; font-weight:bold;">Tuzinho Academy</span>
-aos seus contatos e marque este e-mail como importante.
-Isso garante que você receba todas as aulas e não caia no spam.
-</p>
-
-<p class="responsive-text" style="margin:0; color:#8c8c8c; font-size:13px; line-height:22px;">
-Em breve nossos e-mails passarão a ser enviados por
-<span style="color:#fea300; font-weight:bold;">comunicacao@tuzinho.academy</span>.
-Quando isso acontecer, adicione também esse endereço aos seus contatos.
-</p>
-
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-
-<!-- ESPAÇO -->
-<tr>
-<td height="26"></td>
-</tr>
-
-<!-- LOGIN -->
-<tr>
-<td class="mobile-padding">
-
-<table width="100%" border="0" cellspacing="0" cellpadding="0" class="card" style="background:#0a0a0a; border:1px solid #232323;">
-
-<tr>
-<td style="padding:30px;">
-
-<!-- EMAIL -->
-<p style="margin:0 0 8px 0; color:#fea300; font-size:12px; font-weight:bold; letter-spacing:1px;">
-EMAIL
-</p>
-
-<p style="margin:0 0 28px 0; font-size:16px; line-height:24px; text-decoration: underline; font-weight:bold">
-<a href="mailto:{{email}}" style="color:#fff !important;">
-{{email}}
-</a>
-</p>
-
-<!-- SENHA -->
-<p style="margin:0 0 8px 0; color:#fea300; font-size:12px; font-weight:bold; letter-spacing:1px;">
-SENHA
-</p>
-
+<td align="center" style="padding:0 0 22px 0;">
 <table border="0" cellspacing="0" cellpadding="0">
 <tr>
-<td style="background:#111111; border:1px solid #2b2b2b; padding:14px 18px;">
+<td valign="middle" class="hide-m" style="padding-right:26px;"><img src="https://dash.tuzinho.academy/email/tat-adaga.png" width="96" alt="" style="width:96px; height:auto; "></td>
+<td valign="middle" style="padding-right:12px;">
+<img src="https://dash.tuzinho.academy/email/tatu-logo.png" width="62" height="62" alt="Tuzinho Academy" style="width:62px; height:62px;">
+</td>
+<td valign="middle">
+<span class="display" style="font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-size:34px; line-height:34px; letter-spacing:3px; color:#f2efe8;">TUZINHO</span><br>
+<span class="display" style="font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-size:34px; line-height:30px; letter-spacing:7px; color:#ff8a1f;">ACADEMY</span>
+</td>
+<td valign="middle" class="hide-m" style="padding-left:26px;"><img src="https://dash.tuzinho.academy/email/tat-ancora.png" width="96" alt="" style="width:96px; height:auto; "></td>
+</tr>
+</table>
+</td>
+</tr>
 
-<p style="margin:0; color:#ffffff; font-size:18px; font-family:Courier New, monospace;">
-{{documento}}
-</p>
-
+<!-- ═════ HERO ═════ -->
+<tr>
+<td>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#2a2a2e" style="background:#2a2a2e; border:3px solid #000000; border-right-width:7px; border-bottom-width:7px; border-radius:20px;">
+<tr>
+<td style="padding:28px 30px 30px 30px;" class="pad">
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td valign="top" class="full-m">
+<table border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td bgcolor="#ff8a1f" style="background:#ff8a1f; border:2px solid #000000; border-radius:999px; padding:5px 14px;">
+<span style="font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; line-height:14px; font-weight:700; letter-spacing:1.8px; color:#000000; text-transform:uppercase;">✓ Acesso liberado</span>
 </td>
 </tr>
 </table>
+<h1 class="display hero-title" style="margin:16px 0 0 0; font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-weight:normal; font-size:50px; line-height:50px; letter-spacing:1px; color:#f2efe8; text-transform:uppercase;">
+Bem-vindo, {{nome}}!
+</h1>
+<p style="margin:14px 0 0 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:16px; line-height:26px; color:#b9b5ac;">
+Parabéns pela inscrição! Sua vaga está confirmada e seu acesso já está funcionando. Abaixo estão os seus dados de entrada.
+</p>
+</td>
+<td width="150" valign="top" align="right" class="hide-m" style="padding-left:10px;"><img src="https://dash.tuzinho.academy/email/tat-rosa.png" width="150" alt="" style="width:150px; height:auto; margin-top:-6px;"></td>
+</tr>
+</table>
 
-<!-- ESPAÇO -->
-<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<!-- INGRESSO DE ACESSO -->
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#202023" style="margin-top:24px; background:#202023; border:3px solid #000000; border-radius:16px;">
 <tr>
-<td height="34"></td>
+<td style="padding:20px 22px 6px 22px;">
+<p style="margin:0 0 6px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; line-height:14px; font-weight:700; letter-spacing:1.8px; color:#2fb5b0; text-transform:uppercase;">Seu e-mail de acesso</p>
+<p style="margin:0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:17px; line-height:24px; font-weight:700; color:#f2efe8; word-break:break-all;">
+<a href="mailto:{{email}}" style="color:#f2efe8 !important; text-decoration:none !important;">{{email}}</a>
+</p>
+</td>
+</tr>
+<tr>
+<td style="padding:0 14px;"><div style="border-top:2px dashed #3d3d42; line-height:1px; font-size:1px; height:1px; margin:14px 0 0 0;">&nbsp;</div></td>
+</tr>
+<tr>
+<td style="padding:16px 22px 22px 22px;">
+<p style="margin:0 0 8px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:11px; line-height:14px; font-weight:700; letter-spacing:1.8px; color:#ff6b5e; text-transform:uppercase;">Sua senha</p>
+<table border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td bgcolor="#eab12a" style="background:#eab12a; border:3px solid #000000; border-radius:10px; padding:10px 18px;">
+<span style="font-family:'Courier New', Courier, monospace; font-size:22px; line-height:26px; font-weight:bold; letter-spacing:2px; color:#000000;">{{documento}}</span>
+</td>
+</tr>
+</table>
+<p style="margin:10px 0 0 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#8d897f;">
+Quer trocar? Menu › Editar Perfil › Senha
+</p>
+</td>
 </tr>
 </table>
 
 <!-- BOTÃO -->
-<table border="0" cellspacing="0" cellpadding="0" align="center" class="button">
+<table border="0" cellspacing="0" cellpadding="0" class="btn" width="100%" style="margin-top:26px;">
 <tr>
-<td align="center" bgcolor="#fea300" style="background-color:#fea300; border-radius:6px;">
-
-<a href="https://tuzinho.academy/login"
-style="
-background-color:#fea300;
-border:1px solid #fea300;
-border-radius:6px;
-color:#050505 !important;
-display:inline-block;
-font-family:Arial, Helvetica, sans-serif;
-font-size:15px;
-font-weight:bold;
-line-height:20px;
-text-align:center;
-text-decoration:none !important;
-padding:18px 36px;
-text-transform:uppercase;
-margin-top: 15px
-">
-
-<span style="color:#050505 !important;">
-ACESSAR PLATAFORMA
-</span>
-
+<td align="center" bgcolor="#000000" style="background:#000000; border:3px solid #000000; border-right-width:6px; border-bottom-width:6px; border-radius:14px;">
+<a href="https://tuzinho.academy/login" style="display:block; background:#ff8a1f; border-radius:9px; padding:17px 24px; font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-size:24px; line-height:26px; letter-spacing:2px; text-transform:uppercase; color:#000000 !important; text-decoration:none !important;">
+<span style="color:#000000 !important;">Entrar na plataforma →</span>
 </a>
-
 </td>
 </tr>
 </table>
-
-<!-- TEXTO -->
-<p style="margin:24px 0 0 0; color:#7a7a7a; font-size:12px; line-height:20px; text-align:center;">
-Para mudar sua senha:
-Menu > Editar Perfil > Senha
-</p>
-
 </td>
 </tr>
-
 </table>
-
 </td>
 </tr>
 
-<!-- ESPAÇO -->
 <tr>
-<td height="36"></td>
+<td style="padding:6px 8px 6px 8px;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>
+<td align="left" valign="middle"><img src="https://dash.tuzinho.academy/email/tat-andorinha.png" width="100" alt="" style="width:100px; height:auto; "></td>
+<td align="right" valign="middle" style="padding-top:18px;"><img src="https://dash.tuzinho.academy/email/tat-olho.png" width="90" alt="" style="width:90px; height:auto; "></td>
+</tr></table>
+</td>
 </tr>
 
-<!-- PASSOS -->
+<!-- ═════ PRÓXIMOS PASSOS ═════ -->
 <tr>
-<td class="mobile-padding">
-
-<p style="margin:0 0 16px 0; color:#ffffff; font-size:18px; font-weight:bold;">
-Próximos passos:
-</p>
-
+<td>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#2a2a2e" style="background:#2a2a2e; border:3px solid #000000; border-right-width:6px; border-bottom-width:6px; border-radius:20px;">
+<tr>
+<td style="padding:24px 28px 6px 28px;" class="pad">
+<h2 class="display" style="margin:0; font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-weight:normal; font-size:34px; line-height:36px; letter-spacing:1.5px; color:#f2efe8; text-transform:uppercase;">Seus 3 primeiros passos</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 28px 24px 28px;" class="pad">
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
-
 <tr>
-<td width="24" valign="top" style="color:#fea300; font-size:16px;">1.</td>
-<td style="color:#b3b3b3; font-size:15px; line-height:28px;">
-Favoritar este email
+<td width="48" valign="middle" style="padding:9px 0;">
+<table border="0" cellspacing="0" cellpadding="0"><tr><td align="center" width="34" height="34" bgcolor="#ff8a1f" style="width:34px; height:34px; background:#ff8a1f; border:3px solid #000000; border-radius:50%; font-family:'Bebas Neue', Impact, Arial, sans-serif; font-size:22px; line-height:30px; color:#000000;">1</td></tr></table>
+</td>
+<td valign="middle" style="padding:9px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:15px; line-height:22px; color:#b9b5ac;"><b style="color:#f2efe8;">Entre na plataforma</b> com o e-mail e a senha acima.</td>
+</tr>
+<tr>
+<td width="48" valign="middle" style="padding:9px 0;">
+<table border="0" cellspacing="0" cellpadding="0"><tr><td align="center" width="34" height="34" bgcolor="#1c8a86" style="width:34px; height:34px; background:#1c8a86; border:3px solid #000000; border-radius:50%; font-family:'Bebas Neue', Impact, Arial, sans-serif; font-size:22px; line-height:30px; color:#000000;">2</td></tr></table>
+</td>
+<td valign="middle" style="padding:9px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:15px; line-height:22px; color:#b9b5ac;"><b style="color:#f2efe8;">Complete o seu perfil</b> para personalizar a experiência.</td>
+</tr>
+<tr>
+<td width="48" valign="middle" style="padding:9px 0;">
+<table border="0" cellspacing="0" cellpadding="0"><tr><td align="center" width="34" height="34" bgcolor="#eab12a" style="width:34px; height:34px; background:#eab12a; border:3px solid #000000; border-radius:50%; font-family:'Bebas Neue', Impact, Arial, sans-serif; font-size:22px; line-height:30px; color:#000000;">3</td></tr></table>
+</td>
+<td valign="middle" style="padding:9px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:15px; line-height:22px; color:#b9b5ac;"><b style="color:#f2efe8;">Comece pelo Módulo 1</b> e vá no seu ritmo.</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 
 <tr>
-<td height="10"></td>
-</tr>
-
-<tr>
-<td width="24" valign="top" style="color:#fea300; font-size:16px;">2.</td>
-<td style="color:#b3b3b3; font-size:15px; line-height:28px;">
-Acessar a plataforma e completar seu perfil
+<td style="padding:6px 8px 6px 8px;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>
+<td align="left" valign="middle" style="padding-top:14px; padding-left:22px;"><img src="https://dash.tuzinho.academy/email/tat-lua.png" width="78" alt="" style="width:78px; height:auto; "></td>
+<td align="center" valign="middle"><img src="https://dash.tuzinho.academy/email/tat-estrela.png" width="62" alt="" style="width:62px; height:auto; "></td>
+<td align="right" valign="middle" style="padding-right:18px;"><img src="https://dash.tuzinho.academy/email/tat-raio.png" width="78" alt="" style="width:78px; height:auto; "></td>
+</tr></table>
 </td>
 </tr>
 
+<!-- ═════ DICA: NÃO CAIR NO SPAM ═════ -->
 <tr>
-<td height="10"></td>
+<td>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#2a2a2e" style="background:#2a2a2e; border:3px solid #000000; border-right-width:6px; border-bottom-width:6px; border-left:9px solid #eab12a; border-radius:20px;">
+<tr>
+<td style="padding:22px 26px;" class="pad">
+<p class="display" style="margin:0 0 8px 0; font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-weight:normal; font-size:28px; line-height:30px; letter-spacing:1.5px; color:#eab12a; text-transform:uppercase;">⭐ Não perca nenhuma aula</p>
+<p style="margin:0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; line-height:22px; color:#b9b5ac;">
+Adicione o remetente <b style="color:#f2efe8;">Tuzinho Academy</b> aos seus contatos e marque este e-mail como importante. Assim, nada cai no spam.
+</p>
+<p style="margin:12px 0 0 0; padding-top:12px; border-top:2px dashed #3d3d42; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:12px; line-height:19px; color:#8d897f;">
+Em breve nossos e-mails passarão a ser enviados por <b style="color:#f2efe8;">comunicacao@tuzinho.academy</b>. Quando isso acontecer, adicione esse endereço também.
+</p>
+</td>
+</tr>
+</table>
+</td>
 </tr>
 
+<tr><td height="28" style="font-size:1px; line-height:1px;">&nbsp;</td></tr>
+
+<!-- ═════ RODAPÉ ═════ -->
 <tr>
-<td width="24" valign="top" style="color:#fea300; font-size:16px;">3.</td>
-<td style="color:#b3b3b3; font-size:15px; line-height:28px;">
-Começar pelo Módulo 1
+<td align="center" style="padding:0 16px;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>
+<td width="110" align="left" valign="middle" class="hide-m"><img src="https://dash.tuzinho.academy/email/tat-caveira.png" width="92" alt="" style="width:92px; height:auto; "></td>
+<td align="center" valign="middle">
+<p class="display" style="margin:0 0 6px 0; font-family:'Bebas Neue', Impact, 'Arial Narrow', Arial, sans-serif; font-weight:normal; font-size:24px; line-height:26px; letter-spacing:3px; color:#f2efe8;">TUZINHO ACADEMY™</p>
+<p style="margin:0 0 10px 0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:14px; line-height:22px; font-weight:600; color:#e4e0d6; text-shadow:0 1px 0 #000000, 0 0 4px #000000;">
+Dúvidas? Fale com a gente:
+<a href="mailto:tutatoo05@gmail.com" style="color:#ffa347 !important; font-weight:700; text-decoration:underline !important; text-shadow:0 1px 0 #000000, 0 0 4px #000000;">tutatoo05@gmail.com</a>
+</p>
+<p style="margin:0; font-family:'Inter', 'Segoe UI', Helvetica, Arial, sans-serif; font-size:12px; line-height:16px; font-weight:600; color:#c4c0b5; text-shadow:0 1px 0 #000000, 0 0 4px #000000;">© 2023 - 2026 Tuzinho Academy</p>
+</td>
+<td width="110" align="right" valign="middle" class="hide-m"><img src="https://dash.tuzinho.academy/email/tat-coracao.png" width="82" alt="" style="width:82px; height:auto; "></td>
+</tr></table>
 </td>
 </tr>
 
 </table>
-
-</td>
-</tr>
-
-<!-- ESPAÇO -->
-<tr>
-<td height="40"></td>
-</tr>
-
-<!-- FOOTER -->
-<tr>
-<td align="center" class="mobile-padding" style="border-top:1px solid #232323; padding-top:30px;">
-
-<p style="margin:0 0 8px 0; color:#ffffff; font-size:14px; font-weight:bold;">
-Tuzinho Academy™
-</p>
-
-<p style="margin:0 0 12px 0; color:#666666; font-size:12px;">
-© 2023 - 2026 Tuzinho Academy
-</p>
-
-<p style="margin:0; color:#7a7a7a; font-size:13px; line-height:24px;">
-Dúvidas?
-<a href="mailto:tutatoo05@gmail.com" style="color:#fea300 !important;">
-tutatoo05@gmail.com
-</a>
-</p>
-
-</td>
-</tr>
-
-<!-- ESPAÇO FINAL -->
-<tr>
-<td height="40"></td>
-</tr>
-
-</table>
-<!-- END CONTAINER -->
 
 </td>
 </tr>
