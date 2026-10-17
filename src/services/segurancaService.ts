@@ -29,7 +29,7 @@ export interface AcaoNaMeta {
 }
 
 export interface ResumoDeSeguranca {
-  backup: { ligado: boolean; hora: number; dias: number; noTelegram: boolean; arquivos: ArquivoDeBackup[] }
+  backup: { ligado: boolean; hora: number; dias: number; noTelegram: boolean; noDrive: boolean; arquivos: ArquivoDeBackup[] }
   avisos: { canal: 'telegram' | 'whatsapp' | 'nenhum' }
   sessoes: SessaoAtiva[]
   acoes: AcaoNaMeta[]

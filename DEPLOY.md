@@ -187,11 +187,15 @@ O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exp
 - **Variáveis:** `BACKUP_PASSPHRASE` (**obrigatória**, 12+ caracteres, guarde também no seu gerenciador de senhas: sem ela o backup não abre), `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` (para o envio ao Telegram). Opcionais: `BACKUP_HORA` (padrão 3), `BACKUP_DIR`, `BACKUP_DIAS` (padrão 14), `BACKUP_ENABLED=false`. Sem `BACKUP_PASSPHRASE` o backup fica desligado e o log avisa.
 - **Fazer agora:** menu **Admin → Segurança** → botão **Fazer backup agora**. Se o backup diário falhar, a equipe é avisada.
 - **Restaurar** (no seu computador, apontando `DATABASE_URL` para o banco de destino e `BACKUP_PASSPHRASE` para a senha do backup): `node --env-file=.env server/scripts/restaurarBackup.js dash-AAAA-MM-DD.bkp --confirmar` (só restaura em tabelas vazias; `--limpar` apaga as tabelas antes). Baixe o arquivo `.bkp` do Telegram ou da pasta `backups/`. Tudo roda numa transação: se der erro, nada é restaurado.
-- **Google Drive:** não está ligado. Conta de serviço do Google não consegue guardar arquivos numa pasta comum do Drive (só em Drive Compartilhado) e o login por OAuth exige uma autorização manual; o Telegram cobre o "fora do servidor" sem isso.
+- **Google Drive (opcional):** o backup também pode ir para uma pasta do seu Drive. Instale o recebedor de scripts/backup-drive.gs no Google Apps Script (instruções no próprio arquivo: cole o código, crie a propriedade SEGREDO, implante como "App da Web" e copie a URL), e no Plesk crie BACKUP_DRIVE_URL (a URL /exec) e BACKUP_DRIVE_TOKEN (o mesmo SEGREDO). O arquivo vai criptografado e o script guarda os últimos 30. Se o Drive falhar, o backup continua no servidor e no Telegram.
 
 ## Deploy automático (sem os 4 passos manuais)
-O Plesk consegue puxar e publicar sozinho a cada `git push`:
-1. Plesk → **Git** → o repositório → **Configurações** → ative **Implantação automática** (o Plesk mostra uma **URL de webhook**).
-2. No GitHub (repositório → **Settings → Webhooks → Add webhook**): cole a URL do Plesk em *Payload URL*, *Content type* `application/json`, evento **Just the push event**.
-3. De volta ao Plesk, em **Ações adicionais de implantação**, cole: `sh scripts/deploy-plesk.sh` (faz `npm ci`, `npm run build` e reinicia o app).
-4. Pronto: cada push na `master` publica sozinho. O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se quebrar, o app anterior continua no ar até o próximo build bem-sucedido.
+O Plesk puxa e publica sozinho a cada `git push`:
+1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → clique no repositório → **Configurações do repositório**.
+2. Em **Modo de implantação** escolha **Automático** (o Plesk passa a mostrar uma **URL de webhook**; copie).
+3. Em **Ações adicionais de implantação** cole `sh scripts/deploy-plesk.sh` (faz `npm ci`, `npm run build` e reinicia o app) e salve com **OK**.
+4. No GitHub: repositório → **Settings → Webhooks → Add webhook**. *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**. Se o GitHub reclamar do certificado do Plesk (endereço por IP), desmarque a verificação de SSL (**Disable**) nessa tela.
+5. Teste: faça um push pequeno, abra o Plesk → Git e veja o histórico de implantação; ou abra "Recent Deliveries" no webhook do GitHub (deve estar verde, 200).
+- O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o app anterior continua no ar até o próximo build bem-sucedido.
+- Se o log do Plesk mostrar `npm: command not found`, o `scripts/deploy-plesk.sh` já procura o Node em `/opt/plesk/node/*/bin`; confira lá a versão instalada.
+- Para desligar: volte o modo de implantação para **Manual**.

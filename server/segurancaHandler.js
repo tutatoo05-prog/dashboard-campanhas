@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { query } from './db.js'
 import { isAdmin } from './roles.js'
 import { getSessionToken, limparCacheDeSessoes } from './session.js'
-import { rodarBackup } from './backup.js'
+import { driveConfigurado, rodarBackup } from './backup.js'
 import { telegramConfigurado } from './alertas.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { modoAcesso } from './acesso/motor.js'
@@ -91,6 +91,7 @@ export async function handleSegurancaRequest(req, res, env, user) {
           hora: Number(env.BACKUP_HORA) || 3,
           dias: Number(env.BACKUP_DIAS) || 14,
           noTelegram: telegramConfigurado(env),
+          noDrive: driveConfigurado(env),
           arquivos,
         },
         avisos: { canal },

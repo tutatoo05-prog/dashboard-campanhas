@@ -14,6 +14,7 @@ import { modoAcesso } from './acesso/motor.js'
  * porque o banco tem e-mails, telefones e CPFs. Vai para duas partes:
  *   1) uma pasta no servidor (BACKUP_DIR, padrão ./backups), guardando os últimos BACKUP_DIAS (padrão 14);
  *   2) o chat do Telegram da equipe (mesmo bot dos alertas), que fica com o histórico completo.
+ *   3) opcional: uma pasta do Google Drive (BACKUP_DRIVE_URL + BACKUP_DRIVE_TOKEN, ver scripts/backup-drive.gs).
  * Sem a senha o arquivo não abre: guarde BACKUP_PASSPHRASE também no seu gerenciador de senhas.
  * Para restaurar: server/scripts/restaurarBackup.js (ver DEPLOY.md).
  *
@@ -72,6 +73,35 @@ export function dataEHoraEmSaoPaulo(agora = new Date()) {
   return { dia: `${partes.year}-${partes.month}-${partes.day}`, hora: Number(partes.hour) }
 }
 
+export function driveConfigurado(env) {
+  return Boolean(String(env.BACKUP_DRIVE_URL ?? '').trim() && String(env.BACKUP_DRIVE_TOKEN ?? '').trim())
+}
+
+/**
+ * Manda o backup para uma pasta do Google Drive por um pequeno script do Google (Apps Script, ver scripts/backup-drive.gs).
+ * O script confere BACKUP_DRIVE_TOKEN e grava o arquivo na pasta. O arquivo já vai criptografado.
+ */
+export async function enviarParaDrive(env, { nome, conteudo }, fetchImpl = fetch) {
+  const resposta = await fetchImpl(String(env.BACKUP_DRIVE_URL).trim(), {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ token: String(env.BACKUP_DRIVE_TOKEN).trim(), nome, conteudo: conteudo.toString('base64') }),
+    signal: AbortSignal.timeout(60_000),
+  })
+  const texto = await resposta.text().catch(() => '')
+  let dados = null
+  try {
+    dados = JSON.parse(texto)
+  } catch {
+    // resposta que não é do script (página de login do Google, por exemplo)
+  }
+  if (!resposta.ok || !dados?.ok) {
+    throw new Error(`Drive não aceitou o backup (${resposta.status}): ${dados?.erro ?? texto.replace(/\s+/g, ' ').slice(0, 120)}`)
+  }
+  return { enviado: true, id: dados.id }
+}
+
 const nomeDoArquivo = (dia) => `dash-${dia}.bkp`
 
 async function aplicarRotacao(dir, manter) {
@@ -80,7 +110,10 @@ async function aplicarRotacao(dir, manter) {
 }
 
 /** Faz um backup agora. Devolve um resumo; lança erro se não conseguiu guardar em lugar nenhum. */
-export async function rodarBackup(env, { consultar = (texto) => query(env, texto), enviarArquivo = enviarArquivoTelegram, agora = () => new Date() } = {}) {
+export async function rodarBackup(
+  env,
+  { consultar = (texto) => query(env, texto), enviarArquivo = enviarArquivoTelegram, enviarDrive = enviarParaDrive, agora = () => new Date() } = {},
+) {
   const senha = String(env.BACKUP_PASSPHRASE ?? '')
   if (senha.length < SENHA_MINIMA) throw new Error(`Defina BACKUP_PASSPHRASE com pelo menos ${SENHA_MINIMA} caracteres.`)
 
@@ -107,6 +140,15 @@ export async function rodarBackup(env, { consultar = (texto) => query(env, texto
       destinos.push('telegram')
     } catch (erro) {
       console.error('[backup] não consegui enviar ao Telegram:', erro.message || erro)
+    }
+  }
+
+  if (driveConfigurado(env)) {
+    try {
+      await enviarDrive(env, { nome, conteudo: arquivo })
+      destinos.push('drive')
+    } catch (erro) {
+      console.error('[backup] não consegui enviar ao Google Drive:', erro.message || erro)
     }
   }
 

@@ -154,3 +154,44 @@ test('enviarArquivoTelegram manda como documento', async () => {
   assert.equal(corpo.get('caption'), 'ok')
   assert.equal(corpo.get('document').name, 'a.bkp')
 })
+
+// ── Google Drive (recebedor em Apps Script) ───────────────────────────────────
+
+test('enviarParaDrive manda o arquivo em base64 com o token e entende a resposta do script', async () => {
+  const { enviarParaDrive, driveConfigurado } = await import('./backup.js')
+  const env = { BACKUP_DRIVE_URL: 'https://script.google.com/macros/s/AKfy/exec', BACKUP_DRIVE_TOKEN: 'segredo-do-drive' }
+  assert.equal(driveConfigurado(env), true)
+  assert.equal(driveConfigurado({}), false)
+  let enviado
+  const resultado = await enviarParaDrive(env, { nome: 'dash-2026-10-17.bkp', conteudo: Buffer.from('abc') }, async (url, opcoes) => {
+    enviado = { url, corpo: JSON.parse(opcoes.body) }
+    return new Response('{"ok":true,"id":"arq123"}', { status: 200 })
+  })
+  assert.deepEqual(resultado, { enviado: true, id: 'arq123' })
+  assert.equal(enviado.corpo.token, 'segredo-do-drive')
+  assert.equal(Buffer.from(enviado.corpo.conteudo, 'base64').toString(), 'abc')
+
+  await assert.rejects(
+    enviarParaDrive(env, { nome: 'a.bkp', conteudo: Buffer.from('x') }, async () => new Response('{"ok":false,"erro":"não autorizado"}', { status: 200 })),
+    /não autorizado/,
+  )
+  await assert.rejects(
+    enviarParaDrive(env, { nome: 'a.bkp', conteudo: Buffer.from('x') }, async () => new Response('<html>Entrar</html>', { status: 200 })),
+    /Drive não aceitou/,
+  )
+})
+
+test('rodarBackup também guarda no Drive quando configurado, e segue se o Drive falhar', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'bkp-'))
+  const base = { BACKUP_PASSPHRASE: 'uma-senha-forte-123', BACKUP_DIR: dir, BACKUP_DRIVE_URL: 'https://script.google.com/x/exec', BACKUP_DRIVE_TOKEN: 't' }
+  const ok = await rodarBackup(base, { consultar: bancoFalso(), enviarDrive: async () => ({ enviado: true }), agora: () => new Date('2026-10-17T12:00:00Z') })
+  assert.deepEqual(ok.destinos, ['servidor', 'drive'])
+  const falhou = await rodarBackup(base, {
+    consultar: bancoFalso(),
+    enviarDrive: async () => {
+      throw new Error('Drive fora do ar')
+    },
+    agora: () => new Date('2026-10-17T12:00:00Z'),
+  })
+  assert.deepEqual(falhou.destinos, ['servidor'])
+})

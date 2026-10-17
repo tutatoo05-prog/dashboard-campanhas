@@ -1,8 +1,14 @@
 #!/bin/sh
 # Passos do deploy no Plesk, para rodar sozinhos a cada push (ver DEPLOY.md → "Deploy automático").
-# Cole o conteúdo do bloco "Ações adicionais de implantação" do Plesk ou aponte para este arquivo:
-#   sh scripts/deploy-plesk.sh
+# Cole no campo "Ações adicionais de implantação" do Plesk:   sh scripts/deploy-plesk.sh
 set -e
+
+# As ações de implantação do Plesk nem sempre enxergam o Node: usa o mais novo instalado pelo Plesk, se houver.
+if [ -d /opt/plesk/node ]; then
+  NODE_BIN="$(ls -d /opt/plesk/node/*/bin 2>/dev/null | sort -V | tail -1)"
+  [ -n "$NODE_BIN" ] && PATH="$NODE_BIN:$PATH"
+fi
+export PATH
 
 # Dependências (inclui as de desenvolvimento: o build precisa delas)
 npm ci --no-audit --no-fund

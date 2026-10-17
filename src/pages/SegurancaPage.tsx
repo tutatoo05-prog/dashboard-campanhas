@@ -74,6 +74,7 @@ export default function SegurancaPage() {
   const sessoes = useMutation({ mutationFn: encerrarOutrasSessoes, onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['seguranca'] }) })
   const { feitos, alternar } = useLembretes()
   const [confirmando, setConfirmando] = useState(false)
+  const [verTrocadas, setVerTrocadas] = useState(false)
 
   const dados = resumo.data
   const erro = resumo.error as Error | null
@@ -124,7 +125,7 @@ export default function SegurancaPage() {
               <h3 className="section-title mt-1">Backup do banco</h3>
               <p className="mt-1 text-xs text-zinc-500">
                 Todo dia depois das {dados.backup.hora} h (horário de São Paulo) o servidor tira uma cópia criptografada do banco e guarda {dados.backup.dias} dias no servidor
-                {dados.backup.noTelegram ? ' e no seu Telegram' : ''}. O Supabase grátis não faz backup sozinho.
+                {dados.backup.noTelegram ? ' e no seu Telegram' : ''}{dados.backup.noDrive ? ' e no Google Drive' : ''}. O Supabase grátis não faz backup sozinho.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button type="button" disabled={backup.isPending} onClick={() => backup.mutate()} className="rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50">
@@ -292,24 +293,35 @@ export default function SegurancaPage() {
               <p className="section-label">Lembrete seu</p>
               <h3 className="section-title mt-1">Chaves para trocar</h3>
               <p className="mt-1 text-xs text-zinc-500">
-                Chaves que já apareceram em conversa ou em print devem ser trocadas, uma de cada vez (troque no serviço, atualize no Plesk e reinicie o app). Marcar aqui só serve de lembrete e fica salvo neste navegador.
+                Chaves que já apareceram em conversa ou em print devem ser trocadas, uma de cada vez (troque no serviço, atualize no Plesk e reinicie o app). Ao marcar, a chave some da lista; o lembrete fica salvo neste navegador.
               </p>
               <ul className="mt-3 space-y-2">
-                {CHAVES_PARA_TROCAR.map((chave) => {
+                {CHAVES_PARA_TROCAR.filter((chave) => verTrocadas || !feitos.includes(chave.id)).map((chave) => {
                   const feito = feitos.includes(chave.id)
                   return (
                     <li key={chave.id}>
                       <label className="flex cursor-pointer items-start gap-2">
                         <input type="checkbox" checked={feito} onChange={() => alternar(chave.id)} className="mt-1" />
-                        <span className={feito ? 'text-zinc-500 line-through' : 'text-zinc-200'}>
+                        <span className={feito ? 'text-zinc-500' : 'text-zinc-200'}>
                           {chave.rotulo}
-                          <span className="block text-xs text-zinc-500 no-underline">{chave.como}</span>
+                          <span className="block text-xs text-zinc-500">{chave.como}</span>
                         </span>
                       </label>
                     </li>
                   )
                 })}
               </ul>
+              {pendentes === 0 && (
+                <p className="mt-3 text-emerald-300">
+                  <i className="fa-solid fa-circle-check mr-1.5" />
+                  Tudo trocado. Boa!
+                </p>
+              )}
+              {feitos.some((id) => CHAVES_PARA_TROCAR.some((chave) => chave.id === id)) && (
+                <button type="button" onClick={() => setVerTrocadas((atual) => !atual)} className="mt-3 text-xs text-zinc-500 underline hover:text-zinc-300">
+                  {verTrocadas ? 'Esconder as já trocadas' : `Ver as ${CHAVES_PARA_TROCAR.length - pendentes} já trocadas (para desfazer)`}
+                </button>
+              )}
             </section>
           </div>
 
