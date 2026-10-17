@@ -1,4 +1,4 @@
-import { readdir, stat } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { query } from './db.js'
 import { isAdmin } from './roles.js'
@@ -28,6 +28,25 @@ async function arquivosDeBackup(env) {
     return arquivos
   } catch {
     return []
+  }
+}
+
+/** Últimas linhas do registro do deploy (deploy.log, gravado por scripts/deploy-plesk.sh), sem nada sensível. */
+export async function lerUltimoDeploy(env, { dir = env.DEPLOY_LOG_DIR || process.cwd(), linhas = 40 } = {}) {
+  try {
+    const arquivo = join(dir, 'deploy.log')
+    const [texto, info] = await Promise.all([readFile(arquivo, 'utf8'), stat(arquivo)])
+    const limpo = texto
+      .replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g'), '') // cores do terminal
+      .split('\n')
+      .map((linha) => linha.trimEnd())
+      .filter(Boolean)
+    const fim = limpo.slice(-linhas)
+    const ultima = fim[fim.length - 1] ?? ''
+    const estado = /Deploy concluído/.test(ultima) ? 'ok' : /ERRO/.test(fim.join('\n')) ? 'erro' : 'rodando'
+    return { em: info.mtime.toISOString(), estado, linhas: fim }
+  } catch {
+    return null
   }
 }
 
@@ -106,6 +125,7 @@ export async function handleSegurancaRequest(req, res, env, user) {
         })),
         acoes: acoes.rows.map((linha) => ({ em: linha.created_at, usuario: linha.user_email, campanha: linha.campaign_name, acao: linha.action, ok: linha.ok })),
         configuracao: checklistDeConfiguracao(env),
+        deploy: await lerUltimoDeploy(env),
       })
     }
 

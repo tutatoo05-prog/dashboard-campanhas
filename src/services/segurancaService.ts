@@ -34,6 +34,7 @@ export interface ResumoDeSeguranca {
   sessoes: SessaoAtiva[]
   acoes: AcaoNaMeta[]
   configuracao: ItemDeConfiguracao[]
+  deploy: { em: string; estado: 'ok' | 'erro' | 'rodando'; linhas: string[] } | null
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {

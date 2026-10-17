@@ -209,6 +209,21 @@ export default function SegurancaPage() {
           </section>
 
           <section className="surface-card p-4 text-sm">
+            <p className="section-label">Publicação</p>
+            <h3 className="section-title mt-1">Último deploy</h3>
+            {dados.deploy ? (
+              <>
+                <p className={`mt-1 text-xs ${dados.deploy.estado === 'ok' ? 'text-emerald-300' : dados.deploy.estado === 'erro' ? 'text-red-300' : 'text-amber-200'}`}>
+                  {dados.deploy.estado === 'ok' ? 'Concluído' : dados.deploy.estado === 'erro' ? 'Falhou' : 'Em andamento (ou parou no meio)'} · registro de {dataHora(dados.deploy.em)}
+                </p>
+                <pre className="mt-2 max-h-56 overflow-auto rounded-lg border border-zinc-800/60 p-3 text-[11px] leading-relaxed text-zinc-300">{dados.deploy.linhas.join('\n')}</pre>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-zinc-500">Ainda não há registro: o deploy automático grava o deploy.log quando rodar.</p>
+            )}
+          </section>
+
+          <section className="surface-card p-4 text-sm">
             <p className="section-label">Quem está logado</p>
             <h3 className="section-title mt-1">Sessões ativas</h3>
             <div className="mt-3 overflow-x-auto">
