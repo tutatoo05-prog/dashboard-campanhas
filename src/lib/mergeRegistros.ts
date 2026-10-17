@@ -195,3 +195,67 @@ export const STATUS_ROTULO: Record<RegistroAgrupado['status'], string> = {
   reembolsou: 'Reembolsou',
   lead: 'Só lead',
 }
+
+// ───── Achar uma pessoa a partir de qualquer tela (Leads, Compras, Acessos) ─────
+
+const cacheDePessoas = new WeakMap<Registro[], RegistroAgrupado[]>()
+const cacheDeIndice = new WeakMap<RegistroAgrupado[], Map<string, RegistroAgrupado>>()
+
+/** Agrupa uma vez por lista de registros e guarda o resultado (abrir a linha do tempo várias vezes não refaz a conta). */
+export function pessoasDeRegistros(records: Registro[]): RegistroAgrupado[] {
+  let pessoas = cacheDePessoas.get(records)
+  if (!pessoas) {
+    pessoas = agruparRegistros(records)
+    cacheDePessoas.set(records, pessoas)
+  }
+  return pessoas
+}
+
+function chavesDoContato(contato: { email?: string | null; telefone?: string | null }): string[] {
+  const chaves: string[] = []
+  const email = String(contato.email ?? '').trim().toLowerCase()
+  if (email) chaves.push(`e:${email}`)
+  const digitos = String(contato.telefone ?? '').replace(/\D/g, '')
+  if (digitos.length >= 10) chaves.push(`p:${digitos.slice(-10)}`)
+  return chaves
+}
+
+/** Acha a pessoa pelo e-mail ou telefone (qualquer um que bata), em todas as passagens dela. */
+export function acharPessoa(pessoas: RegistroAgrupado[], contato: { email?: string | null; telefone?: string | null }): RegistroAgrupado | null {
+  let indice = cacheDeIndice.get(pessoas)
+  if (!indice) {
+    indice = new Map()
+    for (const pessoa of pessoas) {
+      for (const passagem of [pessoa, ...pessoa.historico]) {
+        for (const chave of chavesDoContato(passagem)) if (!indice.has(chave)) indice.set(chave, pessoa)
+      }
+    }
+    cacheDeIndice.set(pessoas, indice)
+  }
+  for (const chave of chavesDoContato(contato)) {
+    const achada = indice.get(chave)
+    if (achada) return achada
+  }
+  return null
+}
+
+/** Pessoa que ainda não está em nenhuma planilha: só os dados que a tela de origem conhece. */
+export function pessoaSemHistorico(contato: { nome?: string | null; email?: string | null; telefone?: string | null }): RegistroAgrupado {
+  return {
+    planilha: '',
+    aba: '',
+    tipo: 'lead',
+    nome: String(contato.nome ?? ''),
+    email: String(contato.email ?? ''),
+    telefone: String(contato.telefone ?? ''),
+    data: '',
+    canal: '',
+    campanha: '',
+    criativo: '',
+    aparece: [],
+    historico: [],
+    primeiraEm: '',
+    ultimaEm: '',
+    status: 'lead',
+  }
+}

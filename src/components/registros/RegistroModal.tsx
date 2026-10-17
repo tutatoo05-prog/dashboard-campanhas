@@ -215,10 +215,14 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
           <div className="tl-resumo">
             <span><b>{record.historico.length}</b> {record.historico.length === 1 ? 'passagem' : 'passagens'}</span>
             <span><b>{record.aparece.length}</b> {record.aparece.length === 1 ? 'aba' : 'abas'}</span>
-            <span>1º contato <b>{formatMoment(record.primeiraEm)}</b></span>
-            <span>último <b>{formatMoment(record.ultimaEm)}</b></span>
+            {record.primeiraEm && <span>1º contato <b>{formatMoment(record.primeiraEm)}</b></span>}
+            {record.ultimaEm && <span>último <b>{formatMoment(record.ultimaEm)}</b></span>}
           </div>
-          <LinhaDoTempo passagens={record.historico} />
+          {record.historico.length === 0 ? (
+            <p className="sale-note">Ainda não achei esta pessoa nas planilhas nem nos eventos da Hotmart.</p>
+          ) : (
+            <LinhaDoTempo passagens={record.historico} />
+          )}
         </section>
 
         <section className="sale-section">

@@ -14,6 +14,7 @@ import {
   type AcessoEvento,
 } from '@/services/acessosService.ts'
 import { formatNumber } from '@/lib/format.ts'
+import { PessoaModal } from '@/components/registros/PessoaModal.tsx'
 
 const MODO_LABEL = { desligado: 'Desligado (o n8n cuida)', teste: 'Teste (só simula)', ativo: 'Ativo' } as const
 
@@ -212,6 +213,7 @@ function Cartao({ rotulo, valor, dica, tom }: { rotulo: string; valor: number; d
 
 function EventoLinha({ evento }: { evento: AcessoEvento }) {
   const [aberto, setAberto] = useState(false)
+  const [verPessoa, setVerPessoa] = useState(false)
   const queryClient = useQueryClient()
   const reprocessar = useMutation({
     mutationFn: () => reprocessarEvento(evento.id),
@@ -261,6 +263,20 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
               })}
             </ul>
             {evento.erro && <p className="mt-2 text-red-300">{evento.erro}</p>}
+            {evento.email && (
+              <button
+                type="button"
+                onClick={(clique) => {
+                  clique.stopPropagation()
+                  setVerPessoa(true)
+                }}
+                className="mt-3 mr-2 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500"
+              >
+                <i className="fa-solid fa-timeline mr-1.5" />
+                Linha do tempo desta pessoa
+              </button>
+            )}
+            {verPessoa && <PessoaModal nome={evento.nome} email={evento.email} onClose={() => setVerPessoa(false)} />}
             {podeReprocessar && (
               <button
                 type="button"
@@ -285,6 +301,7 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
 
 function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
   const queryClient = useQueryClient()
+  const [verPessoa, setVerPessoa] = useState(false)
   const feito = useMutation({
     mutationFn: () => marcarBloqueioFeito(aluno.id),
     onSuccess: () => {
@@ -301,8 +318,15 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
   return (
     <tr className="border-b border-zinc-900/80">
       <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={aluno.email ?? ''}>
-        {aluno.nome || aluno.email || '—'}
+        {aluno.email || aluno.telefone ? (
+          <button type="button" onClick={() => setVerPessoa(true)} className="block max-w-full truncate text-left hover:underline" title="Ver a linha do tempo desta pessoa">
+            {aluno.nome || aluno.email || '—'}
+          </button>
+        ) : (
+          aluno.nome || '—'
+        )}
         <span className="block truncate text-xs text-zinc-500">{aluno.email || 'e-mail ainda não conhecido'}</span>
+        {verPessoa && <PessoaModal nome={aluno.nome} email={aluno.email} telefone={aluno.telefone} onClose={() => setVerPessoa(false)} />}
       </td>
       <td className="px-4 py-2.5 text-zinc-300">{aluno.curso}</td>
       <td className="px-4 py-2.5 text-zinc-400">

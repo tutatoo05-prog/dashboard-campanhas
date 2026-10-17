@@ -66,3 +66,15 @@ test('e-mail e telefone em linhas diferentes ligam a mesma pessoa', () => {
   assert.equal(pessoas[0].historico.length, 3)
   assert.equal(pessoas[0].status, 'abandonou')
 })
+
+test('acharPessoa encontra a pessoa por e-mail ou por telefone, mesmo vindo de outra tela', async () => {
+  const { acharPessoa } = await import('./mergeRegistros.ts')
+  const pessoas = agruparRegistros([
+    linha({ aba: 'Leads novos', nome: 'Divino', email: 'divino@x.com' }),
+    linha({ aba: 'Vendas aprovadas', tipo: 'evento', nome: 'Divino Werdson', email: 'divino@x.com', telefone: '5563992125838' }),
+    linha({ aba: 'Leads novos', nome: 'Outra', email: 'outra@x.com' }),
+  ])
+  assert.equal(acharPessoa(pessoas, { email: 'DIVINO@x.com' })?.historico.length, 2)
+  assert.equal(acharPessoa(pessoas, { telefone: '(63) 99212-5838' })?.nome, 'Divino Werdson')
+  assert.equal(acharPessoa(pessoas, { email: 'ninguem@x.com', telefone: '' }), null)
+})

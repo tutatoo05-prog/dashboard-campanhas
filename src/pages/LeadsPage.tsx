@@ -7,6 +7,8 @@ import { formatNumber, formatPercent } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { originLabel } from '@/lib/leadOrigins.ts'
+import { PessoaModal } from '@/components/registros/PessoaModal.tsx'
+import type { Lead } from '@/types'
 
 interface OriginRow {
   key: string
@@ -21,6 +23,7 @@ function normalizeEmail(value: unknown): string {
 
 export default function LeadsPage() {
   const [search, setSearch] = useState('')
+  const [pessoa, setPessoa] = useState<Lead | null>(null)
 
   const leadsQuery = useQuery({
     queryKey: ['leads'],
@@ -222,7 +225,12 @@ export default function LeadsPage() {
                   {filtered.map((lead, index) => {
                     const converted = purchasedEmails.has(normalizeEmail(lead.email))
                     return (
-                      <tr key={`${lead.email}-${index}`} className="border-b border-zinc-900/80 last:border-0">
+                      <tr
+                        key={`${lead.email}-${index}`}
+                        onClick={() => setPessoa(lead)}
+                        title="Ver a linha do tempo desta pessoa"
+                        className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
+                      >
                         <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={lead.nome}>
                           {lead.nome || '—'}
                         </td>
@@ -259,6 +267,8 @@ export default function LeadsPage() {
           </section>
         </>
       )}
+
+      {pessoa && <PessoaModal nome={pessoa.nome} email={pessoa.email} telefone={pessoa.telefone} onClose={() => setPessoa(null)} />}
     </div>
   )
 }

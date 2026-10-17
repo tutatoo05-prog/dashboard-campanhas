@@ -4,6 +4,7 @@ import type { Lead, Purchase } from '@/types'
 import { formatCurrency } from '@/lib/format.ts'
 import { originLabel } from '@/lib/leadOrigins.ts'
 import { daysBetween, findBuyerLeads, findOtherPurchases, whatsappLink } from '@/lib/buyerLeads.ts'
+import { PessoaModal } from '@/components/registros/PessoaModal.tsx'
 
 interface PurchaseModalProps {
   purchase: Purchase
@@ -90,6 +91,7 @@ export function PurchaseModal({
   closeLabel = 'Fechar',
 }: PurchaseModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [verPessoa, setVerPessoa] = useState(false)
   const canceled = purchase.status === 'cancelado'
   const whatsapp = whatsappLink(purchase.telefone)
   const buyerLeads = leads ? findBuyerLeads(purchase, leads) : []
@@ -104,7 +106,7 @@ export function PurchaseModal({
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape' && !verPessoa) onClose()
     }
     window.addEventListener('keydown', onKey)
     const previousOverflow = document.body.style.overflow
@@ -113,7 +115,7 @@ export function PurchaseModal({
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = previousOverflow
     }
-  }, [onClose])
+  }, [onClose, verPessoa])
 
   return (
     <div
@@ -275,12 +277,25 @@ export function PurchaseModal({
           </section>
         )}
 
+        {(purchase.email || purchase.telefone) && (
+          <section className="sale-section">
+            <button type="button" className="sale-chip-btn" onClick={() => setVerPessoa(true)}>
+              <i className="fa-solid fa-timeline" aria-hidden="true" />
+              Ver a linha do tempo desta pessoa
+            </button>
+          </section>
+        )}
+
         <div className="dialog-actions">
           <button type="button" className="btn-gold" onClick={onClose}>
             {closeLabel}
           </button>
         </div>
       </div>
+
+      {verPessoa && (
+        <PessoaModal nome={purchase.nome} email={purchase.email} telefone={purchase.telefone} closeLabel="Voltar à venda" onClose={() => setVerPessoa(false)} />
+      )}
     </div>
   )
 }
