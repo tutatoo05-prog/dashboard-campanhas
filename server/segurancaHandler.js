@@ -43,7 +43,7 @@ export async function lerUltimoDeploy(env, { dir = env.DEPLOY_LOG_DIR || process
       .filter(Boolean)
     const fim = limpo.slice(-linhas)
     const ultima = fim[fim.length - 1] ?? ''
-    const estado = /Deploy concluído/.test(ultima) ? 'ok' : /ERRO/.test(fim.join('\n')) ? 'erro' : 'rodando'
+    const estado = /Deploy concluído/.test(ultima) ? 'ok' : /ERRO|not found/i.test(fim.join('\n')) ? 'erro' : 'rodando'
     return { em: info.mtime.toISOString(), estado, linhas: fim }
   } catch {
     return null

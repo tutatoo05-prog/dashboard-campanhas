@@ -193,10 +193,10 @@ O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exp
 O Plesk puxa e publica sozinho a cada `git push`:
 1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → ícone de ajustes do repositório (**Repository settings**).
 2. **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única:
-   `PATH="$PATH:/usr/local/bin:/usr/bin:/bin"; export PATH; (nohup sh scripts/deploy-plesk.sh > deploy.log 2>&1 &); echo "deploy em segundo plano"`
+   `(sh scripts/deploy-plesk.sh > deploy.log 2>&1 &); echo "deploy em segundo plano"`
    Ela só dispara `scripts/deploy-plesk.sh` em segundo plano e devolve na hora. O script acha o Node do Plesk (`/opt/plesk/node/*/bin`), roda `npm install` e `npm run build`, reinicia o app (`tmp/restart.txt`) e **escreve tudo em `deploy.log`**.
 3. Copie a **Webhook URL** dessa mesma tela. No GitHub: repositório → **Settings → Webhooks → Add webhook**; *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**.
 4. Teste: depois do próximo push, o commit aparece sozinho em Git → *Latest commits*, a entrega do webhook fica verde (200) e a tela **Admin → Segurança → Último deploy** mostra o registro (Concluído / Falhou / Em andamento) e as últimas linhas do log.
-- Por que em segundo plano: o ambiente das ações do Plesk tem o PATH quase vazio (nem `nodenv` nem `sort` existem) e, rodando o build direto na caixa, a janela do Plesk ficou parada por mais de 9 minutos sem mostrar nada. Em segundo plano a janela fecha na hora e o resultado aparece no `deploy.log`.
+- Por que em segundo plano: o ambiente das ações do Plesk tem o PATH quase vazio (nem `nodenv`, `sort` nem `nohup` existem) e, rodando o build direto na caixa, a janela do Plesk ficou parada por mais de 9 minutos sem mostrar nada. Em segundo plano a janela fecha na hora e o resultado aparece no `deploy.log`.
 - O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o app anterior continua no ar até o próximo build bem-sucedido.
 - Para desligar: **Deployment mode: Manual**.
