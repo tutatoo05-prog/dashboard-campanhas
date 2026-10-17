@@ -55,7 +55,7 @@ export async function handleSaudeRequest(req, res, env) {
   try {
     if (env.DATABASE_URL) {
       const p = getPool(env)
-      pool = { total: p.totalCount, ociosas: p.idleCount, esperando: p.waitingCount }
+      pool = { total: p.totalCount, ociosas: p.idleCount, esperando: p.waitingCount, maximo: p.options.max }
     }
   } catch {
     pool = null

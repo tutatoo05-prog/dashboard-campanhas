@@ -122,7 +122,7 @@ const server = createServer(async (req, res) => {
 async function aquecerConexoes(ambiente) {
   const inicio = Date.now()
   const tarefas = []
-  if (ambiente.DATABASE_URL) tarefas.push(import('./db.js').then(({ query }) => query(ambiente, 'select 1')))
+  if (ambiente.DATABASE_URL) tarefas.push(import('./db.js').then(({ aquecerPool }) => aquecerPool(ambiente, 3)))
   for (const url of ['https://graph.facebook.com/', 'https://docs.google.com/', 'https://api.brevo.com/']) {
     tarefas.push(fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(20_000) }))
   }
@@ -155,4 +155,8 @@ server.listen(port, '0.0.0.0', () => {
   startAcessoScheduler(env)
   startPlanilhasScheduler(env)
   void aquecerConexoes(env)
+  if (env.DATABASE_URL) {
+    // Mantém umas conexões abertas: o pooler do banco derruba as paradas e a próxima tela pagaria para reabrir.
+    setInterval(() => void import('./db.js').then(({ aquecerPool }) => aquecerPool(env, 2)).catch(() => {}), 2 * 60_000).unref()
+  }
 })
