@@ -210,6 +210,8 @@ export interface HotmartEvent {
     | 'expirada'
     | 'reembolsada'
     | 'chargeback'
+    | 'regularizada'
+    | 'repetido'
     | null
 }
 
@@ -218,7 +220,7 @@ export interface HotmartEventsSummary {
   vendas: { total: number }
   pixBoleto: { gerados: number; pagos: number; pendentes: number; vencidos: number; valorPendente: number }
   abandono: { eventos: number; pessoas: number; emAberto: number; recuperadas: number }
-  cancelamentos: { total: number; canceladas: number; atrasadas: number; expiradas: number }
+  cancelamentos: { total: number; canceladas: number; regularizadas?: number; atrasadas: number; expiradas: number }
   reembolsos: { total: number }
 }
 

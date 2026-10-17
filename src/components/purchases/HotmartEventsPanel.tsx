@@ -22,6 +22,8 @@ const SITUATION_LABEL: Record<string, string> = {
   expirada: 'Expirada',
   reembolsada: 'Reembolsada',
   chargeback: 'Chargeback',
+  regularizada: 'Já regularizou',
+  repetido: 'Aviso repetido',
 }
 
 function brDate(iso: string): string {
@@ -116,7 +118,7 @@ export function HotmartEventsPanel({ onOpen }: { onOpen: (group: EventGroup) => 
 
   const pix = events.filter((event) => event.categoria === 'pix_boleto' && (event.situacao === 'pendente' || event.situacao === 'vencido'))
   const carts = latestPerPerson(events.filter((event) => event.categoria === 'abandono' && event.situacao === 'em aberto'))
-  const canceled = events.filter((event) => event.categoria === 'cancelamento')
+  const canceled = events.filter((event) => event.categoria === 'cancelamento' && ['cancelada', 'atrasada', 'expirada'].includes(event.situacao ?? ''))
   const refunds = events.filter((event) => event.categoria === 'reembolso')
 
   return (

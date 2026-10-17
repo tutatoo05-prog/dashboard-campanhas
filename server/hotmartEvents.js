@@ -8,6 +8,7 @@ import { csvToObjects, fetchSheetCsv } from './sheetsCsv.js'
 import { query } from './db.js'
 import { comCache } from './cacheCurto.js'
 import { CHAVE_EVENTOS_HOTMART, gravarCopia, lerCopia } from './planilhasCopia.js'
+import { criarIdentidades, produtoParecido } from './pessoas.js'
 
 export const TRACKING_SHEET_ID = '1PKUyzv3isiEW-HbHH4sY2zaSJcK1yi3ejG0ETKGCFeg'
 export const HOTMART_ALL_GID = '1467558126' // aba "Hotmart (todos)"
@@ -17,12 +18,6 @@ const CACHE_TTL_MS = 60_000
 const PENDING_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000
 const TEST_EMAIL = /@(teste|exemplo|example|test).(com|com.br)$/i
 let cache = null
-
-/** Telefone comparável: os 10 últimos dígitos (ignora 55 e formatação). */
-function phoneKey(value) {
-  const digits = String(value ?? '').replace(/\D/g, '')
-  return digits.length >= 10 ? digits.slice(-10) : ''
-}
 
 let extraBuyers = []
 let extraBuyersAt = 0
@@ -36,8 +31,8 @@ export async function loadExtraBuyers(env, { force = false } = {}) {
   if (!force && Date.now() - extraBuyersAt < CACHE_TTL_MS) return extraBuyers
   try {
     if (!env?.DATABASE_URL) return extraBuyers
-    const { rows } = await query(env, `select email, telefone, created_at from purchases where coalesce(status, 'ativo') <> 'cancelado'`)
-    extraBuyers = rows.map((row) => ({ email: String(row.email ?? '').trim().toLowerCase(), telefone: row.telefone, data: new Date(row.created_at).toISOString() }))
+    const { rows } = await query(env, `select email, telefone, created_at, curso from purchases where coalesce(status, 'ativo') <> 'cancelado'`)
+    extraBuyers = rows.map((row) => ({ email: String(row.email ?? '').trim().toLowerCase(), telefone: row.telefone, produto: String(row.curso ?? ''), data: new Date(row.created_at).toISOString() }))
     extraBuyersAt = Date.now()
   } catch (error) {
     console.error('Erro ao ler as compras para cruzar com os eventos da Hotmart:', error.message || error)
@@ -160,37 +155,38 @@ function cancelSituation(evento) {
 
 export function withSituations(events, now = Date.now(), otherBuyers = extraBuyers) {
   const byTransaction = new Map()
-  const buyersByEmail = new Map() // e-mail -> momento da primeira compra
-  const buyersByPhone = new Map() // telefone (10 últimos dígitos) -> momento da primeira compra
-  const remember = (map, key, when) => {
-    if (!key || !when) return
-    const previous = map.get(key)
-    if (!previous || when < previous) map.set(key, when)
-  }
   for (const event of events) {
-    if (event.transacao) {
-      if (!byTransaction.has(event.transacao)) byTransaction.set(event.transacao, [])
-      byTransaction.get(event.transacao).push(event)
-    }
-    if (event.categoria === 'venda') {
-      remember(buyersByEmail, event.email, event.data)
-      remember(buyersByPhone, phoneKey(event.telefone), event.data)
-    }
-  }
-  for (const buyer of otherBuyers) {
-    remember(buyersByEmail, buyer.email, buyer.data)
-    remember(buyersByPhone, phoneKey(buyer.telefone), buyer.data)
-  }
-  const firstPurchase = (event) => {
-    const times = [buyersByEmail.get(event.email), buyersByPhone.get(phoneKey(event.telefone))].filter(Boolean)
-    return times.length ? times.sort()[0] : null
+    if (!event.transacao) continue
+    if (!byTransaction.has(event.transacao)) byTransaction.set(event.transacao, [])
+    byTransaction.get(event.transacao).push(event)
   }
 
-  return events.map((event) => {
+  // Quem é a mesma pessoa em todo o sistema (e-mail OU telefone, ligados entre si) e o que ela já comprou.
+  const sales = [...events.filter((event) => event.categoria === 'venda'), ...otherBuyers]
+  const idDe = criarIdentidades([...events, ...otherBuyers])
+  const purchasesByPerson = new Map()
+  for (const sale of sales) {
+    const id = idDe(sale)
+    if (!id || !sale.data) continue
+    purchasesByPerson.set(id, [...(purchasesByPerson.get(id) ?? []), { data: sale.data, produto: sale.produto ?? '' }])
+  }
+  const purchasesOf = (event) => {
+    const id = idDe(event)
+    return id ? (purchasesByPerson.get(id) ?? []) : []
+  }
+  const firstPurchase = (event) => {
+    const times = purchasesOf(event).map((purchase) => purchase.data).sort()
+    return times[0] ?? null
+  }
+  /** A pessoa comprou esse produto (ou um parecido) depois do evento: a pendência já foi resolvida por outro caminho. */
+  const boughtAfter = (event) => purchasesOf(event).some((purchase) => purchase.data >= event.data && produtoParecido(purchase.produto, event.produto))
+
+  const marked = events.map((event) => {
     if (event.categoria === 'pix_boleto') {
       const same = byTransaction.get(event.transacao) ?? []
       if (same.some((other) => other.categoria === 'venda')) return { ...event, situacao: 'pago' }
       if (same.some((other) => other.categoria === 'cancelamento')) return { ...event, situacao: 'cancelado' }
+      if (boughtAfter(event)) return { ...event, situacao: 'recuperado' }
       const ageMs = now - new Date(event.data).getTime()
       return { ...event, situacao: ageMs > PENDING_MAX_AGE_MS ? 'vencido' : 'pendente' }
     }
@@ -201,9 +197,32 @@ export function withSituations(events, now = Date.now(), otherBuyers = extraBuye
       if (!boughtAt) return { ...event, situacao: 'em aberto' }
       return { ...event, situacao: boughtAt >= event.data ? 'recuperado' : 'ja comprou' }
     }
-    if (event.categoria === 'cancelamento') return { ...event, situacao: cancelSituation(event.evento) }
+    if (event.categoria === 'cancelamento') {
+      // Atraso/cancelamento seguido de uma nova compra do mesmo produto: a pessoa regularizou.
+      return { ...event, situacao: boughtAfter(event) ? 'regularizada' : cancelSituation(event.evento) }
+    }
     if (event.categoria === 'reembolso') return { ...event, situacao: /charge/i.test(event.evento) ? 'chargeback' : 'reembolsada' }
     return { ...event, situacao: null }
+  })
+
+  // A mesma pendência avisada várias vezes (Pix gerado duas vezes, atraso repetido...) conta uma vez só: fica a mais recente.
+  const pending = new Set(['pendente', 'vencido', 'cancelada', 'atrasada', 'expirada'])
+  const newest = new Map()
+  const keyOf = (event) => {
+    const id = idDe(event)
+    return id ? `${id}|${event.categoria}|${event.categoria === 'pix_boleto' ? '' : event.situacao}|${String(event.produto ?? '').trim().toLowerCase()}` : null
+  }
+  for (const event of marked) {
+    if (!pending.has(event.situacao)) continue
+    const key = keyOf(event)
+    if (!key) continue
+    const current = newest.get(key)
+    if (!current || event.data > current.data) newest.set(key, event)
+  }
+  return marked.map((event) => {
+    if (!pending.has(event.situacao)) return event
+    const key = keyOf(event)
+    return key && newest.get(key) !== event ? { ...event, situacao: 'repetido' } : event
   })
 }
 
@@ -240,8 +259,10 @@ export function summarize(events) {
       recuperadas: cartPeople.length - cartOpen.length,
     },
     cancelamentos: {
-      total: canceled.length,
+      // Só o que ainda está em aberto: quem já regularizou (comprou de novo) e avisos repetidos saem da conta.
+      total: canceled.filter((event) => ['cancelada', 'atrasada', 'expirada'].includes(event.situacao)).length,
       canceladas: canceled.filter((event) => event.situacao === 'cancelada').length,
+      regularizadas: canceled.filter((event) => event.situacao === 'regularizada').length,
       atrasadas: canceled.filter((event) => event.situacao === 'atrasada').length,
       expiradas: canceled.filter((event) => event.situacao === 'expirada').length,
     },
