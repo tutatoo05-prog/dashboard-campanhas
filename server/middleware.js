@@ -16,6 +16,7 @@ import { handleAcessosRequest } from './acesso/handler.js'
 import { handleSegurancaRequest } from './segurancaHandler.js'
 import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
+import { handleDeployRequest } from './deploy.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
@@ -34,6 +35,12 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
     if (req.url.startsWith('/api/saude')) {
       await handleSaudeRequest(req, res, env)
+      return
+    }
+
+    // Chamado pelo Plesk depois de puxar o código (protegido por DEPLOY_TOKEN, ver server/deploy.js).
+    if (req.url.startsWith('/api/deploy')) {
+      await handleDeployRequest(req, res, env)
       return
     }
 

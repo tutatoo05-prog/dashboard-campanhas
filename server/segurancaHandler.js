@@ -67,6 +67,7 @@ export function checklistDeConfiguracao(env) {
     { id: 'telegram', rotulo: 'Avisos de problema no Telegram', ok: telegramConfigurado(env), dica: 'TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no Plesk.' },
     { id: 'backup', rotulo: 'Backup diário ligado', ok: String(env.BACKUP_PASSPHRASE ?? '').length >= SENHA_BACKUP_MINIMA && String(env.BACKUP_ENABLED ?? 'true').toLowerCase() !== 'false', dica: 'BACKUP_PASSPHRASE com 12+ caracteres no Plesk.' },
     { id: 'vigia', rotulo: 'Vigia da liberação de acesso', ok: String(env.VIGIA_ENABLED ?? 'true').toLowerCase() !== 'false' && modoAcesso(env) === 'ativo', dica: 'Roda com ACESSO_MODO=ativo (VIGIA_ENABLED=false desliga).' },
+    { id: 'deploy', rotulo: 'Deploy automático ligado', ok: String(env.DEPLOY_TOKEN ?? '').length >= 16, dica: 'DEPLOY_TOKEN com 16+ caracteres no Plesk (ver DEPLOY.md).' },
     { id: 'brevo', rotulo: 'E-mail (Brevo) configurado', ok: tem('BREVO_API_KEY') && tem('BREVO_REMETENTE_EMAIL'), dica: 'BREVO_API_KEY e BREVO_REMETENTE_EMAIL.' },
     { id: 'whatsapp', rotulo: 'WhatsApp (Evolution) configurado', ok: tem('EVOLUTION_URL') && tem('EVOLUTION_ALUNO_APIKEY') && tem('EVOLUTION_EQUIPE_APIKEY'), dica: 'EVOLUTION_URL e as chaves do aluno e da equipe.' },
   ]

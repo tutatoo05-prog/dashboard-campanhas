@@ -190,13 +190,15 @@ O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exp
 - **Google Drive (opcional):** o backup também pode ir para uma pasta do seu Drive. Instale o recebedor de scripts/backup-drive.gs no Google Apps Script (instruções no próprio arquivo: cole o código, crie a propriedade SEGREDO, implante como "App da Web" e copie a URL), e no Plesk crie BACKUP_DRIVE_URL (a URL /exec) e BACKUP_DRIVE_TOKEN (o mesmo SEGREDO). O arquivo vai criptografado e o script guarda os últimos 30. Se o Drive falhar, o backup continua no servidor e no Telegram.
 
 ## Deploy automático (sem os 4 passos manuais)
-O Plesk puxa e publica sozinho a cada `git push`:
-1. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → ícone de ajustes do repositório (**Repository settings**).
-2. **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única:
-   `(sh scripts/deploy-plesk.sh > deploy.log 2>&1 &); echo "deploy em segundo plano"`
-   Ela só dispara `scripts/deploy-plesk.sh` em segundo plano e devolve na hora. O script acha o Node do Plesk (`/opt/plesk/node/*/bin`), roda `npm install` e `npm run build`, reinicia o app (`tmp/restart.txt`) e **escreve tudo em `deploy.log`**.
-3. Copie a **Webhook URL** dessa mesma tela. No GitHub: repositório → **Settings → Webhooks → Add webhook**; *Payload URL*: a URL do Plesk; *Content type*: `application/json`; evento: **Just the push event**.
-4. Teste: depois do próximo push, o commit aparece sozinho em Git → *Latest commits*, a entrega do webhook fica verde (200) e a tela **Admin → Segurança → Último deploy** mostra o registro (Concluído / Falhou / Em andamento) e as últimas linhas do log.
-- Por que em segundo plano: o ambiente das ações do Plesk tem o PATH quase vazio (nem `nodenv`, `sort` nem `nohup` existem) e, rodando o build direto na caixa, a janela do Plesk ficou parada por mais de 9 minutos sem mostrar nada. Em segundo plano a janela fecha na hora e o resultado aparece no `deploy.log`.
-- O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o app anterior continua no ar até o próximo build bem-sucedido.
-- Para desligar: **Deployment mode: Manual**.
+O ambiente em que o Plesk roda as "ações pós-implantação" é uma **jaula** sem `node`, `npm`, `git` nem `date` (só `curl`): nenhum build roda ali (confirmado no `deploy.log`). Por isso o Plesk só **avisa o próprio dash**, e o dash (que roda com o Node de verdade) faz o `npm install`, o `npm run build` e reinicia o app (`server/deploy.js`).
+1. **Variável no Plesk** (Node.js → Variáveis de ambiente): `DEPLOY_TOKEN` = um segredo de 16+ caracteres (sem ele, `POST /api/deploy` responde 503 e o deploy automático fica desligado). Reinicie o app.
+2. Plesk → **Websites e Domínios** → dash.tuzinho.academy → **Git** → ícone de ajustes: **Deployment mode: Automatic**, diretório `/dash.tuzinho.academy`, **Enable post deployment actions** marcado, e na caixa **Post deployment actions** esta linha única (troque SEU_TOKEN pelo valor de DEPLOY_TOKEN):
+   `curl -s -m 25 -X POST -H "x-deploy-token: SEU_TOKEN" https://dash.tuzinho.academy/api/deploy; echo`
+   A janela do Plesk mostra a resposta (`{"iniciado":true,...}`). Se aparecer erro de curl, é a jaula sem DNS: use `curl -sk -m 25 -X POST -H "Host: dash.tuzinho.academy" -H "x-deploy-token: SEU_TOKEN" https://IP_DO_SERVIDOR/api/deploy; echo`.
+3. **Webhook no GitHub** (já criado): repositório → Settings → Webhooks, URL do Plesk, `application/json`, evento *push*.
+4. Teste: depois do próximo push o Plesk puxa o código, chama o dash, e **Admin → Segurança → Último deploy** mostra o registro (Concluído / Falhou / Em andamento) e as últimas linhas do `deploy.log`. Quando termina o build, o app reinicia sozinho (`tmp/restart.txt`).
+- O endereço `/api/deploy` só aceita POST com o token certo; responde 202 na hora e roda **um deploy por vez** (um segundo pedido recebe 409). O token nunca é gravado no log.
+- O `npm install` roda com `--include=dev` (o build precisa de vite/tsc) mesmo que o app esteja com NODE_ENV=production.
+- Durante o build (1–3 min) o site pode oscilar por alguns segundos, porque a pasta `dist` é refeita.
+- O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se o build quebrar, o registro mostra o erro e o app anterior continua no ar.
+- Para desligar: apague `DEPLOY_TOKEN` ou volte o **Deployment mode** para **Manual**.
