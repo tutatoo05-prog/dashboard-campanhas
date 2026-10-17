@@ -5,9 +5,6 @@ import { modoAcesso } from './motor.js'
 import { normalizarEvento } from './hotmart.js'
 import { rodarAgora } from './scheduler.js'
 import { configuracaoFaltando, verificarConexoes } from './verificacao.js'
-import { rodarBackup } from '../backup.js'
-import { avisarProblema } from './integracoes.js'
-import { telegramConfigurado } from '../alertas.js'
 
 function sendJson(res, status, payload) {
   res.statusCode = status
@@ -52,8 +49,6 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/eventos?estado=&busca=&limite=
  *   GET  /api/acessos/lista
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
- *   POST /api/acessos/backup       (faz o backup do banco agora: servidor + Telegram)
- *   POST /api/acessos/alerta-teste (manda um aviso de teste pelo canal de alertas)
  *   POST /api/acessos/eventos/:id/reprocessar
  *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
  *   POST /api/acessos/lista/:id/reativacao-feita (marca "já reativei na plataforma")
@@ -133,22 +128,6 @@ export async function handleAcessosRequest(req, res, env, user) {
       const corpo = JSON.parse((await readRequestBody(req)) || '{}')
       const emailTeste = String(corpo.emailTeste ?? '').trim()
       return sendJson(res, 200, await verificarConexoes(env, { emailTeste }))
-    }
-
-    if (req.method === 'POST' && caminho === '/api/acessos/backup') {
-      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
-      try {
-        return sendJson(res, 200, await rodarBackup(env))
-      } catch (erro) {
-        return sendJson(res, 500, { error: String(erro.message || erro) })
-      }
-    }
-
-    if (req.method === 'POST' && caminho === '/api/acessos/alerta-teste') {
-      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
-      const canal = telegramConfigurado(env) ? 'Telegram' : 'WhatsApp da equipe'
-      await avisarProblema(env, '✅ Teste do dash: se você está lendo isto, os avisos de problema chegam aqui.')
-      return sendJson(res, 200, { canal })
     }
 
     const reprocessar = /^\/api\/acessos\/eventos\/(\d+)\/reprocessar$/.exec(caminho)

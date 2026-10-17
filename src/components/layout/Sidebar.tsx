@@ -41,7 +41,13 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/acessos', label: 'Acessos', sticker: 'crown', adminOnly: true },
     ],
   },
-  { title: 'Admin', items: [{ to: '/usuarios', label: 'Usuários', sticker: 'skull', adminOnly: true }] },
+  {
+    title: 'Admin',
+    items: [
+      { to: '/usuarios', label: 'Usuários', sticker: 'skull', adminOnly: true },
+      { to: '/seguranca', label: 'Segurança', sticker: 'eye', adminOnly: true },
+    ],
+  },
 ]
 
 export default function Sidebar() {

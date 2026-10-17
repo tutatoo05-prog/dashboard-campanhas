@@ -6,8 +6,6 @@ import {
   fetchAcessoAlunos,
   fetchAcessoEventos,
   fetchAcessoResumo,
-  fazerBackupAgora,
-  testarAlerta,
   marcarBloqueioFeito,
   marcarReativacaoFeita,
   reprocessarEvento,
@@ -63,40 +61,6 @@ const ETAPA_LABEL: Record<string, string> = {
 const dataHora = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) : '—'
 const soData = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')
-
-/** Backup do banco e teste do canal de avisos (Telegram). */
-function Seguranca() {
-  const backup = useMutation({ mutationFn: fazerBackupAgora })
-  const alerta = useMutation({ mutationFn: testarAlerta })
-  const feito = backup.data
-  return (
-    <section className="surface-card p-4 text-sm">
-      <p className="section-label">Segurança</p>
-      <h3 className="section-title mt-1">Backup e avisos</h3>
-      <p className="mt-1 text-xs text-zinc-500">
-        O backup do banco roda sozinho todo dia de madrugada (criptografado, no servidor e no Telegram). Aqui você faz um na hora e testa se os avisos de problema chegam.
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="button" disabled={backup.isPending} onClick={() => backup.mutate()} className="rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50">
-          <i className="fa-solid fa-database mr-1.5" />
-          {backup.isPending ? 'Fazendo o backup...' : 'Fazer backup agora'}
-        </button>
-        <button type="button" disabled={alerta.isPending} onClick={() => alerta.mutate()} className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:border-zinc-500 disabled:opacity-50">
-          <i className="fa-solid fa-bell mr-1.5" />
-          {alerta.isPending ? 'Enviando...' : 'Testar aviso de problema'}
-        </button>
-      </div>
-      {feito && (
-        <p className="mt-3 text-emerald-300">
-          Backup feito: {formatNumber(feito.linhas)} linhas de {feito.tabelas} tabelas, guardado em {feito.destinos.join(' e ')} ({Math.round(feito.bytes / 1024)} KB).
-        </p>
-      )}
-      {backup.isError && <p className="mt-3 text-red-300">{(backup.error as Error).message}</p>}
-      {alerta.data && <p className="mt-3 text-emerald-300">Aviso de teste enviado pelo {alerta.data.canal}. Confira se chegou.</p>}
-      {alerta.isError && <p className="mt-3 text-red-300">{(alerta.error as Error).message}</p>}
-    </section>
-  )
-}
 
 function Verificador() {
   const [emailTeste, setEmailTeste] = useState('')
@@ -563,7 +527,6 @@ export default function AcessosPage() {
       </section>
 
       <Verificador />
-      <Seguranca />
     </div>
   )
 }

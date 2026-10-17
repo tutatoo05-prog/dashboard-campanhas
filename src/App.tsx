@@ -20,6 +20,7 @@ const LeadsPage = lazy(() => import('@/pages/LeadsPage.tsx'))
 const RegistrosPage = lazy(() => import('@/pages/RegistrosPage.tsx'))
 const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
 const UsersPage = lazy(() => import('@/pages/UsersPage.tsx'))
+const SegurancaPage = lazy(() => import('@/pages/SegurancaPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -187,6 +188,14 @@ function AppRoutes() {
           element={
             <RequireAdmin>
               <UsersPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="seguranca"
+          element={
+            <RequireAdmin>
+              <SegurancaPage />
             </RequireAdmin>
           }
         />

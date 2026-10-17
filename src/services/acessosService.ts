@@ -102,11 +102,6 @@ export const verificarAcessos = (emailTeste: string) =>
     body: JSON.stringify({ emailTeste }),
   })
 
-export const fazerBackupAgora = () =>
-  pedir<{ nome: string; tabelas: number; linhas: number; bytes: number; destinos: string[] }>('/api/acessos/backup', { method: 'POST' })
-
-export const testarAlerta = () => pedir<{ canal: string }>('/api/acessos/alerta-teste', { method: 'POST' })
-
 export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acessos/eventos/${id}/reprocessar`, { method: 'POST' })
 
 export const marcarReativacaoFeita = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/reativacao-feita`, { method: 'POST' })
