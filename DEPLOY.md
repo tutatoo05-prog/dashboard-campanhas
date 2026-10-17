@@ -174,3 +174,24 @@ O pooler do Supabase em **modo sessão (porta 5432)** aceita no máximo **15 con
 - **Não rode** `node server/production.js` nem scripts pesados na sua máquina com o `.env` de produção enquanto usa o painel: cada um ocupa vagas do mesmo limite.
 - **Ganho grande, se um dia valer a pena:** trocar a porta da `DATABASE_URL` para **6543** (modo transação, sem esse limite de 15) — o código do dash não usa transações longas nem recursos de sessão. Ou recriar o banco do dash na região São Paulo (sa-east-1): cada consulta cairia de ≈150 ms para ≈10 ms.
 - `https://dash.tuzinho.academy/api/saude` mostra `filaDoBanco` (total/ociosas/esperando/máximo).
+
+## Avisos de problema no Telegram (vigia)
+Quando algo falha, a equipe é avisada no **Telegram** (grátis, instantâneo, sem arriscar o número do WhatsApp). Sem Telegram configurado, os avisos de problema continuam indo pelo WhatsApp da equipe (`ACESSO_AVISO_NUMERO`); o aviso de "nova venda" continua só no WhatsApp.
+- **Variáveis (Plesk → Node.js):** `TELEGRAM_BOT_TOKEN` (do @BotFather) e `TELEGRAM_CHAT_ID` (seu id, ou o de um grupo com o bot). Nunca coloque o token no código nem em arquivos do repositório; se ele aparecer em algum chat ou print, gere outro no @BotFather (`/revoke`) e atualize no Plesk.
+- **O que avisa** (`server/vigia.js`, a cada 10 min, só com `ACESSO_MODO=ativo`; `VIGIA_ENABLED=false` desliga, `VIGIA_MINUTES` muda o intervalo): evento da Hotmart parado há mais de 15 min; evento que falhou/precisa de atenção nas últimas 24 h (aluno possivelmente sem acesso); webhook que **nunca** recebeu nada; webhook que parou de chegar há mais de 36 h (depois de ter 5+ eventos na semana). Cada aviso repete no máximo de tempos em tempos (1 h a 24 h) para não virar spam.
+- Além do vigia, as falhas da liberação (3ª tentativa, desistência, caso que precisa de atenção, falha ao bloquear) também vão para o Telegram (`avisarProblema` em `server/acesso/integracoes.js`).
+- **Testar:** tela **Acessos → Segurança → Testar aviso de problema**.
+
+## Backup diário do banco (fora do Supabase)
+O plano grátis do Supabase **não faz backup**. Por isso `server/backup.js` exporta todas as tabelas do dash (menos sessões, redefinições de senha e a cópia das planilhas, que se refazem sozinhas) todo dia depois das 3 h (São Paulo), em JSON compactado e **criptografado** (AES-256-GCM, porque há e-mails, telefones e CPFs), e guarda em dois lugares: a pasta `backups/` do servidor (últimos 14 dias) e o chat do Telegram da equipe (histórico completo).
+- **Variáveis:** `BACKUP_PASSPHRASE` (**obrigatória**, 12+ caracteres, guarde também no seu gerenciador de senhas: sem ela o backup não abre), `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` (para o envio ao Telegram). Opcionais: `BACKUP_HORA` (padrão 3), `BACKUP_DIR`, `BACKUP_DIAS` (padrão 14), `BACKUP_ENABLED=false`. Sem `BACKUP_PASSPHRASE` o backup fica desligado e o log avisa.
+- **Fazer agora:** tela **Acessos → Segurança → Fazer backup agora**. Se o backup diário falhar, a equipe é avisada.
+- **Restaurar** (no seu computador, apontando `DATABASE_URL` para o banco de destino e `BACKUP_PASSPHRASE` para a senha do backup): `node --env-file=.env server/scripts/restaurarBackup.js dash-AAAA-MM-DD.bkp --confirmar` (só restaura em tabelas vazias; `--limpar` apaga as tabelas antes). Baixe o arquivo `.bkp` do Telegram ou da pasta `backups/`. Tudo roda numa transação: se der erro, nada é restaurado.
+- **Google Drive:** não está ligado. Conta de serviço do Google não consegue guardar arquivos numa pasta comum do Drive (só em Drive Compartilhado) e o login por OAuth exige uma autorização manual; o Telegram cobre o "fora do servidor" sem isso.
+
+## Deploy automático (sem os 4 passos manuais)
+O Plesk consegue puxar e publicar sozinho a cada `git push`:
+1. Plesk → **Git** → o repositório → **Configurações** → ative **Implantação automática** (o Plesk mostra uma **URL de webhook**).
+2. No GitHub (repositório → **Settings → Webhooks → Add webhook**): cole a URL do Plesk em *Payload URL*, *Content type* `application/json`, evento **Just the push event**.
+3. De volta ao Plesk, em **Ações adicionais de implantação**, cole: `sh scripts/deploy-plesk.sh` (faz `npm ci`, `npm run build` e reinicia o app).
+4. Pronto: cada push na `master` publica sozinho. O deploy **não roda os testes**: rode `npm test` antes de pedir o push. Se quebrar, o app anterior continua no ar até o próximo build bem-sucedido.

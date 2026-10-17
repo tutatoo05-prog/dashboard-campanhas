@@ -12,6 +12,8 @@ import { startAlertsScheduler } from './alertsScheduler.js'
 import { startLeadsSyncScheduler } from './leadsSyncScheduler.js'
 import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
+import { startVigia } from './vigia.js'
+import { startBackupScheduler } from './backup.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const distDir = join(__dirname, '../dist')
@@ -154,6 +156,8 @@ server.listen(port, '0.0.0.0', () => {
   startLeadsSyncScheduler(env)
   startAcessoScheduler(env)
   startPlanilhasScheduler(env)
+  startVigia(env)
+  startBackupScheduler(env)
   void aquecerConexoes(env)
   if (env.DATABASE_URL) {
     // Mantém umas conexões abertas: o pooler do banco derruba as paradas e a próxima tela pagaria para reabrir.

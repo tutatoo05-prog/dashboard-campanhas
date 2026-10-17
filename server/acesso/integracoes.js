@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { enviarTelegram, telegramConfigurado } from '../alertas.js'
 
 /**
  * Chamadas para fora do dash: plataforma de cursos (Tekway), Brevo (e-mail) e Evolution (WhatsApp).
@@ -118,6 +119,26 @@ export async function enviarWhatsapp(env, { conta, numero, texto }, fetchImpl = 
   })
   if (!resposta.ok) throw new Error(`Evolution respondeu ${resposta.status}: ${recortar(corpo)}`)
   return { status: resposta.status }
+}
+
+/**
+ * Aviso de PROBLEMA para a equipe: vai pelo Telegram quando estiver configurado (TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID);
+ * se não estiver ou se o Telegram falhar, cai no WhatsApp da equipe. Nunca lança: avisar não pode derrubar quem avisa.
+ */
+export async function avisarProblema(env, texto, fetchImpl = fetch) {
+  if (telegramConfigurado(env)) {
+    try {
+      return await enviarTelegram(env, texto, fetchImpl)
+    } catch (erro) {
+      console.error('[alerta] Telegram falhou, tentando o WhatsApp da equipe:', erro.message || erro)
+    }
+  }
+  try {
+    return await avisarEquipe(env, texto, fetchImpl)
+  } catch (erro) {
+    console.error('[alerta] não consegui avisar a equipe:', erro.message || erro)
+    return { enviado: false }
+  }
 }
 
 /** Aviso à equipe (número fixo em ACESSO_AVISO_NUMERO). */

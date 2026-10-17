@@ -200,7 +200,8 @@ async function alertar(motor, evento, venda, passos, chave, motivo) {
   passos._alertas = passos._alertas ?? []
   if (passos._alertas.includes(chave)) return
   try {
-    await motor.integ.avisarEquipe(motor.env, textoAlerta(evento, venda, motivo))
+    // Problema: Telegram primeiro (cai no WhatsApp da equipe se não houver). Nos testes/integrações simples vale o avisarEquipe.
+    await (motor.integ.avisarProblema ?? motor.integ.avisarEquipe)(motor.env, textoAlerta(evento, venda, motivo))
     passos._alertas.push(chave)
   } catch (erro) {
     console.error('[acesso] não consegui avisar a equipe:', erro.message || erro)
@@ -358,7 +359,7 @@ export async function bloquearAtrasados(motor) {
         erro: String(erro.message || erro).slice(0, 500),
       })
       if (tentativas === ALERTA_NA_TENTATIVA) {
-        await integ.avisarEquipe(env, `⚠️ *Falha ao bloquear acesso*\n\n${resumo}\n${String(erro.message || erro).slice(0, 200)}\n`).catch(() => {})
+        await (integ.avisarProblema ?? integ.avisarEquipe)(env, `⚠️ *Falha ao bloquear acesso*\n\n${resumo}\n${String(erro.message || erro).slice(0, 200)}\n`).catch(() => {})
       }
     }
   }

@@ -35,3 +35,6 @@ src/lib/userName.js
 # Listas com dados de alunos (não vão para o repositório)
 db/alunos-*.json
 db/importar-*.sql
+
+# Cópias do banco geradas pelo backup diário (criptografadas, mas não devem ir para o Git)
+backups/

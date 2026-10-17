@@ -15,7 +15,7 @@
     "live:check": "node server/scripts/liveCheck.js",
     "acesso:verificar": "node server/scripts/verificarAcesso.js",
     "test:acesso": "node --test server/acesso/acesso.test.js",
-    "test": "node --test server/acesso/acesso.test.js server/campanhas.test.js server/dnsCache.test.js src/lib/mergeRegistros.test.js server/hotmartEvents.test.js"
+    "test": "node --test server/acesso/acesso.test.js server/campanhas.test.js server/dnsCache.test.js src/lib/mergeRegistros.test.js server/hotmartEvents.test.js server/alertasBackup.test.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
