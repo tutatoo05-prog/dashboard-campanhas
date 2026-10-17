@@ -2,9 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { useUiStore } from '@/store/uiStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
-import { useAuthStore } from '@/store/authStore.ts'
 import { useThemeStore } from '@/store/themeStore.ts'
-import { Avatar } from '@/components/layout/Avatar.tsx'
 
 const TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -21,9 +19,7 @@ const TITLES: Record<string, string> = {
 
 export default function TopBar() {
   const location = useLocation()
-  const user = useAuthStore((state) => state.user)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
-  const setUserModalOpen = useUiStore((state) => state.setUserModalOpen)
   const setPaletteOpen = useUiStore((state) => state.setPaletteOpen)
   const startTour = useTourStore((state) => state.start)
   const mascotEnabled = useMascotStore((state) => state.enabled)
@@ -77,9 +73,6 @@ export default function TopBar() {
         </button>
         <button type="button" className="topbar-icon-btn" onClick={handleTour} title="Tour com o TaTuzinho" aria-label="Tour guiado com o TaTuzinho">
           <i className="fa-regular fa-circle-question" />
-        </button>
-        <button type="button" className="topbar-user" onClick={() => setUserModalOpen(true)} title="Minha conta" aria-label="Abrir minha conta" aria-haspopup="dialog">
-          <Avatar user={user} size={36} />
         </button>
       </div>
     </header>

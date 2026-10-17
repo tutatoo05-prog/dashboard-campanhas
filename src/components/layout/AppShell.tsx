@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.tsx'
 import TopBar from './TopBar.tsx'
-import { UserModal } from './UserModal.tsx'
 import { CommandPalette } from './CommandPalette.tsx'
 import { StickerLayer } from '@/components/flash/StickerLayer.tsx'
 import { MascotCompanion } from '@/components/mascot/MascotCompanion.tsx'
@@ -36,7 +35,6 @@ export default function AppShell() {
 
       <MascotCompanion />
       <CommandPalette />
-      <UserModal />
 
       <div className="main-content">
         <TopBar />

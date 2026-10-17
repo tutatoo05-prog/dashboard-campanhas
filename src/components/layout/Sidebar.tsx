@@ -1,9 +1,13 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
 import { canAccessPath, isAdmin } from '@/lib/roles.ts'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
+import { UserMenu } from '@/components/layout/UserMenu.tsx'
+import { logout } from '@/services/authService.ts'
 import { Avatar } from '@/components/layout/Avatar.tsx'
 import { Sticker } from '@/components/flash/Sticker.tsx'
 
@@ -40,7 +44,44 @@ export default function Sidebar() {
   const sidebarOpen = useUiStore((state) => state.sidebarOpen)
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const closeSidebarOnMobile = useUiStore((state) => state.closeSidebarOnMobile)
-  const setUserModalOpen = useUiStore((state) => state.setUserModalOpen)
+  const setUser = useAuthStore((state) => state.setUser)
+  const { pathname } = useLocation()
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [pos, setPos] = useState({ left: 0, top: 0 })
+  const blocoRef = useRef<HTMLDivElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => setMenuAberto(false), [pathname])
+  useEffect(() => {
+    if (!menuAberto) return
+    function fora(evento: MouseEvent) {
+      const alvo = evento.target as Node
+      if (!blocoRef.current?.contains(alvo) && !popRef.current?.contains(alvo)) setMenuAberto(false)
+    }
+    function esc(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') setMenuAberto(false)
+    }
+    document.addEventListener('mousedown', fora)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', fora)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [menuAberto])
+
+  function alternarMenu() {
+    if (!menuAberto && blocoRef.current) {
+      const r = blocoRef.current.getBoundingClientRect()
+      const lateral = r.width < 120
+      setPos({ left: lateral ? r.right + 10 : r.left, top: Math.min(r.bottom + 6, window.innerHeight - 440) })
+    }
+    setMenuAberto((v) => !v)
+  }
+
+  async function sair() {
+    await logout()
+    setUser(null)
+  }
   const userLabel = getDisplayName(user)
 
   return (
@@ -57,6 +98,28 @@ export default function Sidebar() {
         <button type="button" className="fx-close" aria-label={sidebarOpen ? 'Recolher menu' : 'Expandir menu'} title={sidebarOpen ? 'Recolher menu' : 'Expandir menu'} onClick={toggleSidebar}>
           <i className={`fa-solid ${sidebarOpen ? 'fa-angles-left' : 'fa-angles-right'}`} />
         </button>
+      </div>
+
+      <div className="fx-user" ref={blocoRef}>
+        <button type="button" className="fx-user-id" onClick={alternarMenu} aria-label="Abrir menu da conta" title={userLabel}>
+          <Avatar user={user} size={34} />
+        </button>
+        <div className="fx-user-txt">
+          <b className="truncate">{userLabel}</b>
+          <button type="button" className="fx-out" onClick={() => void sair()}>
+            Sair
+          </button>
+        </div>
+        <button type="button" className="fx-plus" onClick={alternarMenu} aria-haspopup="menu" aria-expanded={menuAberto} aria-label="Mais opções da conta" title="Mais opções">
+          <i className="fa-solid fa-ellipsis" />
+        </button>
+        {menuAberto &&
+          createPortal(
+            <div ref={popRef} className="dd-wrap" style={{ left: pos.left, top: pos.top }}>
+              <UserMenu onClose={() => setMenuAberto(false)} />
+            </div>,
+            document.body,
+          )}
       </div>
 
       <nav className="fx-nav" aria-label="Menu principal">
@@ -85,16 +148,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="fx-foot">
-        <button type="button" className="fx-me" onClick={() => setUserModalOpen(true)} aria-haspopup="dialog" aria-label="Abrir minha conta">
-          <Avatar user={user} size={38} />
-          <span className="fx-me-txt min-w-0 flex-1">
-            <b className="truncate">{userLabel}</b>
-            <span className="truncate">{isAdmin(user) ? 'Administrador' : 'Usuário'}</span>
-          </span>
-          <i className="fa-solid fa-sliders fx-me-dots" />
-        </button>
-      </div>
     </aside>
   )
 }
