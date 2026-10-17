@@ -1,6 +1,7 @@
 import { query } from './db.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { criarLimiteDeAvisos } from './alertas.js'
+import { estatisticasDoWebhook } from './hotmartWebhookHandler.js'
 import { modoAcesso } from './acesso/motor.js'
 
 /**
@@ -14,8 +15,18 @@ const PRESO_APOS_MIN = 15
 const SILENCIO_APOS_H = 36
 
 /** Cada verificação devolve um aviso (ou nada). `chave` + `repetirEmMin` controlam a repetição. */
-export async function verificar(env, { consultar = (texto, params) => query(env, texto, params) } = {}) {
+export async function verificar(env, { consultar = (texto, params) => query(env, texto, params), estatisticas = estatisticasDoWebhook } = {}) {
   const avisos = []
+
+  // 0) A Hotmart bate no dash, mas o dash recusa (hottok diferente do que está no Plesk).
+  const webhook = estatisticas()
+  if (webhook.recusadas >= 2 && !webhook.aceitas) {
+    avisos.push({
+      chave: 'hottok',
+      repetirEmMin: 6 * 60,
+      texto: `🔴 A Hotmart está mandando eventos ao dash, mas todos foram RECUSADOS (${webhook.recusadas} desde que o app subiu): o código de segurança (hottok) da Hotmart é diferente do HOTMART_HOTTOK do Plesk. Confira em Hotmart → Webhook → Autenticação e corrija no Plesk. Enquanto isso, as vendas não liberam o curso.`,
+    })
+  }
 
   // 1) Evento preso em "processando" (o processo caiu no meio, ou travou numa chamada externa).
   const presos = await consultar(
@@ -56,7 +67,7 @@ export async function verificar(env, { consultar = (texto, params) => query(env,
     avisos.push({
       chave: 'nunca',
       repetirEmMin: 24 * 60,
-      texto: '🟡 O dash ainda não recebeu nenhum evento da Hotmart. Se já houve compras, confira na Hotmart (Webhook → Histórico) se as entregas para dash.tuzinho.academy estão com status 200.',
+      texto: '🟡 O dash ainda não recebeu nenhum evento da Hotmart. Se já houve compras, confira na Hotmart (Webhook → Histórico) se as entregas para dash.tuzinho.academy estão com status 200. (Se for hottok errado, o dash avisa à parte.)',
     })
   } else if (semana >= 5 && ultimo && Date.now() - new Date(ultimo).getTime() > SILENCIO_APOS_H * 3600_000) {
     avisos.push({
@@ -69,6 +80,34 @@ export async function verificar(env, { consultar = (texto, params) => query(env,
   return avisos
 }
 
+/**
+ * "Já avisei" guardado no banco (tabela vigia_avisos): reiniciar o app (deploy) não repete o mesmo aviso.
+ * Se o banco falhar, cai para a memória.
+ */
+export function criarLimitePersistente(consultar, agora = () => Date.now()) {
+  const memoria = criarLimiteDeAvisos(agora)
+  let pronta = false
+  return async (chave, minutos) => {
+    try {
+      if (!pronta) {
+        await consultar('create table if not exists vigia_avisos (chave text primary key, avisado_em timestamptz not null)')
+        pronta = true
+      }
+      const { rows } = await consultar('select avisado_em from vigia_avisos where chave = $1', [chave])
+      const antes = rows[0]?.avisado_em ? new Date(rows[0].avisado_em).getTime() : null
+      if (antes !== null && agora() - antes < minutos * 60_000) return false
+      await consultar(
+        'insert into vigia_avisos (chave, avisado_em) values ($1, now()) on conflict (chave) do update set avisado_em = now()',
+        [chave],
+      )
+      return true
+    } catch (erro) {
+      console.error('[vigia] não consegui consultar os avisos já enviados:', erro.message || erro)
+      return memoria(chave, minutos)
+    }
+  }
+}
+
 export function startVigia(env, { enviar = avisarProblema, verificarImpl = verificar } = {}) {
   const ligado = String(env.VIGIA_ENABLED ?? 'true').toLowerCase() !== 'false'
   if (!ligado || !env.DATABASE_URL || modoAcesso(env) !== 'ativo') {
@@ -76,7 +115,7 @@ export function startVigia(env, { enviar = avisarProblema, verificarImpl = verif
     return { stop() {} }
   }
   const minutos = Math.max(1, Number(env.VIGIA_MINUTES) || INTERVALO_PADRAO_MIN)
-  const podeAvisar = criarLimiteDeAvisos()
+  const podeAvisar = criarLimitePersistente((texto, params) => query(env, texto, params))
   let rodando = false
 
   const rodar = async () => {
@@ -84,7 +123,7 @@ export function startVigia(env, { enviar = avisarProblema, verificarImpl = verif
     rodando = true
     try {
       for (const aviso of await verificarImpl(env)) {
-        if (podeAvisar(aviso.chave, aviso.repetirEmMin)) await enviar(env, aviso.texto)
+        if (await podeAvisar(aviso.chave, aviso.repetirEmMin)) await enviar(env, aviso.texto)
       }
     } catch (erro) {
       console.error('[vigia] falha na verificação:', erro.message || erro)

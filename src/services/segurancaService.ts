@@ -35,6 +35,15 @@ export interface ResumoDeSeguranca {
   acoes: AcaoNaMeta[]
   configuracao: ItemDeConfiguracao[]
   deploy: { em: string; estado: 'ok' | 'erro' | 'rodando'; linhas: string[] } | null
+  hotmart: {
+    total: number
+    ultimoEm: string | null
+    recusadas: number
+    ultimaRecusaEm: string | null
+    aceitas: number
+    ultimaAceitaEm: string | null
+    hottokConfigurado: boolean
+  }
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {

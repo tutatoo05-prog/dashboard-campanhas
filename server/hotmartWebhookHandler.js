@@ -7,6 +7,15 @@ import { rodarAgora } from './acesso/scheduler.js'
 // Eventos que a liberação de acesso trata; os demais ficam gravados só para consulta.
 const EVENTOS_DE_ACESSO = new Set(['PURCHASE_APPROVED', 'PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_DELAYED'])
 
+/** O que o webhook viu desde que o app subiu: serve para a tela Segurança e para o vigia dizerem se a Hotmart está chegando. */
+const estatisticas = { recusadas: 0, ultimaRecusaEm: null, aceitas: 0, ultimaAceitaEm: null }
+export function estatisticasDoWebhook() {
+  return { ...estatisticas }
+}
+export function zerarEstatisticasDoWebhook() {
+  Object.assign(estatisticas, { recusadas: 0, ultimaRecusaEm: null, aceitas: 0, ultimaAceitaEm: null })
+}
+
 function sendJson(res, status, payload) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
@@ -28,6 +37,8 @@ function assertHottok(req, res, env) {
 
   const provided = getProvidedHottok(req)
   if (!provided || provided !== expected) {
+    estatisticas.recusadas += 1
+    estatisticas.ultimaRecusaEm = new Date().toISOString()
     sendJson(res, 401, { error: 'Hottok inválido.' })
     return false
   }
@@ -82,6 +93,8 @@ export async function handleHotmartWebhookRequest(req, res, env) {
   }
 
   if (!assertHottok(req, res, env)) return
+  estatisticas.aceitas += 1
+  estatisticas.ultimaAceitaEm = new Date().toISOString()
 
   let payload
   try {

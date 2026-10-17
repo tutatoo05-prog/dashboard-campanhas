@@ -209,6 +209,45 @@ export default function SegurancaPage() {
           </section>
 
           <section className="surface-card p-4 text-sm">
+            <p className="section-label">Vendas da Hotmart</p>
+            <h3 className="section-title mt-1">O webhook está chegando?</h3>
+            <p
+              className={`mt-1 text-xs ${
+                dados.hotmart.recusadas > 0 && !dados.hotmart.aceitas ? 'text-red-300' : dados.hotmart.total > 0 || dados.hotmart.aceitas > 0 ? 'text-emerald-300' : 'text-amber-200'
+              }`}
+            >
+              {dados.hotmart.recusadas > 0 && !dados.hotmart.aceitas
+                ? 'A Hotmart está batendo no dash, mas o código de segurança (hottok) não confere: as vendas estão sendo recusadas.'
+                : dados.hotmart.total > 0
+                  ? 'A Hotmart está entregando eventos ao dash.'
+                  : 'Nenhum evento chegou ainda. Pode não ter havido compra desde que o webhook foi ligado, ou a Hotmart não está entregando.'}
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-zinc-800/60 p-3">
+                <p className="text-xs text-zinc-500">Eventos guardados</p>
+                <p className="text-base font-semibold text-zinc-100">{formatNumber(dados.hotmart.total)}</p>
+                <p className="text-[11px] text-zinc-500">{dados.hotmart.ultimoEm ? `o último: ${dataHora(dados.hotmart.ultimoEm)}` : 'nenhum ainda'}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800/60 p-3">
+                <p className="text-xs text-zinc-500">Aceitos (desde o último reinício)</p>
+                <p className="text-base font-semibold text-zinc-100">{formatNumber(dados.hotmart.aceitas)}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800/60 p-3">
+                <p className="text-xs text-zinc-500">Recusados por hottok errado</p>
+                <p className={`text-base font-semibold ${dados.hotmart.recusadas ? 'text-red-300' : 'text-zinc-100'}`}>{formatNumber(dados.hotmart.recusadas)}</p>
+                <p className="text-[11px] text-zinc-500">{dados.hotmart.ultimaRecusaEm ? `o último: ${dataHora(dados.hotmart.ultimaRecusaEm)}` : 'nenhum'}</p>
+              </div>
+              <div className="rounded-lg border border-zinc-800/60 p-3">
+                <p className="text-xs text-zinc-500">Hottok configurado no Plesk</p>
+                <p className={`text-base font-semibold ${dados.hotmart.hottokConfigurado ? 'text-emerald-300' : 'text-red-300'}`}>{dados.hotmart.hottokConfigurado ? 'sim' : 'não'}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-zinc-500">
+              Os contadores de "aceitos" e "recusados" zeram a cada reinício do app. Para ver o histórico completo: Hotmart → Ferramentas → Webhook → Histórico.
+            </p>
+          </section>
+
+          <section className="surface-card p-4 text-sm">
             <p className="section-label">Publicação</p>
             <h3 className="section-title mt-1">Último deploy</h3>
             {dados.deploy ? (

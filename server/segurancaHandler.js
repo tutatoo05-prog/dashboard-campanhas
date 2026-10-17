@@ -4,6 +4,7 @@ import { query } from './db.js'
 import { isAdmin } from './roles.js'
 import { getSessionToken, limparCacheDeSessoes } from './session.js'
 import { driveConfigurado, rodarBackup } from './backup.js'
+import { estatisticasDoWebhook } from './hotmartWebhookHandler.js'
 import { telegramConfigurado } from './alertas.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { modoAcesso } from './acesso/motor.js'
@@ -48,6 +49,19 @@ export async function lerUltimoDeploy(env, { dir = env.DEPLOY_LOG_DIR || process
   } catch {
     return null
   }
+}
+
+/** O que já chegou da Hotmart (banco) e o que o webhook recusou/aceitou desde que o app subiu (memória). */
+export async function resumoDoWebhook(env, { consultar = (texto) => query(env, texto), estatisticas = estatisticasDoWebhook } = {}) {
+  let banco = { total: 0, ultimoEm: null }
+  try {
+    const { rows } = await consultar('select count(*)::int total, max(recebido_em) ultimo from hotmart_eventos')
+    banco = { total: rows[0]?.total ?? 0, ultimoEm: rows[0]?.ultimo ?? null }
+  } catch {
+    // tabela ainda não existe: segue com zeros
+  }
+  const memoria = estatisticas()
+  return { ...banco, recusadas: memoria.recusadas, ultimaRecusaEm: memoria.ultimaRecusaEm, aceitas: memoria.aceitas, ultimaAceitaEm: memoria.ultimaAceitaEm, hottokConfigurado: Boolean(String(env.HOTMART_HOTTOK ?? '').trim()) }
 }
 
 /** Só diz se cada ajuste está feito. Nunca devolve valor de chave, token ou senha. */
@@ -127,6 +141,7 @@ export async function handleSegurancaRequest(req, res, env, user) {
         acoes: acoes.rows.map((linha) => ({ em: linha.created_at, usuario: linha.user_email, campanha: linha.campaign_name, acao: linha.action, ok: linha.ok })),
         configuracao: checklistDeConfiguracao(env),
         deploy: await lerUltimoDeploy(env),
+        hotmart: await resumoDoWebhook(env),
       })
     }
 
