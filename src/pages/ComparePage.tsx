@@ -10,7 +10,6 @@ import {
   formatDeltaPercent,
 } from '@/lib/compare.js'
 import { pushRecentAccount, sortAccountsByRecent } from '@/lib/recentAccounts.ts'
-import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { usePlatformStore } from '@/store/platformStore.ts'
 import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
@@ -121,7 +120,6 @@ export default function ComparePage() {
     accountId ?? accountsQuery.data?.defaultAccountId ?? accounts[0]?.id ?? null
 
   const selectedAccountName = accounts.find((account) => account.id === resolvedAccountId)?.name
-  const accountTheme = getAccountTheme(selectedAccountName)
 
   const setActiveAccountTheme = useAccountThemeStore((state) => state.setAccountName)
   useEffect(() => {
@@ -179,12 +177,9 @@ export default function ComparePage() {
 
         {isMeta && (
           <div className="filter-account">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
-              title={selectedAccountName ?? ''}
-            />
             <select
-              className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              className="filter-select account-select"
+              title={selectedAccountName ?? ''}
               value={resolvedAccountId ?? ''}
               onChange={(event) => handleAccountChange(event.target.value)}
               disabled={!accounts.length}

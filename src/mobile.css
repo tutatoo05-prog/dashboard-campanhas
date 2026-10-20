@@ -235,6 +235,9 @@
   .data-table tbody {
     display: table-row-group;
   }
+  /* A linha do cabeçalho também volta a ser linha de tabela: no celular toda `tr` é bloco (cartão), e sem isto
+     o cabeçalho ficava espremido à esquerda, fora do alinhamento das colunas. */
+  .data-table thead tr,
   .data-table tbody tr {
     display: table-row;
     padding: 0;
@@ -330,6 +333,16 @@
 }
 .reco-chevron-open {
   transform: rotate(180deg);
+}
+
+/* Cabeçalho das páginas: no celular só etiqueta e título; o parágrafo explicativo volta a partir do tablet. */
+.flash-hero-text > p.max-w-2xl {
+  display: none;
+}
+@media (min-width: 640px) {
+  .flash-hero-text > p.max-w-2xl {
+    display: block;
+  }
 }
 
 /* Ordenação do ranking no celular (no computador a ordem é pelo cabeçalho da tabela). */

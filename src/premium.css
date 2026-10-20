@@ -169,6 +169,23 @@
   box-shadow: 0 0 0 3px rgba(255, 163, 26, 0.12);
 }
 
+/* Seletor de conta: a borda leva a cor da conta (--gold muda com a conta ativa), no lugar da bolinha. */
+.filter-bar .account-select,
+.filter-grid .account-select {
+  border: 1.5px solid var(--gold-border);
+  background-color: var(--gold-dim);
+}
+.filter-bar .account-select:hover,
+.filter-grid .account-select:hover {
+  border-color: var(--gold);
+}
+.filter-bar .account-select:focus,
+.filter-grid .account-select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
 /* ── KPIs ── */
 .kpi-card {
   border-radius: var(--radius-card);

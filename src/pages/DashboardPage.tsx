@@ -18,7 +18,6 @@ import { CampaignSalesModal, type CampaignSalesRow } from '@/components/dashboar
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
-import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { leadsHint } from '@/lib/leadsHint.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
@@ -198,7 +197,6 @@ export default function DashboardPage() {
     accountId ?? accountsQuery.data?.defaultAccountId ?? accounts[0]?.id ?? null
 
   const selectedAccountName = accounts.find((account) => account.id === resolvedAccountId)?.name
-  const accountTheme = getAccountTheme(selectedAccountName)
 
   const setActiveAccountTheme = useAccountThemeStore((state) => state.setAccountName)
   useEffect(() => {
@@ -336,12 +334,9 @@ export default function DashboardPage() {
 
         {isMeta && (
           <div className="filter-account">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
-              title={selectedAccountName ?? ''}
-            />
             <select
-              className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              className="filter-select account-select"
+              title={selectedAccountName ?? ''}
               value={resolvedAccountId ?? ''}
               onChange={(event) => handleAccountChange(event.target.value)}
               disabled={!accounts.length}

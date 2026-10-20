@@ -505,7 +505,6 @@ export default function ActionsPage() {
   const singleId = accountId && accountId !== ALL_ACCOUNTS ? accountId : null
   const resolvedAccountId = singleId ?? accountsQuery.data?.defaultAccountId ?? accounts[0]?.id ?? null
   const accountName = accounts.find((account) => account.id === resolvedAccountId)?.name
-  const accountTheme = getAccountTheme(allMode ? null : accountName)
 
   const setActiveAccountTheme = useAccountThemeStore((state) => state.setAccountName)
   useEffect(() => {
@@ -937,9 +936,9 @@ export default function ActionsPage() {
 
       <section className="surface-card filter-bar filter-grid">
         <div className="filter-account">
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`} title={accountName ?? ''} />
           <select
-            className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+            className="filter-select account-select"
+            title={accountName ?? ''}
             value={allMode ? ALL_ACCOUNTS : resolvedAccountId ?? ''}
             onChange={(event) => {
               setAccountId(event.target.value)
