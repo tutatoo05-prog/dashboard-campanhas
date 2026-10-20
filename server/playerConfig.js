@@ -9,9 +9,17 @@ import { comCache, limparCache } from './cacheCurto.js'
 export const PADRAO = {
   arquivos: { hd: 'vsl-v1-720.mp4', leve: 'vsl-v1-480.mp4' },
   permitirAvancar: true,
-  cta: { ativo: false, segundo: 0, texto: 'Quero começar agora' },
+  textoToque: 'Toque para assistir',
+  aparencia: { corDestaque: '#ff8a1f', corBotao: '#ff8a1f', corTextoBotao: '#15110d', formaBotao: 'suave' },
+  controles: { tempo: true, volume: true },
+  cta: { ativo: false, segundo: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
 }
+
+const FORMAS = ['suave', 'reto', 'pilula']
+const POSICOES = ['centro', 'esquerda', 'direita']
+const TAMANHOS = ['p', 'm', 'g']
+const ANIMACOES = ['nenhuma', 'pulsar', 'brilho']
 
 const VIDEO_VALIDO = /^[\w-]{1,40}$/
 const CACHE_MS = 30_000
@@ -24,6 +32,18 @@ function textoCurto(valor, campo, max, { obrigatorio = false } = {}) {
   if (obrigatorio && !texto) throw new ConfigInvalida(`Preencha: ${campo}.`)
   if (texto.length > max) throw new ConfigInvalida(`${campo}: no máximo ${max} caracteres.`)
   return texto
+}
+
+/** Cor no formato #rrggbb (nada de nomes nem funções CSS: o valor vai direto para o estilo do player). */
+function corHex(valor, campo, padrao) {
+  if (valor === undefined || valor === null || valor === '') return padrao
+  const cor = typeof valor === 'string' ? valor.trim().toLowerCase() : ''
+  if (!/^#[0-9a-f]{6}$/.test(cor)) throw new ConfigInvalida(`${campo}: use uma cor no formato #rrggbb.`)
+  return cor
+}
+
+function opcao(valor, validas, padrao) {
+  return validas.includes(valor) ? valor : padrao
 }
 
 function arquivoMp4(valor, campo) {
@@ -40,13 +60,25 @@ export function sanitizarConfig(entrada) {
   if (!Number.isFinite(segundo) || segundo < 0 || segundo > MAX_SEGUNDO) {
     throw new ConfigInvalida(`Segundo do botão: use um número entre 0 e ${MAX_SEGUNDO}.`)
   }
+  const a = PADRAO.aparencia
   return {
     arquivos: { hd: arquivoMp4(e.arquivos?.hd, 'Arquivo HD'), leve: arquivoMp4(e.arquivos?.leve, 'Arquivo leve') },
     permitirAvancar: e.permitirAvancar !== false,
+    textoToque: textoCurto(e.textoToque, 'Texto de "toque para assistir"', 40) || PADRAO.textoToque,
+    aparencia: {
+      corDestaque: corHex(e.aparencia?.corDestaque, 'Cor de destaque', a.corDestaque),
+      corBotao: corHex(e.aparencia?.corBotao, 'Cor do botão', a.corBotao),
+      corTextoBotao: corHex(e.aparencia?.corTextoBotao, 'Cor do texto do botão', a.corTextoBotao),
+      formaBotao: opcao(e.aparencia?.formaBotao, FORMAS, a.formaBotao),
+    },
+    controles: { tempo: e.controles?.tempo !== false, volume: e.controles?.volume !== false },
     cta: {
       ativo: e.cta?.ativo === true,
       segundo: Math.round(segundo),
       texto: textoCurto(e.cta?.texto, 'Texto do botão', 60, { obrigatorio: true }),
+      posicao: opcao(e.cta?.posicao, POSICOES, PADRAO.cta.posicao),
+      tamanho: opcao(e.cta?.tamanho, TAMANHOS, PADRAO.cta.tamanho),
+      animacao: opcao(e.cta?.animacao, ANIMACOES, PADRAO.cta.animacao),
     },
     fim: {
       ativo: e.fim?.ativo === true,

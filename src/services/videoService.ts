@@ -80,10 +80,18 @@ export async function fetchVideoMetrics(video: string, dias: number): Promise<Vi
   return data as VideoMetrics
 }
 
+export type FormaBotao = 'suave' | 'reto' | 'pilula'
+export type PosicaoBotao = 'centro' | 'esquerda' | 'direita'
+export type TamanhoBotao = 'p' | 'm' | 'g'
+export type AnimacaoBotao = 'nenhuma' | 'pulsar' | 'brilho'
+
 export interface PlayerConfig {
   arquivos: { hd: string; leve: string }
   permitirAvancar: boolean
-  cta: { ativo: boolean; segundo: number; texto: string }
+  textoToque: string
+  aparencia: { corDestaque: string; corBotao: string; corTextoBotao: string; formaBotao: FormaBotao }
+  controles: { tempo: boolean; volume: boolean }
+  cta: { ativo: boolean; segundo: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
 }
 

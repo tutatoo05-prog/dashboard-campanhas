@@ -75,3 +75,35 @@ test('rota pública: sem banco devolve 502 com CORS (o player cai no padrão del
   assert.equal(r.status, 502)
   assert.equal(r.headers['Access-Control-Allow-Origin'], '*')
 })
+
+test('configuração antiga (sem aparência, controles ou posição) ganha os padrões novos', () => {
+  const antiga = { arquivos: PADRAO.arquivos, permitirAvancar: false, cta: { ativo: true, segundo: 30, texto: 'Comprar' }, fim: PADRAO.fim }
+  const config = sanitizarConfig(antiga)
+  assert.deepEqual(config.aparencia, PADRAO.aparencia)
+  assert.deepEqual(config.controles, PADRAO.controles)
+  assert.equal(config.cta.posicao, 'centro')
+  assert.equal(config.cta.tamanho, 'm')
+  assert.equal(config.cta.animacao, 'nenhuma')
+  assert.equal(config.textoToque, 'Toque para assistir')
+})
+
+test('cores só no formato #rrggbb (minúsculas) e opções fora da lista caem no padrão', () => {
+  const config = sanitizarConfig({
+    ...PADRAO,
+    aparencia: { corDestaque: '#00AAFF', corBotao: '#112233', corTextoBotao: '#ffffff', formaBotao: 'inventada' },
+    cta: { ...PADRAO.cta, posicao: 'topo', tamanho: 'gg', animacao: 'giro' },
+  })
+  assert.equal(config.aparencia.corDestaque, '#00aaff')
+  assert.equal(config.aparencia.formaBotao, 'suave')
+  assert.equal(config.cta.posicao, 'centro')
+  assert.equal(config.cta.tamanho, 'm')
+  assert.equal(config.cta.animacao, 'nenhuma')
+  for (const cor of ['red', 'url(x)', '#fff', '#12345g', 'rgb(0,0,0)', '#ff8a1f;color:red']) {
+    assert.throws(() => sanitizarConfig({ ...PADRAO, aparencia: { ...PADRAO.aparencia, corBotao: cor } }), ConfigInvalida, cor)
+  }
+})
+
+test('desligar tempo e volume da barra é respeitado', () => {
+  const config = sanitizarConfig({ ...PADRAO, controles: { tempo: false, volume: false } })
+  assert.deepEqual(config.controles, { tempo: false, volume: false })
+})
