@@ -104,6 +104,7 @@ export function PlayerControl({ video }: { video: string }) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'erro'; text: string } | null>(null)
   const [pronto, setPronto] = useState(false)
+  const [playerAntigo, setPlayerAntigo] = useState(false)
   const [duracao, setDuracao] = useState(DURACAO_PADRAO)
   const [destaque, setDestaque] = useState<'cta' | 'fim' | null>(null)
   const [copied, setCopied] = useState(false)
@@ -127,9 +128,14 @@ export function PlayerControl({ video }: { video: string }) {
   useEffect(() => {
     function aoReceber(evento: MessageEvent) {
       if (evento.origin !== PLAYER_ORIGIN || evento.source !== iframeRef.current?.contentWindow) return
-      const msg = evento.data as { source?: string; event?: string; data?: { segundos?: number; alvo?: string } } | null
+      const msg = evento.data as { source?: string; event?: string; data?: { segundos?: number; alvo?: string; versao?: number } } | null
       if (!msg || msg.source !== 'tuzinho-player') return
-      if (msg.event === 'ready') setPronto(true)
+      if (msg.event === 'ready') {
+        // player publicado sem a prévia ao vivo: ele não entende as mensagens do painel
+        const novo = (msg.data?.versao ?? 1) >= 2
+        setPronto(novo)
+        setPlayerAntigo(!novo)
+      }
       if (msg.event === 'duracao' && msg.data?.segundos) setDuracao(msg.data.segundos)
       if (msg.event === 'editar' && (msg.data?.alvo === 'cta' || msg.data?.alvo === 'fim')) {
         const alvo = msg.data.alvo
@@ -224,9 +230,22 @@ export function PlayerControl({ video }: { video: string }) {
               title="Prévia do player"
               allow="autoplay; fullscreen; picture-in-picture"
               className="absolute inset-0 h-full w-full border-0"
-              onLoad={() => setPronto(false)}
+              onLoad={() => {
+                setPronto(false)
+                setPlayerAntigo(false)
+              }}
             />
           </div>
+          {playerAntigo && (
+            <div className="migration-note mt-3" role="status">
+              <i className="fa-solid fa-triangle-exclamation" />
+              <div>
+                <b>O player publicado ainda é a versão antiga.</b> A prévia ao vivo e os testes só funcionam depois de subir o conteúdo
+                de <code>dist-player/</code> em <code>/produtos/player/</code> no Plesk. Pode salvar as opções agora: elas passam a valer
+                quando o player novo for publicado.
+              </div>
+            </div>
+          )}
           <div className="pc-testes">
             <button type="button" className="chip-btn" disabled={!pronto || !form.cta.ativo} onClick={() => enviar({ type: 'previa-cmd', cmd: 'testar-cta' })}>
               <i className="fa-solid fa-play" aria-hidden="true" /> Testar o botão de compra
