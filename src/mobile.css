@@ -616,9 +616,36 @@ summary,
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  animation: mdock-in 0.18s ease-out;
 }
-@keyframes mdock-in { from { opacity: 0; } to { opacity: 1; } }
+/* as bolinhas sobem do botão quando abre (a mais perto do botão primeiro) e descem de volta quando fecha */
+.mdock-items > * { animation-fill-mode: both; animation-duration: 0.32s; animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+.mdock-items-aberto > * { animation-name: mdock-sobe; }
+.mdock-items-fechando > * { animation-name: mdock-desce; animation-duration: 0.26s; animation-timing-function: ease-in; }
+/* cada bolinha parte da altura do botão: a distância cresce 58px por posição */
+.mdock-items > :nth-last-child(1) { --mdock-dist: 60px; }
+.mdock-items > :nth-last-child(2) { --mdock-dist: 118px; }
+.mdock-items > :nth-last-child(3) { --mdock-dist: 176px; }
+.mdock-items > :nth-last-child(4) { --mdock-dist: 234px; }
+.mdock-items > :nth-last-child(5) { --mdock-dist: 292px; }
+.mdock-items-aberto > :nth-last-child(1) { animation-delay: 0ms; }
+.mdock-items-aberto > :nth-last-child(2) { animation-delay: 45ms; }
+.mdock-items-aberto > :nth-last-child(3) { animation-delay: 90ms; }
+.mdock-items-aberto > :nth-last-child(4) { animation-delay: 135ms; }
+.mdock-items-aberto > :nth-last-child(5) { animation-delay: 180ms; }
+.mdock-items-fechando > :nth-child(1) { animation-delay: 0ms; }
+.mdock-items-fechando > :nth-child(2) { animation-delay: 25ms; }
+.mdock-items-fechando > :nth-child(3) { animation-delay: 50ms; }
+.mdock-items-fechando > :nth-child(4) { animation-delay: 75ms; }
+.mdock-items-fechando > :nth-child(5) { animation-delay: 100ms; }
+@keyframes mdock-sobe { from { opacity: 0; transform: translateY(calc(var(--mdock-dist, 60px))) scale(0.4); } to { opacity: 1; transform: none; } }
+@keyframes mdock-desce { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(calc(var(--mdock-dist, 60px))) scale(0.4); } }
+/* fundo escurecido enquanto o menu está aberto, para destacá-lo */
+.mdock-scrim { position: fixed; inset: 0; z-index: 89; background: rgba(8, 6, 3, 0.62); }
+.mdock-scrim-aberto { animation: mdock-fundo-in 0.25s ease-out both; }
+.mdock-scrim-fechando { animation: mdock-fundo-out 0.28s ease-in both; }
+@keyframes mdock-fundo-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mdock-fundo-out { from { opacity: 1; } to { opacity: 0; } }
+@media (min-width: 768px) { .mdock-scrim { display: none; } }
 .mdock-fab {
   display: grid;
   place-items: center;
@@ -654,6 +681,7 @@ summary,
 .mdock-open .mdock-ico::after { transform: rotate(135deg); }
 @media (prefers-reduced-motion: reduce) {
   .mdock-ico::before, .mdock-ico::after { transition: none; }
+  .mdock-items > *, .mdock-scrim { animation: none !important; }
 }
 .mdock-fab:focus-visible { outline: 3px solid var(--y); outline-offset: 3px; }
 .mdock .topbar-icon-btn,
