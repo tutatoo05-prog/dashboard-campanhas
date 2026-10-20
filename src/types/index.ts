@@ -170,6 +170,9 @@ export interface Registro {
   produto?: string
   valor?: number | null
   pagamento?: string
+  /** Em quantas vezes a compra foi parcelada (só eventos da Hotmart) e o código da transação (as parcelas dividem o mesmo). */
+  parcelas?: number | null
+  transacao?: string
 }
 
 /** Evento da Hotmart lido da planilha de tracking (compra, Pix/boleto gerado, carrinho abandonado...). */

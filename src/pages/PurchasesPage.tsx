@@ -77,6 +77,24 @@ function GroupList({ rows, onOpen }: GroupListProps) {
   )
 }
 
+function timeOf(purchase: Purchase): number {
+  const time = purchase.createdAt ? new Date(purchase.createdAt).getTime() : NaN
+  return Number.isFinite(time) ? time : 0
+}
+
+/** "há 5 min", "há 3 h", "há 2 dias" a partir do momento em que a venda entrou. */
+function timeAgo(iso?: string): string {
+  const time = iso ? new Date(iso).getTime() : NaN
+  if (!Number.isFinite(time)) return '—'
+  const minutes = Math.max(0, Math.round((Date.now() - time) / 60_000))
+  if (minutes < 1) return 'agora mesmo'
+  if (minutes < 60) return `há ${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `há ${hours} h`
+  const days = Math.round(hours / 24)
+  return `há ${days} ${days === 1 ? 'dia' : 'dias'}`
+}
+
 function isCanceled(purchase: Purchase): boolean {
   return purchase.status === 'cancelado'
 }
@@ -133,6 +151,11 @@ export default function PurchasesPage() {
   )
   const withValue = purchases.filter((purchase) => typeof purchase.valor === 'number')
   const avgTicket = withValue.length ? totalRevenue / withValue.length : 0
+
+  const latestSales = useMemo(
+    () => [...purchases].sort((a, b) => timeOf(b) - timeOf(a)).slice(0, 3),
+    [purchases],
+  )
 
   const byCampaign = useMemo(() => groupBy(purchases, 'campanha'), [purchases])
   const byCourse = useMemo(() => groupBy(purchases, 'curso'), [purchases])
@@ -204,6 +227,41 @@ export default function PurchasesPage() {
               Nenhuma venda tem valor registrado ainda, então a receita fica em branco. Assim
               que o n8n passar o valor de cada venda (ou você preencher manualmente), o ticket
               médio e a receita por campanha aparecem aqui automaticamente.
+            </section>
+          )}
+
+          {latestSales.length > 0 && (
+            <section className="surface-card p-4">
+              <p className="section-label">Acabou de vender</p>
+              <h3 className="section-title mt-1 mb-3">Últimas 3 vendas</h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {latestSales.map((purchase, index) => (
+                  <button
+                    key={purchase.id || `${purchase.email}-${index}`}
+                    type="button"
+                    onClick={() => setSelected(purchase)}
+                    title="Ver os dados da venda"
+                    className="cursor-pointer rounded-lg border border-amber-400/40 bg-amber-400/5 p-3 text-left transition-colors hover:border-amber-400/80 hover:bg-amber-400/10"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-zinc-500">{timeAgo(purchase.createdAt)}</span>
+                      {isCanceled(purchase) && (
+                        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs text-red-300">
+                          Cancelado
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 truncate text-sm font-semibold text-zinc-100">{purchase.nome || '—'}</p>
+                    <p className="truncate text-xs text-zinc-400">{purchase.curso || '—'}</p>
+                    <div className="mt-2 flex items-end justify-between gap-2">
+                      <span className="truncate text-xs text-zinc-500">{groupKey(purchase, 'campanha')}</span>
+                      <span className="shrink-0 text-base font-semibold text-amber-200">
+                        {typeof purchase.valor === 'number' ? formatCurrency(purchase.valor) : '—'}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </section>
           )}
 

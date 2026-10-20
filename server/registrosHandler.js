@@ -149,6 +149,8 @@ function registroDeEvento(sheet, tab, event) {
     produto: event.produto,
     valor: event.valor,
     pagamento: event.pagamento,
+    parcelas: event.parcelas ?? null,
+    transacao: event.transacao ?? '',
   }
 }
 

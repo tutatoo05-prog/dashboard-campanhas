@@ -42,10 +42,36 @@ const ICONE_PASSAGEM: Record<CategoriaEvento | 'lead', { icone: string; classe: 
   reembolso: { icone: 'fa-rotate-left', classe: 'tl-cancela' },
 }
 
-function detalhesDaPassagem(passagem: Passagem): string {
+/**
+ * Compra parcelada: cada parcela paga chega como uma "Compra aprovada" da mesma transação.
+ * Sem este aviso, a 2ª, 3ª... parcela parece uma compra nova. Devolve passagem -> "parcela 2 de 4" (ou "parcelado em 4x").
+ */
+function rotulosDeParcela(passagens: Passagem[]): Map<Passagem, string> {
+  const rotulos = new Map<Passagem, string>()
+  const porTransacao = new Map<string, Passagem[]>()
+  for (const passagem of passagens) {
+    if (passagem.categoria !== 'venda' || !passagem.transacao) continue
+    porTransacao.set(passagem.transacao, [...(porTransacao.get(passagem.transacao) ?? []), passagem])
+  }
+  for (const passagem of passagens) {
+    const total = passagem.parcelas ?? 0
+    if (total < 2 || (passagem.categoria !== 'venda' && passagem.categoria !== 'pix_boleto')) continue
+    const pagas = passagem.categoria === 'venda' ? porTransacao.get(passagem.transacao ?? '') : undefined
+    if (pagas && pagas.length > 1) {
+      // A lista vem da mais recente para a mais antiga: a última da lista é a 1ª parcela.
+      rotulos.set(passagem, `parcela ${pagas.length - pagas.indexOf(passagem)} de ${total}`)
+    } else {
+      rotulos.set(passagem, `parcelado em ${total}x`)
+    }
+  }
+  return rotulos
+}
+
+function detalhesDaPassagem(passagem: Passagem, parcela?: string): string {
   const partes = [
     passagem.produto,
     typeof passagem.valor === 'number' ? formatCurrency(passagem.valor) : '',
+    parcela,
     passagem.pagamento,
     passagem.situacao ? `situação: ${passagem.situacao}` : '',
   ]
@@ -54,11 +80,12 @@ function detalhesDaPassagem(passagem: Passagem): string {
 }
 
 function LinhaDoTempo({ passagens }: { passagens: Passagem[] }) {
+  const parcelas = rotulosDeParcela(passagens)
   return (
     <ol className="tl">
       {passagens.map((passagem, indice) => {
         const estilo = ICONE_PASSAGEM[passagem.categoria ?? 'lead']
-        const detalhe = detalhesDaPassagem(passagem)
+        const detalhe = detalhesDaPassagem(passagem, parcelas.get(passagem))
         return (
           <li key={`${passagem.planilha}-${passagem.aba}-${passagem.data}-${indice}`} className={`tl-item ${estilo.classe}`} style={{ animationDelay: `${Math.min(indice, 12) * 40}ms` }}>
             <span className="tl-ponto" aria-hidden="true">
