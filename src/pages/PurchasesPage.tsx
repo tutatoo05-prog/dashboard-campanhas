@@ -10,6 +10,7 @@ import { formatCurrency, formatNumber } from '@/lib/format.ts'
 import { exportCsv } from '@/lib/csv.ts'
 import type { Purchase } from '@/types'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
+import { FilterToggle } from '@/components/layout/FilterToggle.tsx'
 
 interface GroupRow {
   key: string
@@ -296,15 +297,6 @@ export default function PurchasesPage() {
                 </p>
               </div>
               <div className="list-tools">
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                  className="filter-select"
-                >
-                  <option value="todos">Todos os status</option>
-                  <option value="ativo">Somente ativos</option>
-                  <option value="cancelado">Somente cancelados</option>
-                </select>
                 <input
                   type="text"
                   placeholder="Buscar por nome, e-mail, curso ou campanha..."
@@ -312,6 +304,17 @@ export default function PurchasesPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
+                <FilterToggle compact activeCount={statusFilter === 'todos' ? 0 : 1}>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                    className="filter-select"
+                  >
+                    <option value="todos">Todos os status</option>
+                    <option value="ativo">Somente ativos</option>
+                    <option value="cancelado">Somente cancelados</option>
+                  </select>
+                </FilterToggle>
                 <button
                   type="button"
                   onClick={() =>

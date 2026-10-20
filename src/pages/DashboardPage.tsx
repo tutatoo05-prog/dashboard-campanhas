@@ -23,6 +23,7 @@ import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { usePlatformStore } from '@/store/platformStore.ts'
 import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
+import { FilterToggle } from '@/components/layout/FilterToggle.tsx'
 import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import type { CampaignItem, EnrichedCampaignItem, InsightCard, Level, Period, Purchase } from '@/types'
 
@@ -330,6 +331,9 @@ export default function DashboardPage() {
         data-tour="Filtros"
         data-tour-text="Escolha a plataforma, a conta de anúncios, o período e o nível (campanhas, conjuntos ou anúncios). Tudo abaixo se ajusta na hora."
       >
+        <FilterToggle
+          summary={[selectedAccountName, PERIOD_OPTIONS.find((option) => option.value === period)?.label].filter(Boolean).join(' · ')}
+        >
         <PlatformSelect />
 
         {isMeta && (
@@ -388,6 +392,7 @@ export default function DashboardPage() {
             />
           </div>
         )}
+        </FilterToggle>
 
         {isMeta && (
           <div className="seg" role="group" aria-label="Nível">

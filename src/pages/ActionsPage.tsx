@@ -37,6 +37,7 @@ import { getAccountTheme } from '@/lib/accountTheme.ts'
 import { KpiCard, KpiSkeletons } from '@/components/dashboard/KpiCard.tsx'
 import { CampaignDetail } from '@/components/campaign/CampaignDrawer.tsx'
 import { Reveal } from '@/components/mascot/Reveal.tsx'
+import { FilterToggle } from '@/components/layout/FilterToggle.tsx'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
@@ -935,6 +936,7 @@ export default function ActionsPage() {
       </PageHero>
 
       <section className="surface-card filter-bar filter-grid">
+        <FilterToggle label="Conta" summary={allMode ? 'Todas as contas' : accountName ?? ''}>
         <div className="filter-account">
           <select
             className="filter-select account-select"
@@ -957,6 +959,7 @@ export default function ActionsPage() {
             ))}
           </select>
         </div>
+        </FilterToggle>
 
         <div className="seg" role="group" aria-label="Período">
           {PERIODS.map((option) => (
@@ -1244,6 +1247,11 @@ export default function ActionsPage() {
                     </button>
                   ))}
                 </div>
+                <FilterToggle
+                  activeCount={
+                    Number(kindFilter !== 'all') + Number(groupMode !== 'priority') + Number(Boolean(actionsState) && ownerFilter !== 'all')
+                  }
+                >
                 <select
                   className="plan-select"
                   value={kindFilter}
@@ -1279,6 +1287,7 @@ export default function ActionsPage() {
                     <option value="none">Sem dono</option>
                   </select>
                 )}
+                </FilterToggle>
                 <input
                   className="plan-search"
                   type="search"

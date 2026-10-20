@@ -13,6 +13,7 @@ import { pushRecentAccount, sortAccountsByRecent } from '@/lib/recentAccounts.ts
 import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { usePlatformStore } from '@/store/platformStore.ts'
 import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
+import { FilterToggle } from '@/components/layout/FilterToggle.tsx'
 import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
 import type { CampaignItem, Period } from '@/types'
@@ -173,6 +174,9 @@ export default function ComparePage() {
       </PageHero>
 
       <section className="surface-card filter-grid">
+        <FilterToggle
+          summary={[selectedAccountName, (COMPARE_PRESETS as Record<string, { label: string }>)[presetKey]?.label].filter(Boolean).join(' · ')}
+        >
         <PlatformSelect />
 
         {isMeta && (
@@ -207,6 +211,7 @@ export default function ComparePage() {
             ))}
           </select>
         )}
+        </FilterToggle>
       </section>
 
       {!isMeta && <PlatformComingSoon />}

@@ -22,10 +22,14 @@
 .ac-tabs::-webkit-scrollbar {
   display: none;
 }
+/* Cartão de opções no celular: as opções dividem a largura do cartão e o texto fica centralizado em cada uma.
+   Se não couberem, mantêm o tamanho natural e a fileira rola de lado (flex: 1 0 auto nunca encolhe). */
 .seg > *,
 .cfg-side > *,
 .ac-tabs > * {
-  flex: none;
+  flex: 1 0 auto;
+  justify-content: center;
+  text-align: center;
   white-space: nowrap;
   scroll-snap-align: center;
 }
@@ -36,11 +40,129 @@
 .cfg-side a {
   min-height: 2.5rem;
 }
+/* Telas estreitas: um pouco menos de respiro nas laterais para 4 opções (ex.: Todas / Urgente / Fazer hoje / Pode esperar)
+   caberem sem rolar de lado. */
+.seg-btn {
+  padding-inline: 0.5rem;
+}
+@media (min-width: 480px) {
+  .seg-btn {
+    padding-inline: 0.75rem;
+  }
+}
 
 @media (min-width: 640px) {
   .ac-tabs {
     flex-wrap: wrap;
     overflow-x: visible;
+  }
+  /* Em tela larga as opções voltam ao tamanho do próprio texto. */
+  .seg > *,
+  .cfg-side > *,
+  .ac-tabs > * {
+    flex: none;
+  }
+}
+
+/*
+ * Filtros atrás de um botão (componente FilterToggle): no celular só aparece o botão com ícone de filtro, e os
+ * selects abrem ao tocar. A partir de 768px o botão some e o painel vira `display: contents`, então os selects
+ * voltam a ser filhos diretos da barra (grade ou flex) e o layout do computador não muda.
+ */
+.ftoggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.85rem;
+  border: 2.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 var(--shade);
+  cursor: pointer;
+}
+.ftoggle-btn.is-open {
+  background: var(--card);
+}
+.ftoggle-btn:focus-visible {
+  outline: 3px solid var(--o);
+  outline-offset: 2px;
+}
+.ftoggle-label {
+  flex: none;
+}
+.ftoggle-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ftoggle-chev {
+  margin-left: auto;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+.ftoggle-btn.is-open .ftoggle-chev {
+  transform: rotate(180deg);
+}
+.ftoggle-badge {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--o);
+  color: #15110d;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+/* Só o ícone (ao lado de uma busca): botão quadrado, contador no canto. */
+.ftoggle-btn-compact {
+  position: relative;
+  flex: none;
+  grid-column: auto;
+  justify-content: center;
+  width: 2.75rem;
+  padding: 0;
+}
+.ftoggle-btn-compact .ftoggle-badge {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.4rem;
+}
+.ftoggle-panel {
+  display: none;
+}
+.ftoggle-panel.is-open {
+  display: grid;
+  grid-column: 1 / -1;
+  flex: 1 1 100%;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .ftoggle-btn {
+    display: none;
+  }
+  .ftoggle-panel,
+  .ftoggle-panel.is-open {
+    display: contents;
+  }
+  /* Nas listas, no celular a busca vem antes do filtro (que abre embaixo); no computador o filtro volta à frente da busca. */
+  .list-tools > .ftoggle-panel > * {
+    order: -1;
   }
 }
 
