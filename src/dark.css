@@ -85,6 +85,11 @@
   --white: #fffaf0;
 }
 
+/* ícones do menu: o círculo é escuro, então o contorno e os detalhes pretos do adesivo viram claros (no item ativo o fundo é laranja e o escuro continua) */
+:root[data-theme='dark'] .fx-mi:not(.fx-mi-active):not(:hover) .fx-bd .stk { --ink: #e2eaf6; }
+:root[data-theme='dark'] .fx-sec::after,
+:root[data-theme='dark'] .lq-link { border-top-color: rgba(226, 234, 246, 0.3); }
+
 :root[data-theme='dark'] .fx-brand .tatu-brand { filter: drop-shadow(3px 3px 0 #03050a); }
 :root[data-theme='dark'] .mistdot { fill: #eef2f8; }
 
