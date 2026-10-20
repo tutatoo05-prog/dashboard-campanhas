@@ -185,3 +185,8 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
 }
 /* o botão que liga o modo precisa continuar legível para quem quer desligar */
 .modo-privado .topbar-icon-btn[aria-pressed='true'] { background: var(--o); color: #15110d; }
+
+/* Vídeos: nas quatro colunas, o título ocupa sempre duas linhas para os gráficos começarem e terminarem na mesma altura */
+@media (min-width: 1280px) {
+  .vid-card .section-title { min-height: 2em; }
+}

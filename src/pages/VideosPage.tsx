@@ -107,15 +107,12 @@ function Content({ data }: { data: VideoMetrics }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {showChart && (
-        <section className="surface-card p-4">
-          <p className="section-label">Espectadores por dia</p>
-          <p className="mb-3 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
-            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: GOLD }} aria-hidden="true" />Espectadores</span>
-            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--muted)' }} aria-hidden="true" />Assistiram 75%+</span>
-          </p>
-          <div style={{ width: '100%', height: 170 }}>
+        <section className="surface-card vid-card p-4">
+          <p className="section-label">Por dia</p>
+          <h3 className="section-title mt-1 mb-3">Espectadores por dia</h3>
+          <div style={{ width: '100%', height: 190 }}>
             <ResponsiveContainer>
-              <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="20%">
+              <BarChart data={chartData} margin={{ top: 22, right: 8, left: 0, bottom: 0 }} barCategoryGap="20%">
                 <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis dataKey="date" tickFormatter={(value: string) => formatDateBr(value).slice(0, 5)} stroke={AXIS} tick={{ fontSize: 11 }} tickLine={false} minTickGap={24} />
                 <YAxis allowDecimals={false} stroke={AXIS} tick={{ fontSize: 11 }} tickLine={false} width={32} />
@@ -130,10 +127,14 @@ function Content({ data }: { data: VideoMetrics }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: GOLD }} aria-hidden="true" />Espectadores</span>
+            <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--muted)' }} aria-hidden="true" />Assistiram 75%+</span>
+          </p>
         </section>
       )}
 
-        <section className="surface-card p-4">
+        <section className="surface-card vid-card p-4">
           <p className="section-label">Por página</p>
           <h3 className="section-title mt-1 mb-3">Onde o vídeo é visto</h3>
           <BarrasVerticais
@@ -147,7 +148,7 @@ function Content({ data }: { data: VideoMetrics }) {
           />
         </section>
 
-        <section className="surface-card p-4">
+        <section className="surface-card vid-card p-4">
           <p className="section-label">Por aparelho</p>
           <h3 className="section-title mt-1 mb-3">Celular ou computador</h3>
           <BarrasVerticais
@@ -161,7 +162,7 @@ function Content({ data }: { data: VideoMetrics }) {
           />
         </section>
 
-      <section className="surface-card p-4" data-tour="Vídeo e venda" data-tour-text="Compara quem assistiu quase tudo com quem assistiu menos, só entre as pessoas que já preencheram o formulário (aí dá para saber quem comprou).">
+      <section className="surface-card vid-card p-4" data-tour="Vídeo e venda" data-tour-text="Compara quem assistiu quase tudo com quem assistiu menos, só entre as pessoas que já preencheram o formulário (aí dá para saber quem comprou).">
         <p className="section-label">Vídeo e venda</p>
         <h3 className="section-title mt-1 mb-3">Quem assistiu mais comprou mais?</h3>
         {conv.identificados === 0 ? (
@@ -170,7 +171,6 @@ function Content({ data }: { data: VideoMetrics }) {
           <>
             <BarrasVerticais
               rotulo="Percentual que comprou, entre quem assistiu 75% ou mais e quem assistiu menos"
-              altura={170}
               dados={[
                 { nome: 'Assistiram 75% ou mais', ...compra(conv.assistiram75) },
                 { nome: 'Assistiram menos', ...compra(conv.outros) },
