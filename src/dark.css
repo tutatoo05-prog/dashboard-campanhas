@@ -217,3 +217,9 @@
 :root[data-theme='dark'] .tl-status-abandonou,
 :root[data-theme='dark'] .tl-status-cancelou,
 :root[data-theme='dark'] .tl-status-reembolsou { color: var(--on-accent); }
+
+/* botões do botão flutuante do celular: fundo escuro e ícone claro (a regra geral deixa o ícone escuro para fundos vivos) */
+:root[data-theme='dark'] .mdock .topbar-icon-btn,
+:root[data-theme='dark'] .mdock .cmdk-trigger { background: var(--card); color: var(--ink); }
+:root[data-theme='dark'] .mdock .topbar-icon-btn:hover,
+:root[data-theme='dark'] .mdock .cmdk-trigger:hover { background: var(--y); color: var(--on-accent); }

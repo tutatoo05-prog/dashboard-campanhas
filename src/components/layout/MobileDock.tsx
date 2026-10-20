@@ -24,7 +24,7 @@ export function MobileDock() {
         aria-expanded={aberto}
         aria-label={aberto ? 'Fechar atalhos' : 'Abrir atalhos (buscar, tema, Live, ajuda)'}
       >
-        <i className={`fa-solid ${aberto ? 'fa-xmark' : 'fa-plus'}`} />
+        <span className="mdock-ico" aria-hidden="true" />
       </button>
     </div>
   )
