@@ -122,7 +122,9 @@ export async function handlePlayerConfigRequest(req, res, env) {
 
   try {
     const { config } = await comCache(`player|${video}`, CACHE_MS, () => lerConfig(env, video))
-    return sendJson(res, 200, config, { ...cors, 'Cache-Control': 'public, max-age=30' })
+    // Sem cache no navegador: quem salva no painel precisa ver a mudança no próximo carregamento (com max-age o
+    // navegador reaproveitava o padrão antigo e a prévia "não obedecia"). O banco já é protegido pelo cache de 30 s acima.
+    return sendJson(res, 200, config, { ...cors, 'Cache-Control': 'no-cache' })
   } catch (erro) {
     console.error('[player] falha ao ler a configuração:', erro.message || erro)
     // o player tem padrão embutido: um erro aqui só faz ele seguir com o padrão

@@ -80,7 +80,7 @@ export function PlayerControl({ video }: { video: string }) {
       queryClient.setQueryData(['player-config', video], novo)
       setForm(structuredClone(novo.config))
       setPreviewKey((k) => k + 1)
-      setMessage({ kind: 'ok', text: 'Salvo. As páginas pegam a mudança em até 1 minuto.' })
+      setMessage({ kind: 'ok', text: 'Salvo. Vale para quem abrir a página a partir de agora; quem já está assistindo termina com a versão antiga.' })
     } catch (erro) {
       setMessage({ kind: 'erro', text: (erro as Error).message })
     } finally {
@@ -203,7 +203,10 @@ export function PlayerControl({ video }: { video: string }) {
                 className="absolute inset-0 h-full w-full border-0"
               />
             </div>
-            <p className="mt-1 text-xs text-zinc-500">A prévia mostra o player publicado em tuzinho.academy.</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              A prévia mostra o que está salvo e não toca sozinha: dê play para ver o botão de compra aparecer e o bloqueio de avanço
+              funcionando.
+            </p>
           </div>
 
           <div>
