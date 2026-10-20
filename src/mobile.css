@@ -1,0 +1,45 @@
+/*
+ * Base mobile-first. Vale para qualquer largura: o que está aqui já é o comportamento do celular,
+ * e as telas maiores só acrescentam (min-width), nunca desfazem.
+ *
+ * Carrossel: fileira de botões que nunca quebra linha. Se não couber, rola de lado com o dedo,
+ * encaixa no item (snap) e não mostra barra de rolagem.
+ */
+.seg,
+.cfg-side,
+.ac-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.seg::-webkit-scrollbar,
+.cfg-side::-webkit-scrollbar,
+.ac-tabs::-webkit-scrollbar {
+  display: none;
+}
+.seg > *,
+.cfg-side > *,
+.ac-tabs > * {
+  flex: none;
+  white-space: nowrap;
+  scroll-snap-align: center;
+}
+
+/* Alvo de toque confortável (mínimo de 40px) em controles de fileira. */
+.seg-btn,
+.ac-tab,
+.cfg-side a {
+  min-height: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  .ac-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}

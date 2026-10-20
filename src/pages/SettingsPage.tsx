@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Link, NavLink, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { PageHero } from '@/components/flash/PageHero.tsx'
@@ -106,6 +106,11 @@ function Geral() {
 
 export default function SettingsPage() {
   const { secao } = useParams<{ secao?: string }>()
+  const abasRef = useRef<HTMLElement>(null)
+  // No carrossel de abas do celular, a aba aberta sempre aparece inteira.
+  useEffect(() => {
+    abasRef.current?.querySelector('.cfg-on')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [secao])
   const atual = CONFIG_SECTIONS.find((item) => item.id === secao)
   if (!atual) return <Navigate to={`/config/${CONFIG_SECTIONS[0].id}`} replace />
   const id: ConfigSection = atual.id
@@ -120,7 +125,7 @@ export default function SettingsPage() {
       </PageHero>
       )}
       <div className="cfg-layout">
-        <nav className="cfg-side" aria-label="Seções de configurações">
+        <nav ref={abasRef} className="cfg-side" aria-label="Seções de configurações">
           {CONFIG_SECTIONS.map((item) => (
             <NavLink key={item.id} to={`/config/${item.id}`} className={({ isActive }) => (isActive ? 'cfg-on' : '')}>
               <span className="tn-ic">

@@ -11,7 +11,10 @@ import { useAccountThemeStore } from '@/store/accountThemeStore.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { isAdmin } from '@/lib/roles.ts'
 
-const SIZE = 124
+/** Menor no celular: o Tatu não pode cobrir o conteúdo. */
+function mascotSize() {
+  return window.innerWidth < 640 ? 88 : 124
+}
 const MARGIN = 6
 const TOP_MARGIN = 76
 const SLEEP_AFTER_MS = 60_000
@@ -86,6 +89,7 @@ function readCorner(): Corner {
 }
 
 function dockPosition(corner: Corner) {
+  const SIZE = mascotSize()
   return {
     left: corner.endsWith('r') ? window.innerWidth - SIZE - MARGIN : MARGIN,
     top: corner.startsWith('b') ? window.innerHeight - SIZE - MARGIN : TOP_MARGIN,
@@ -134,6 +138,7 @@ interface DragState {
  * Sem mexer em nada por 1 minuto ele dorme.
  */
 export function MascotCompanion() {
+  const SIZE = mascotSize()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -742,7 +747,8 @@ export function MascotCompanion() {
 
   const awake = Boolean(speech) || tourActive || hover || dragging || (pose !== 'idle' && pose !== 'sleep' && pose !== 'think')
   const docked = !tourActive
-  const bubbleRight = pos.left < 320
+  // O Tatu sempre olha para o miolo da tela: no lado esquerdo olha para a direita e vice-versa.
+  const bubbleRight = pos.left + SIZE / 2 < window.innerWidth / 2
   const facing = bubbleRight ? 'right' : 'left'
   const bubbleBelow = tourActive ? bubbleDown : corner.startsWith('t') && !dragging
   const showBadge = pendingUrgent.length > 0 && pathname !== '/acoes' && !tourActive
