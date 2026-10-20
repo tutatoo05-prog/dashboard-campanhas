@@ -9,6 +9,8 @@ import { handleGoalsRequest } from './goalsHandler.js'
 import { handleRegistrosRequest } from './registrosHandler.js'
 import { handleHotmartEventsRequest } from './hotmartEvents.js'
 import { handleLiveRequest } from './liveHandler.js'
+import { handleVideosRequest } from './videosHandler.js'
+import { handlePlayerConfigRequest } from './playerConfig.js'
 import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
@@ -35,6 +37,13 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
     if (req.url.startsWith('/api/saude')) {
       await handleSaudeRequest(req, res, env)
+      return
+    }
+
+    // Configuração do player da VSL: pública de propósito (o player roda nas páginas de venda, sem login) e só
+    // devolve opções de exibição. Fica antes da autenticação.
+    if (req.url.startsWith('/api/player-config')) {
+      await handlePlayerConfigRequest(req, res, env)
       return
     }
 
@@ -71,6 +80,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/seguranca') ||
       req.url.startsWith('/api/fichas') ||
       req.url.startsWith('/api/live') ||
+      req.url.startsWith('/api/videos') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
     ) {
@@ -159,6 +169,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/live')) {
         await handleLiveRequest(req, res, env, user)
+        return
+      }
+
+      if (req.url.startsWith('/api/videos')) {
+        await handleVideosRequest(req, res, env, user)
         return
       }
 

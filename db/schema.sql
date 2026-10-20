@@ -386,3 +386,16 @@ create table if not exists planilhas_copia (
 -- Minha conta: foto/adesivo de cada pessoa. 'sticker:rose' (adesivo) ou 'data:image/...' (foto reduzida) ou nulo (inicial do nome).
 -- ───────────────────────────────────────────────────────────────────────────────
 alter table users add column if not exists avatar text;
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Central de vídeos: configuração do player da VSL (server/playerConfig.js, tela Vídeos → "Controle do player").
+-- O player (projeto produtos, pages/player) lê isso por /api/player-config; sem a tabela ele segue com o padrão.
+-- video: id do vídeo (vsl) · config: opções validadas pelo servidor · atualizado_por: e-mail de quem salvou.
+-- Rode este bloco uma vez no SQL Editor do Supabase (schema dash).
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists video_config (
+  video text primary key,
+  config jsonb not null,
+  atualizado_em timestamptz not null default now(),
+  atualizado_por text
+);

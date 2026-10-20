@@ -33,7 +33,7 @@ export function applySecurityHeaders(res, { isProduction = false } = {}) {
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https:",
       "connect-src 'self'",
-      "frame-src 'none'",
+      "frame-src https://tuzinho.academy", // só a prévia do player (tela Vídeos)
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

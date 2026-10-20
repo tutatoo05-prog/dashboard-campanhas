@@ -105,6 +105,24 @@ export function fetchSheetCsv(sheetId, gid) {
 }
 
 /**
+ * Baixa de uma aba (pelo NOME) só as linhas que a consulta devolve, como CSV. O Google filtra do lado dele
+ * (linguagem de consulta do Sheets), então abas enormes como "Eventos (todos)" não precisam vir inteiras.
+ * Ex.: tq = "select * where B starts with 'video_'". Sem filtro, a aba vem inteira.
+ */
+export function fetchSheetQueryCsv(sheetId, sheetName, tq) {
+  const params = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName })
+  if (tq) params.set('tq', tq)
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${params}`
+  return limitarGoogle(async () => {
+    try {
+      return await getText(url)
+    } catch {
+      return getText(url)
+    }
+  })
+}
+
+/**
  * Converte o CSV em objetos com as colunas normalizadas (sem acento, minúsculas, com _).
  * Abas "de filtro" têm uma linha de aviso antes do cabeçalho; `headerRow` indica qual linha usar.
  */
