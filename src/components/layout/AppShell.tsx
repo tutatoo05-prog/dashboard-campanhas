@@ -10,6 +10,7 @@ import { canAccessPath, homePath } from '@/lib/roles.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
+import { iniciarVarreduraDePrivacidade } from '@/store/privacyStore.ts'
 
 export default function AppShell() {
   const sidebarOpen = useUiStore((state) => state.sidebarOpen)
@@ -22,6 +23,9 @@ export default function AppShell() {
   useEffect(() => {
     useUiStore.setState({ sidebarOpen: false })
   }, [])
+
+  // modo privacidade (borra nomes, e-mails, telefones e valores) enquanto estiver ligado
+  useEffect(() => iniciarVarreduraDePrivacidade(), [])
 
   // ao trocar de página, o Tatu "revela" o conteúdo novo
   useEffect(() => {

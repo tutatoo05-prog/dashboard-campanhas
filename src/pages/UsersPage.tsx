@@ -193,11 +193,11 @@ export default function UsersPage() {
                   const lastAdmin = user.cargo === 'admin' && admins <= 1
                   return (
                     <tr key={user.id} className="border-b border-zinc-900/80 last:border-0">
-                      <td className="cell-name text-zinc-200" data-label="Nome">
+                      <td className="cell-name text-zinc-200" data-label="Nome" data-sensivel>
                         {user.nome || '—'}
                         {isMe && <span className="ml-2 text-[10px] text-zinc-500">(você)</span>}
                       </td>
-                      <td className="cell-brief text-zinc-400" title={user.email} data-label="E-mail">
+                      <td className="cell-brief text-zinc-400" title={user.email} data-label="E-mail" data-sensivel>
                         {user.email}
                       </td>
                       <td  data-label="Situação" className="cell-key cell-nolabel">

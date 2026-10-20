@@ -118,7 +118,7 @@ export function GroupSalesModal({ kind, label, purchases, eyebrow, onClose, onOp
                   <li key={item.id || `${item.email}-${index}`}>
                     <button type="button" className="sale-list-btn" onClick={() => onOpenSale(item)}>
                       <span className="sale-list-main">
-                        {item.nome || 'Comprador sem nome'}
+                        <span data-sensivel>{item.nome || 'Comprador sem nome'}</span>
                         <small>
                           {other} · {item.data || '—'}
                         </small>

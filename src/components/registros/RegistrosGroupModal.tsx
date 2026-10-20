@@ -147,7 +147,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
                 <li key={`${record.planilha}-${record.aba}-${index}`}>
                   <button type="button" className="sale-list-btn" onClick={() => onOpenRecord(record)}>
                     <span className="sale-list-main">
-                      {record.nome || record.email || record.telefone || 'Sem nome'}
+                      <span data-sensivel>{record.nome || record.email || record.telefone || 'Sem nome'}</span>
                       <small>
                         {[kind === 'origem' ? record.campanha || 'Sem campanha' : record.canal, record.aba].filter(Boolean).join(' · ')} · {shortDate(record.data)}
                         {record.aparece.length > 1 && <> · em {record.aparece.length} abas</>}

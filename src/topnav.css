@@ -165,3 +165,15 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
 @media (min-width: 1280px) {
   .app-shell.sidebar-collapsed .fx-plus { display: none; }
 }
+
+/* ───── Modo privacidade: o que for sensível fica borrado e sem seleção ───── */
+.modo-privado [data-sensivel],
+.modo-privado .priv-auto,
+.modo-privado input[type='email'],
+.modo-privado input[type='tel'] {
+  filter: blur(7px);
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* o botão que liga o modo precisa continuar legível para quem quer desligar */
+.modo-privado .topbar-icon-btn[aria-pressed='true'] { background: var(--o); color: #15110d; }

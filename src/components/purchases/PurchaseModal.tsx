@@ -128,7 +128,7 @@ export function PurchaseModal({
         <div className="sale-head">
           <div className="min-w-0">
             <p className="section-label">{purchase.evento ?? 'Venda'}</p>
-            <h3 id="sale-title" className="dialog-title">
+            <h3 id="sale-title" className="dialog-title" data-sensivel>
               {purchase.nome || 'Comprador sem nome'}
             </h3>
             <p className="sale-sub">

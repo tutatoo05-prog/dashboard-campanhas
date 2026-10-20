@@ -231,7 +231,7 @@ export default function LeadsPage() {
                         title="Ver a linha do tempo desta pessoa"
                         className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                       >
-                        <td className="cell-name text-zinc-200" title={lead.nome} data-label="Nome">
+                        <td className="cell-name text-zinc-200" title={lead.nome} data-label="Nome" data-sensivel>
                           {lead.nome || '—'}
                         </td>
                         <td className="cell-more text-zinc-400" title={lead.email} data-label="Contato">

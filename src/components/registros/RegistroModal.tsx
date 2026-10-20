@@ -180,7 +180,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
         <div className="sale-head">
           <div className="min-w-0">
             <p className="section-label">Pessoa · {record.historico.length} {record.historico.length === 1 ? 'passagem' : 'passagens'}</p>
-            <h3 id="registro-title" className="dialog-title">
+            <h3 id="registro-title" className="dialog-title" data-sensivel>
               {record.nome || 'Sem nome'}
             </h3>
             <p className="sale-sub">

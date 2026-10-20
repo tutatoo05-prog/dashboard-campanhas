@@ -438,7 +438,7 @@ export default function RegistrosPage() {
                       onClick={() => setSelected(record)}
                       className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                     >
-                      <td className="cell-name text-zinc-200" title={record.nome} data-label="Nome">
+                      <td className="cell-name text-zinc-200" title={record.nome} data-label="Nome" data-sensivel>
                         {record.nome || '—'}
                       </td>
                       <td

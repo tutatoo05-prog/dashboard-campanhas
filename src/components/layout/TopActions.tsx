@@ -2,6 +2,7 @@ import { LiveQuick } from '@/components/layout/LiveQuick.tsx'
 import { isAdmin } from '@/lib/roles.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
+import { usePrivacyStore } from '@/store/privacyStore.ts'
 import { useThemeStore } from '@/store/themeStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
 import { useUiStore } from '@/store/uiStore.ts'
@@ -18,6 +19,8 @@ export function TopActions({ onPick }: { onPick?: () => void }) {
   const setMascotEnabled = useMascotStore((state) => state.setEnabled)
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggle)
+  const privado = usePrivacyStore((state) => state.ligado)
+  const alternarPrivacidade = usePrivacyStore((state) => state.alternar)
 
   function handleTour() {
     onPick?.()
@@ -50,6 +53,16 @@ export function TopActions({ onPick }: { onPick?: () => void }) {
       >
         {/* Lâmpada que mostra o tema de agora: acesa no claro, apagada (só o contorno) no escuro. */}
         <i className={theme === 'dark' ? 'fa-regular fa-lightbulb' : 'fa-solid fa-lightbulb topbar-lamp-on'} />
+      </button>
+      <button
+        type="button"
+        className="topbar-icon-btn"
+        onClick={alternarPrivacidade}
+        title={privado ? 'Mostrar dados sensíveis' : 'Esconder dados sensíveis (nomes, e-mails, telefones e valores)'}
+        aria-label={privado ? 'Desligar o modo privacidade' : 'Ligar o modo privacidade'}
+        aria-pressed={privado}
+      >
+        <i className={privado ? 'fa-solid fa-eye-slash' : 'fa-regular fa-eye'} />
       </button>
       {admin && <LiveQuick />}
       <button type="button" className="topbar-icon-btn" onClick={handleTour} title="Tour com o TaTuzinho" aria-label="Tour guiado com o TaTuzinho">

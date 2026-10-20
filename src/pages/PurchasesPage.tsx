@@ -252,7 +252,7 @@ export default function PurchasesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 truncate text-sm font-semibold text-zinc-100">{purchase.nome || '—'}</p>
+                    <p data-sensivel className="mt-1 truncate text-sm font-semibold text-zinc-100">{purchase.nome || '—'}</p>
                     <p className="truncate text-xs text-zinc-400">{purchase.curso || '—'}</p>
                     <div className="mt-2 flex items-end justify-between gap-2">
                       <span className="truncate text-xs text-zinc-500">{groupKey(purchase, 'campanha')}</span>
@@ -361,7 +361,7 @@ export default function PurchasesPage() {
                       onClick={() => setSelected(purchase)}
                       className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                     >
-                      <td className="cell-name text-zinc-200" title={purchase.nome} data-label="Nome">
+                      <td className="cell-name text-zinc-200" title={purchase.nome} data-label="Nome" data-sensivel>
                         <button
                           type="button"
                           onClick={(event) => {

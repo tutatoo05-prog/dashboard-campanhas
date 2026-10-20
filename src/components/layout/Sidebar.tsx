@@ -113,7 +113,7 @@ export default function Sidebar() {
           <Avatar user={user} size={34} />
         </button>
         <div className="fx-user-txt">
-          <b className="truncate">{userLabel}</b>
+          <b className="truncate" data-sensivel>{userLabel}</b>
           <button type="button" className="fx-out" onClick={() => void sair()}>
             Sair
           </button>

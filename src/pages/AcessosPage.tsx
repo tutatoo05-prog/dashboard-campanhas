@@ -141,7 +141,7 @@ function AcoesManuais({ alunos }: { alunos: AcessoAluno[] }) {
     return (
       <li key={aluno.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800/60 py-2 first:border-t-0">
         <div className="min-w-0">
-          <p className="truncate text-zinc-100">{aluno.nome || aluno.email}</p>
+          <p data-sensivel className="truncate text-zinc-100">{aluno.nome || aluno.email}</p>
           <p className="truncate text-xs text-zinc-500">
             {aluno.email || 'sem e-mail'} · {aluno.curso}
             {aluno.atrasoDesde && <> · atrasado desde {soData(aluno.atrasoDesde)}</>}
@@ -228,7 +228,7 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
     <>
       <tr onClick={() => setAberto((valor) => !valor)} className="cursor-pointer border-b border-zinc-900/80 transition-colors hover:bg-amber-400/10">
         <td className="cell-brief text-zinc-500" data-label="Recebido">{dataHora(evento.recebidoEm)}</td>
-        <td className="cell-name text-zinc-200" title={evento.email ?? ''} data-label="Aluno">
+        <td className="cell-name text-zinc-200" title={evento.email ?? ''} data-label="Aluno" data-sensivel>
           {evento.nome || evento.email || '—'}
         </td>
         <td className="cell-brief text-zinc-300" data-label="Curso">{evento.curso || '—'}</td>
@@ -319,7 +319,7 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
     <tr className="border-b border-zinc-900/80">
       <td className="cell-name text-zinc-200" title={aluno.email ?? ''} data-label="Aluno">
         {aluno.email || aluno.telefone ? (
-          <button type="button" onClick={() => setVerPessoa(true)} className="block max-w-full truncate text-left hover:underline" title="Ver a linha do tempo desta pessoa">
+          <button type="button" onClick={() => setVerPessoa(true)} data-sensivel className="block max-w-full truncate text-left hover:underline" title="Ver a linha do tempo desta pessoa">
             {aluno.nome || aluno.email || '—'}
           </button>
         ) : (
