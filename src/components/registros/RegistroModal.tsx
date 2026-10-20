@@ -57,7 +57,9 @@ function rotulosDeParcela(passagens: Passagem[]): Map<Passagem, string> {
     const total = passagem.parcelas ?? 0
     if (total < 2 || (passagem.categoria !== 'venda' && passagem.categoria !== 'pix_boleto')) continue
     const pagas = passagem.categoria === 'venda' ? porTransacao.get(passagem.transacao ?? '') : undefined
-    if (pagas && pagas.length > 1) {
+    if (passagem.recorrencia) {
+      rotulos.set(passagem, `${passagem.recorrencia}ª parcela de ${total}`)
+    } else if (pagas && pagas.length > 1) {
       // A lista vem da mais recente para a mais antiga: a última da lista é a 1ª parcela.
       rotulos.set(passagem, `parcela ${pagas.length - pagas.indexOf(passagem)} de ${total}`)
     } else {

@@ -172,6 +172,8 @@ export interface Registro {
   pagamento?: string
   /** Em quantas vezes a compra foi parcelada (só eventos da Hotmart) e o código da transação (as parcelas dividem o mesmo). */
   parcelas?: number | null
+  /** Qual parcela esta cobrança paga (1ª, 2ª, 3ª...). */
+  recorrencia?: number | null
   transacao?: string
 }
 
@@ -194,6 +196,7 @@ export interface HotmartEvent {
   moeda: string
   pagamento: string
   parcelas: number | null
+  recorrencia: number | null
   transacao: string
   src: string
   xcod: string

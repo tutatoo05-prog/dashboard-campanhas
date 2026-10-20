@@ -130,6 +130,8 @@ export function normalizeEvent(raw) {
     moeda: moeda || 'BRL',
     pagamento: String(raw.pagamento ?? '').trim(),
     parcelas: Number(raw.parcelas) || null,
+    // Qual parcela esta cobrança paga (recurrence_number da Hotmart); vazio nas cópias antigas da planilha.
+    recorrencia: Number(raw.recorrencia) || null,
     transacao: String(raw.transacao ?? '').trim(),
     src,
     xcod: String(raw.xcod ?? '').trim(),
@@ -331,6 +333,7 @@ export function eventoDoPayload(linha) {
     moeda: compra.price?.currency_value ?? compra.full_price?.currency_value,
     pagamento: compra.payment?.type,
     parcelas: compra.payment?.installments_number,
+    recorrencia: compra.recurrence_number,
     transacao: compra.transaction || linha?.transacao,
     src: origem.src,
     sck: origem.sck,

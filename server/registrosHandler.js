@@ -150,6 +150,7 @@ function registroDeEvento(sheet, tab, event) {
     valor: event.valor,
     pagamento: event.pagamento,
     parcelas: event.parcelas ?? null,
+    recorrencia: event.recorrencia ?? null,
     transacao: event.transacao ?? '',
   }
 }
