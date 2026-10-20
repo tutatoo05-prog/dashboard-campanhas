@@ -10,6 +10,7 @@ import { formatNumber, formatPercent } from '@/lib/format.ts'
 import { formatDateBr } from '@/lib/period.ts'
 
 const PERIODS = [
+  { value: 1, label: 'Hoje' },
   { value: 7, label: '7 dias' },
   { value: 30, label: '30 dias' },
   { value: 90, label: '90 dias' },
@@ -104,7 +105,7 @@ function Content({ data }: { data: VideoMetrics }) {
         />
       </section>
 
-      <div className={`grid gap-4 ${showChart ? 'md:grid-cols-2' : ''}`}>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {showChart && (
         <section className="surface-card p-4">
           <p className="section-label">Espectadores por dia</p>
@@ -132,7 +133,6 @@ function Content({ data }: { data: VideoMetrics }) {
         </section>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
         <section className="surface-card p-4">
           <p className="section-label">Por página</p>
           <h3 className="section-title mt-1 mb-3">Onde o vídeo é visto</h3>
@@ -160,7 +160,6 @@ function Content({ data }: { data: VideoMetrics }) {
             }))}
           />
         </section>
-      </div>
 
       <section className="surface-card p-4" data-tour="Vídeo e venda" data-tour-text="Compara quem assistiu quase tudo com quem assistiu menos, só entre as pessoas que já preencheram o formulário (aí dá para saber quem comprou).">
         <p className="section-label">Vídeo e venda</p>

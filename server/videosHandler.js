@@ -10,7 +10,7 @@ import { readRequestBody } from './readBody.js'
 const ABA_EVENTOS = 'Eventos (todos)'
 const CONSULTA = "select * where B starts with 'video_' or B = 'visita'"
 const CACHE_MS = 5 * 60_000
-const PERIODOS = new Set([7, 30, 90, 0])
+const PERIODOS = new Set([1, 7, 30, 90, 0])
 
 function sendJson(res, status, payload) {
   res.statusCode = status
@@ -69,7 +69,7 @@ export async function handleVideosRequest(req, res, env, user) {
 
   const dias = Number(url.searchParams.get('dias') ?? 30)
   const video = (url.searchParams.get('video') ?? 'vsl').trim().slice(0, 60) || 'vsl'
-  if (!PERIODOS.has(dias)) return sendJson(res, 400, { error: 'Período inválido. Use 7, 30, 90 ou 0 (tudo).' })
+  if (!PERIODOS.has(dias)) return sendJson(res, 400, { error: 'Período inválido. Use 1 (hoje), 7, 30, 90 ou 0 (tudo).' })
 
   try {
     const { linhas, atualizadoEm } = await lerEventos()

@@ -88,3 +88,13 @@ test('sem dados: tudo zerado, sem quebrar', () => {
   assert.equal(r.resumo.taxaPlay, 0)
   assert.equal(r.resumo.mediaSegundos, null)
 })
+
+test('período "hoje" (dias = 1) conta só os eventos do dia', () => {
+  const linhas = [
+    ev('video_play', 'ontem', { data_hora: '2026-10-17 10:00:00' }),
+    ev('video_play', 'hoje', { data_hora: `${HOJE} 10:00:00` }),
+  ]
+  const r = calcularMetricasVideo(linhas, { hoje: HOJE, dias: 1 })
+  assert.equal(r.resumo.espectadores, 1)
+  assert.equal(r.porDia.length, 1)
+})
