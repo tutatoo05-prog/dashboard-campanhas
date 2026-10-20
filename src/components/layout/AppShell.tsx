@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.tsx'
 import TopBar from './TopBar.tsx'
 import { CommandPalette } from './CommandPalette.tsx'
+import { MobileDock } from './MobileDock.tsx'
 import { StickerLayer } from '@/components/flash/StickerLayer.tsx'
 import { MascotCompanion } from '@/components/mascot/MascotCompanion.tsx'
 import { canAccessPath, homePath } from '@/lib/roles.ts'
@@ -40,6 +41,7 @@ export default function AppShell() {
 
       <MascotCompanion />
       <CommandPalette />
+      <MobileDock />
 
       <div className="main-content">
         <TopBar />

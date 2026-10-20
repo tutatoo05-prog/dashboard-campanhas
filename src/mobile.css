@@ -599,3 +599,64 @@ summary,
   font-size: 0.86rem;
   font-weight: 600;
 }
+
+/* ───── Botão flutuante do celular (+ vira X): busca, tema, Live e ajuda saem do topo ───── */
+.mdock {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.mdock-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: mdock-in 0.18s ease-out;
+}
+@keyframes mdock-in { from { opacity: 0; } to { opacity: 1; } }
+.mdock-fab {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--o);
+  color: #15110d;
+  font-size: 1.25rem;
+  box-shadow: 3px 3px 0 var(--shade);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mdock-fab:active { transform: scale(0.95); }
+.mdock-fab:focus-visible { outline: 3px solid var(--y); outline-offset: 3px; }
+.mdock .topbar-icon-btn,
+.mdock .cmdk-trigger {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  min-width: 3rem;
+  padding: 0;
+  gap: 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 1.05rem;
+  box-shadow: 2px 2px 0 var(--shade);
+  transform: none;
+}
+.mdock .topbar-icon-btn:hover,
+.mdock .cmdk-trigger:hover { transform: none; background: var(--y); }
+.mdock .lq { position: relative; }
+/* o quadro da Live abre acima da fileira de botões, ocupando a largura da tela */
+.mdock .lq-pop { position: fixed; left: 10px; right: 10px; top: auto; bottom: calc(336px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: calc(100dvh - 360px); overflow-y: auto; }
+@media (min-width: 768px) {
+  .mdock { display: none; }
+}
