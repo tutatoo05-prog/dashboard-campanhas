@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
 import { getDisplayName } from '@/lib/userDisplay.ts'
@@ -78,6 +78,14 @@ export default function Sidebar() {
     setMenuAberto((v) => !v)
   }
 
+  /** O cartão inteiro abre o menu da conta. O "Sair" tem ação própria, e o menu aberto (que é filho do cartão
+   * no React, mesmo desenhado no <body>) não deve se fechar por cliques dentro dele. */
+  function cliqueNoCartao(evento: ReactMouseEvent<HTMLDivElement>) {
+    const alvo = evento.target as HTMLElement
+    if (alvo.closest('.fx-out') || popRef.current?.contains(alvo)) return
+    alternarMenu()
+  }
+
   async function sair() {
     await logout()
     setUser(null)
@@ -100,8 +108,8 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className="fx-user" ref={blocoRef}>
-        <button type="button" className="fx-user-id" onClick={alternarMenu} aria-label="Abrir menu da conta" title={userLabel}>
+      <div className="fx-user" ref={blocoRef} onClick={cliqueNoCartao}>
+        <button type="button" className="fx-user-id" aria-label="Abrir menu da conta" title={userLabel}>
           <Avatar user={user} size={34} />
         </button>
         <div className="fx-user-txt">
@@ -110,7 +118,7 @@ export default function Sidebar() {
             Sair
           </button>
         </div>
-        <button type="button" className="fx-plus" onClick={alternarMenu} aria-haspopup="menu" aria-expanded={menuAberto} aria-label="Mais opções da conta" title="Mais opções">
+        <button type="button" className="fx-plus" aria-haspopup="menu" aria-expanded={menuAberto} aria-label="Mais opções da conta" title="Mais opções">
           <i className="fa-solid fa-ellipsis" />
         </button>
         {menuAberto &&

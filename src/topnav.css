@@ -109,6 +109,9 @@ button.fx-me:hover { background: var(--y); }
 
 /* ───── Usuário no topo do menu lateral + dropdown ───── */
 .fx-user { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin: 2px 0 4px; border: 2.5px solid var(--line); border-radius: 14px; background: var(--white); box-shadow: 3px 3px 0 var(--shade); }
+/* O cartão todo abre o menu da conta (só o "Sair" faz outra coisa). */
+.fx-user { cursor: pointer; transition: border-color 0.15s ease; }
+.fx-user:hover { border-color: var(--o); }
 .fx-user-id { flex: none; border-radius: 50%; }
 .fx-user-id:focus-visible, .fx-plus:focus-visible, .fx-out:focus-visible { outline: 3px solid var(--o); outline-offset: 2px; }
 .fx-user-txt { flex: 1; min-width: 0; line-height: 1.15; }
