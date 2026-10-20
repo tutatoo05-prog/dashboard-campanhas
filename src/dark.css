@@ -211,4 +211,9 @@
 :root[data-theme='dark'] .tl-lead .tl-ponto { color: var(--ink); }
 :root[data-theme='dark'] .tl-corpo { border-color: var(--line); }
 :root[data-theme='dark'] .tl::before { background: var(--line); }
-:root[data-theme='dark'] .tl-status { color: var(--on-accent); }
+/* texto escuro só nas etiquetas coloridas; a neutra ("Ainda não comprou") tem fundo escuro e fica com o texto claro */
+:root[data-theme='dark'] .tl-status-comprou,
+:root[data-theme='dark'] .tl-status-pagamento_gerado,
+:root[data-theme='dark'] .tl-status-abandonou,
+:root[data-theme='dark'] .tl-status-cancelou,
+:root[data-theme='dark'] .tl-status-reembolsou { color: var(--on-accent); }
