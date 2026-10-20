@@ -104,6 +104,7 @@ function Content({ data }: { data: VideoMetrics }) {
         />
       </section>
 
+      <div className={`grid gap-4 ${showChart ? 'md:grid-cols-2' : ''}`}>
       {showChart && (
         <section className="surface-card p-4">
           <p className="section-label">Espectadores por dia</p>
@@ -111,7 +112,7 @@ function Content({ data }: { data: VideoMetrics }) {
             <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: GOLD }} aria-hidden="true" />Espectadores</span>
             <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--muted)' }} aria-hidden="true" />Assistiram 75%+</span>
           </p>
-          <div style={{ width: '100%', height: 180 }}>
+          <div style={{ width: '100%', height: 170 }}>
             <ResponsiveContainer>
               <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="20%">
                 <CartesianGrid stroke={GRID} vertical={false} />
@@ -182,6 +183,7 @@ function Content({ data }: { data: VideoMetrics }) {
           </>
         )}
       </section>
+      </div>
     </>
   )
 }
