@@ -22,6 +22,16 @@
 .ac-tabs::-webkit-scrollbar {
   display: none;
 }
+/* Cartão de opções no celular ocupa a linha inteira, mesmo dentro de uma barra flex (ex.: filtros do ranking), e
+   a busca e a ordenação do ranking também. A partir de 640px voltam ao tamanho do conteúdo. */
+.seg {
+  width: 100%;
+}
+.rank-toolbar > .rank-search,
+.rank-toolbar > .rank-sort {
+  flex: 1 1 100%;
+}
+
 /* Cartão de opções no celular: as opções dividem a largura do cartão e o texto fica centralizado em cada uma.
    Se não couberem, mantêm o tamanho natural e a fileira rola de lado (flex: 1 0 auto nunca encolhe). */
 .seg > *,
@@ -61,6 +71,12 @@
   .cfg-side > *,
   .ac-tabs > * {
     flex: none;
+  }
+  .seg {
+    width: auto;
+  }
+  .rank-toolbar > .rank-search {
+    flex: 1 1 14rem;
   }
 }
 
