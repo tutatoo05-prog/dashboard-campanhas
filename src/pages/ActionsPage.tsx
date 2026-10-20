@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
+import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
 import { fetchGoal } from '@/services/goalService.ts'
@@ -928,7 +929,7 @@ export default function ActionsPage() {
         <p className="section-label">
           {getGreeting()}, {getDisplayName(user)}
         </p>
-        <h2 className="section-title mt-1">Central de Ações</h2>
+        <Typewriter as="h2" className="section-title mt-1" text="Central de Ações" />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">
           O painel lê os números por você e diz o que fazer, em ordem de importância. Resolva de cima para baixo e
           marque como feito.

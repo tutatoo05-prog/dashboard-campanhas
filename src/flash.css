@@ -20,7 +20,8 @@
   --on-accent: var(--ink);
   --chart-grid: rgba(21, 17, 13, 0.18);
   --shadow: 5px 5px 0 var(--shade);
-  --font-display: 'Pirata One', Georgia, serif;
+  --font-display: 'Bebas Neue', system-ui, sans-serif;
+  --font-title: 'Pirata One', Georgia, serif; /* só o nome da página no card do topo */
 
   /* tokens antigos, agora em tons de papel/tinta */
   --gold: #ff8a1f;
@@ -169,6 +170,7 @@ body::before { /* grão de papel */
   border-radius: 6px;
 }
 .section-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.7rem, 7vw, 2.3rem); line-height: 1; letter-spacing: 0; color: var(--ink); }
+h2.section-title { font-family: var(--font-title); }
 .hero-panel .section-title { font-size: clamp(2.4rem, 4.4vw, 3.6rem); line-height: 0.95; margin: 10px 0 12px; }
 .text-gold { color: #c2570a; }
 .font-display { font-family: var(--font-display); letter-spacing: 0; }
