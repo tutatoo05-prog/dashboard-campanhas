@@ -28,6 +28,15 @@ export async function fetchUsers(): Promise<ManagedUser[]> {
   return Array.isArray(data.users) ? data.users : []
 }
 
+/** Aprova um cadastro pendente (ativo = true). */
+export async function approveUser(id: string): Promise<ManagedUser> {
+  const data = await request<{ user: ManagedUser }>(`/api/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ aprovar: true }),
+  })
+  return data.user
+}
+
 export async function updateUserRole(id: string, cargo: Cargo): Promise<ManagedUser> {
   const data = await request<{ user: ManagedUser }>(`/api/users/${encodeURIComponent(id)}`, {
     method: 'PATCH',

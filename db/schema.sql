@@ -399,3 +399,10 @@ create table if not exists video_config (
   atualizado_em timestamptz not null default now(),
   atualizado_por text
 );
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Cadastros recusados: o fluxo de aprovação do n8n (Telegram/WhatsApp) grava recusado_em. Nulo = não recusado.
+-- ativo = false e recusado_em nulo = pendente; ativo = false e recusado_em preenchido = recusado.
+-- (Já aplicado no banco de produção em 20/10/2026, migração dash_users_recusado_em.)
+-- ───────────────────────────────────────────────────────────────────────────────
+alter table users add column if not exists recusado_em timestamptz;

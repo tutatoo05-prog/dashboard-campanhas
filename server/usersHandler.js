@@ -48,12 +48,33 @@ export async function handleUsersRequest(req, res, env, user) {
   if (!UUID_RE.test(id)) return sendJson(res, 400, { error: 'Usuário inválido.' })
 
   let cargo
+  let aprovar = false
   try {
     const raw = await readRequestBody(req, 4 * 1024)
-    cargo = String((raw ? JSON.parse(raw) : {}).cargo ?? '')
+    const body = raw ? JSON.parse(raw) : {}
+    aprovar = body.aprovar === true
+    cargo = String(body.cargo ?? '')
   } catch (error) {
     if (error.message === 'Payload too large') return sendJson(res, 413, { error: 'Requisição muito grande.' })
     return sendJson(res, 400, { error: 'Requisição inválida.' })
+  }
+
+  // Aprovar um cadastro pendente (ativo = true). Só aprova: desativar quem já entrou fica fora para ninguém se trancar.
+  // Existe porque a aprovação pelo Telegram do n8n pode falhar sem o administrador perceber.
+  if (aprovar) {
+    try {
+      const result = await query(env, `update users set ativo = true where id = $1 and ativo = false returning ${USER_COLUMNS}`, [id])
+      if (!result.rows[0]) {
+        const exists = await query(env, 'select ativo from users where id = $1', [id])
+        if (!exists.rows[0]) return sendJson(res, 404, { error: 'Usuário não encontrado.' })
+        return sendJson(res, 409, { error: 'Esse cadastro já está ativo.' })
+      }
+      console.log(`[cadastros] ${user.email} aprovou ${result.rows[0].email}`)
+      return sendJson(res, 200, { success: true, user: toUser(result.rows[0]) })
+    } catch (error) {
+      console.error('Erro ao aprovar cadastro:', error)
+      return sendJson(res, 502, { error: 'Erro ao aprovar o cadastro no banco de dados.' })
+    }
   }
 
   if (!ROLES.includes(cargo)) {

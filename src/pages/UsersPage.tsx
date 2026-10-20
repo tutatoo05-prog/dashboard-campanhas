@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchUsers, updateUserRole } from '@/services/usersService.ts'
+import { approveUser, fetchUsers, updateUserRole } from '@/services/usersService.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { formatNumber } from '@/lib/format.ts'
 import type { Cargo, ManagedUser } from '@/types'
@@ -69,6 +69,28 @@ export default function UsersPage() {
     } catch (error) {
       const message = (error as Error).message
       setActionError(message === 'SESSION_EXPIRED' ? 'Sua sessão expirou. Faça login novamente.' : message)
+    } finally {
+      setSavingId('')
+    }
+  }
+
+  async function handleApprove(target: ManagedUser) {
+    if (!window.confirm(`Aprovar ${target.nome || target.email}?\n\nA pessoa passa a poder entrar no dash com o cargo de ${CARGO_LABELS[target.cargo].toLowerCase()}.`)) return
+
+    setSavingId(target.id)
+    setActionError('')
+    setNotice('')
+    try {
+      const updated = await approveUser(target.id)
+      queryClient.setQueryData<ManagedUser[]>(['users'], (current) =>
+        (current ?? []).map((user) => (user.id === updated.id ? updated : user)),
+      )
+      setNotice(`${updated.nome || updated.email} foi aprovado e já pode entrar.`)
+    } catch (error) {
+      const message = (error as Error).message
+      setActionError(message === 'SESSION_EXPIRED' ? 'Sua sessão expirou. Faça login novamente.' : message)
+      // se o cadastro já estava ativo (aprovado por outro caminho), atualiza a lista para mostrar o estado real
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
     } finally {
       setSavingId('')
     }
@@ -184,8 +206,19 @@ export default function UsersPage() {
                             ativo
                           </span>
                         ) : (
-                          <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[11px] text-zinc-400">
-                            aguardando aprovação
+                          <span className="inline-flex items-center gap-2">
+                            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[11px] text-zinc-400">
+                              aguardando aprovação
+                            </span>
+                            <button
+                              type="button"
+                              className="chip-btn"
+                              disabled={Boolean(savingId)}
+                              onClick={() => void handleApprove(user)}
+                              title={`Aprovar ${user.nome || user.email}`}
+                            >
+                              Aprovar
+                            </button>
                           </span>
                         )}
                       </td>
