@@ -14,6 +14,7 @@ import { GoalCard } from '@/components/goals/GoalCard.tsx'
 import { KpiCard, KpiSkeletons } from '@/components/dashboard/KpiCard.tsx'
 import { Reveal } from '@/components/mascot/Reveal.tsx'
 import { CampaignDetail } from '@/components/campaign/CampaignDrawer.tsx'
+import { CampaignSalesModal, type CampaignSalesRow } from '@/components/dashboard/CampaignSalesModal.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { exportCsv } from '@/lib/csv.ts'
 import { getDisplayName, getGreeting } from '@/lib/userDisplay.ts'
@@ -25,15 +26,6 @@ import { usePlatformStore } from '@/store/platformStore.ts'
 import { PlatformSelect } from '@/components/layout/PlatformSelect.tsx'
 import { PlatformComingSoon } from '@/components/layout/PlatformComingSoon.tsx'
 import type { CampaignItem, EnrichedCampaignItem, InsightCard, Level, Period, Purchase } from '@/types'
-
-interface CampaignSalesRow {
-  campaignId: string
-  name: string
-  spend: number
-  sales: number
-  revenue: number
-  revenueCount: number
-}
 
 function normalizeName(value: string): string {
   return value
@@ -244,6 +236,7 @@ export default function DashboardPage() {
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'desc' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [salesRow, setSalesRow] = useState<CampaignSalesRow | null>(null)
   // Recomendações: no celular começam recolhidas (dropdown); no computador, abertas. O toque do usuário vale mais.
   const wide = useMediaQuery('(min-width: 768px)')
   const [recoOpen, setRecoOpen] = useState<boolean | null>(null)
@@ -650,7 +643,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">#</th>
@@ -679,7 +672,7 @@ export default function DashboardPage() {
                       <td className="cell-name text-zinc-200" title={item.name}>
                         {item.name}
                       </td>
-                      <td data-label="Status">
+                      <td data-label="Status" className="cell-more">
                         <span
                           className={`text-xs ${
                             item.status === 'Ativa' ? 'text-emerald-400' : 'text-zinc-600'
@@ -688,23 +681,23 @@ export default function DashboardPage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="cell-wide" data-label="Veredito">
+                      <td className="cell-brief cell-nolabel cell-wide" data-label="Veredito">
                         <VerdictBadge item={item} />
                       </td>
-                      <td className="num text-zinc-300" data-label="Gasto">
+                      <td className="cell-brief num text-zinc-300" data-label="Gasto">
                         {formatCurrency(item.spend)}
                       </td>
-                      <td className="num text-zinc-300" data-label="CTR">
+                      <td className="cell-more num text-zinc-300" data-label="CTR">
                         {formatDecimal(item.ctr)}%
                       </td>
-                      <td className="num text-zinc-300" data-label="Leads" title={leadsHint(item) ?? undefined}>
+                      <td className="cell-brief num text-zinc-300" data-label="Leads" title={leadsHint(item) ?? undefined}>
                         {formatNumber(item.leads)}
                         {leadsHint(item) && <span className="ml-1 text-[10px] text-zinc-500">●</span>}
                       </td>
-                      <td className="num text-zinc-300" data-label="CPL">
+                      <td className="cell-more num text-zinc-300" data-label="CPL">
                         {item.leads > 0 ? formatCurrency(item.cpl) : '—'}
                       </td>
-                      <td className="num cell-score font-semibold text-zinc-200" data-label="Nota">
+                      <td className="cell-key num cell-score font-semibold text-zinc-200" data-label="Nota">
                         {item.analysis.score}
                       </td>
                     </tr>
@@ -739,7 +732,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Campanha</th>
@@ -755,23 +748,31 @@ export default function DashboardPage() {
                     const costPerSale = row.sales > 0 ? row.spend / row.sales : null
                     const roi = row.revenueCount > 0 && row.spend > 0 ? row.revenue / row.spend : null
                     return (
-                      <tr key={row.campaignId} className="border-b border-zinc-900/80 last:border-0">
+                      <tr
+                        key={row.campaignId}
+                        className="row-click border-b border-zinc-900/80 last:border-0"
+                        onClick={() => setSalesRow(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') setSalesRow(row)
+                        }}
+                        tabIndex={0}
+                      >
                         <td className="cell-name text-zinc-200" title={row.name}>
                           {row.name}
                         </td>
-                        <td className="num text-zinc-300" data-label="Gasto">
+                        <td className="cell-brief num text-zinc-300" data-label="Gasto">
                           {formatCurrency(row.spend)}
                         </td>
-                        <td className="num text-zinc-300" data-label="Vendas">
+                        <td className="cell-brief num text-zinc-300" data-label="Vendas">
                           {formatNumber(row.sales)}
                         </td>
-                        <td className="num text-zinc-300" data-label="Custo por venda">
+                        <td className="cell-more num text-zinc-300" data-label="Custo por venda">
                           {costPerSale != null ? formatCurrency(costPerSale) : '—'}
                         </td>
-                        <td className="num text-zinc-300" data-label="Receita">
+                        <td className="cell-more num text-zinc-300" data-label="Receita">
                           {row.revenueCount > 0 ? formatCurrency(row.revenue) : '—'}
                         </td>
-                        <td className="num font-semibold text-zinc-200" data-label="ROI">
+                        <td className="cell-key num font-semibold text-zinc-200" data-label="ROI">
                           {roi != null ? `${formatDecimal(roi)}x` : '—'}
                         </td>
                       </tr>
@@ -790,6 +791,8 @@ export default function DashboardPage() {
           </Reveal>
         </>
       )}
+
+      {salesRow && <CampaignSalesModal row={salesRow} onClose={() => setSalesRow(null)} />}
 
       {selectedItem && insightsQuery.data && (
         <CampaignDetail

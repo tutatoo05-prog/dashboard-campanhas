@@ -227,13 +227,13 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
   return (
     <>
       <tr onClick={() => setAberto((valor) => !valor)} className="cursor-pointer border-b border-zinc-900/80 transition-colors hover:bg-amber-400/10">
-        <td className="text-zinc-500" data-label="Recebido">{dataHora(evento.recebidoEm)}</td>
+        <td className="cell-brief text-zinc-500" data-label="Recebido">{dataHora(evento.recebidoEm)}</td>
         <td className="cell-name text-zinc-200" title={evento.email ?? ''} data-label="Aluno">
           {evento.nome || evento.email || '—'}
         </td>
-        <td className="text-zinc-300" data-label="Curso">{evento.curso || '—'}</td>
-        <td className="cell-wide text-zinc-400" data-label="O que é">{(evento.decisao && DECISAO_LABEL[evento.decisao]) || evento.evento}</td>
-        <td className={`font-medium ${estado.classe}`} data-label="Situação">
+        <td className="cell-brief text-zinc-300" data-label="Curso">{evento.curso || '—'}</td>
+        <td className="cell-more cell-wide text-zinc-400" data-label="O que é">{(evento.decisao && DECISAO_LABEL[evento.decisao]) || evento.evento}</td>
+        <td className={`cell-key cell-nolabel font-medium ${estado.classe}`} data-label="Situação">
           {estado.texto}
           {evento.simulado && <span className="ml-1.5 text-[11px] font-normal text-zinc-500">(simulado)</span>}
         </td>
@@ -328,18 +328,18 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
         <span className="block truncate text-xs text-zinc-500">{aluno.email || 'e-mail ainda não conhecido'}</span>
         {verPessoa && <PessoaModal nome={aluno.nome} email={aluno.email} telefone={aluno.telefone} onClose={() => setVerPessoa(false)} />}
       </td>
-      <td className="text-zinc-300" data-label="Curso">{aluno.curso}</td>
-      <td className="cell-wide text-zinc-400" data-label="Pagamento">
+      <td className="cell-brief text-zinc-300" data-label="Curso">{aluno.curso}</td>
+      <td className="cell-more cell-wide text-zinc-400" data-label="Pagamento">
         {aluno.origem === 'plataforma'
           ? `Já na plataforma${aluno.plataformaId ? ` · nº ${aluno.plataformaId}` : ''}`
           : [aluno.parcelado ? 'Pix parcelado' : aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
       </td>
-      <td className="text-zinc-300" data-label="Acesso até">
+      <td className="cell-brief text-zinc-300" data-label="Acesso até">
         {soData(aluno.liberadoAte)}
         {aluno.parcelado && aluno.pagoAte && <span className="block text-xs text-zinc-500">pago até {soData(aluno.pagoAte)}</span>}
       </td>
-      <td className="text-zinc-400" data-label="Parcelas">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
-      <td className={`cell-wide font-medium ${status.classe}`} data-label="Situação">
+      <td className="cell-more text-zinc-400" data-label="Parcelas">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
+      <td className={`cell-key cell-nolabel cell-wide font-medium ${status.classe}`} data-label="Situação">
         {status.texto}
         {aluno.status === 'atrasado' && aluno.bloquearEm && <span className="block text-xs font-normal text-zinc-500">bloqueia {soData(aluno.bloquearEm)}</span>}
         {aluno.bloqueioErro && <span className="block text-xs font-normal text-red-300">{aluno.bloqueioErro}</span>}
@@ -456,7 +456,7 @@ export default function AcessosPage() {
             <p className="mt-1 text-xs text-zinc-500">O dash tenta de novo sozinho; se continuar, corrija o motivo e use "Tentar de novo agora".</p>
           </div>
           <div className="overflow-auto md:max-h-[420px]">
-            <table className="data-table">
+            <table className="data-table data-table-brief">
               <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                 <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                   <th className="font-medium">Recebido</th>
@@ -496,7 +496,7 @@ export default function AcessosPage() {
         </div>
 
         <div className="overflow-auto md:max-h-[640px]">
-          <table className="data-table">
+          <table className="data-table data-table-brief">
             <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
               <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                 <th className="font-medium">Aluno</th>

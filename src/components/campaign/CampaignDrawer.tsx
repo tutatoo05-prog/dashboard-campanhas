@@ -198,7 +198,7 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
                 {childrenLabel} ({rows.length})
               </p>
               <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
-                <table className="data-table">
+                <table className="data-table data-table-brief">
                   <thead>
                     <tr className="border-b border-zinc-800/60 text-zinc-500">
                       <th className="font-medium">Nome</th>
@@ -216,10 +216,10 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
                           {row.flag === 'worst' && <span title="Maior custo por lead">🔴 </span>}
                           {row.name}
                         </td>
-                        <td className="num text-zinc-300" data-label="Gasto">{formatCurrency(row.spend)}</td>
-                        <td className="num text-zinc-300" data-label="Leads">{formatNumber(row.leads)}</td>
-                        <td className="num text-zinc-300" data-label="CPL">{row.leads > 0 ? formatCurrency(row.cpl) : '—'}</td>
-                        <td className="num text-zinc-300" data-label="CTR">{formatDecimal(row.ctr)}%</td>
+                        <td className="cell-key num text-zinc-300" data-label="Gasto">{formatCurrency(row.spend)}</td>
+                        <td className="cell-brief num text-zinc-300" data-label="Leads">{formatNumber(row.leads)}</td>
+                        <td className="cell-brief num text-zinc-300" data-label="CPL">{row.leads > 0 ? formatCurrency(row.cpl) : '—'}</td>
+                        <td className="cell-more num text-zinc-300" data-label="CTR">{formatDecimal(row.ctr)}%</td>
                       </tr>
                     ))}
                   </tbody>

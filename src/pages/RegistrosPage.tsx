@@ -419,7 +419,7 @@ export default function RegistrosPage() {
             </div>
 
             <div className="overflow-auto md:max-h-[560px]">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>
@@ -442,12 +442,12 @@ export default function RegistrosPage() {
                         {record.nome || '—'}
                       </td>
                       <td
-                        className="text-zinc-400"
+                        className="cell-more text-zinc-400"
                         title={`${record.email} ${record.telefone}`}
                        data-label="Contato">
                         {record.email || record.telefone || '—'}
                       </td>
-                      <td className="text-xs text-zinc-400" data-label="Planilha · Aba">
+                      <td className="cell-more text-xs text-zinc-400" data-label="Planilha · Aba">
                         <span className="flex items-center gap-1.5">
                           <span className="text-zinc-300">{record.aba}</span>
                           {record.aparece.length > 1 && (
@@ -461,11 +461,11 @@ export default function RegistrosPage() {
                         </span>
                         <span className="block text-[10px] text-zinc-600">{record.planilha}</span>
                       </td>
-                      <td className="text-zinc-300" data-label="Origem">{record.canal}</td>
-                      <td className="text-zinc-300" title={record.campanha} data-label="Campanha">
+                      <td className="cell-brief text-zinc-300" data-label="Origem">{record.canal}</td>
+                      <td className="cell-brief text-zinc-300" title={record.campanha} data-label="Campanha">
                         {record.campanha || '—'}
                       </td>
-                      <td className="text-xs text-zinc-400" data-label="Situação">
+                      <td className="cell-key cell-nolabel text-xs text-zinc-400" data-label="Situação">
                         {record.status !== 'lead' && <span className={`tl-status tl-status-${record.status} mb-1`}>{STATUS_ROTULO[record.status]}</span>}
                         {record.tipo === 'evento' ? (
                           <>
@@ -482,7 +482,7 @@ export default function RegistrosPage() {
                           '—'
                         )}
                       </td>
-                      <td className="whitespace-nowrap text-zinc-500" data-label="Última passagem">{formatDate(record.data)}</td>
+                      <td className="cell-more whitespace-nowrap text-zinc-500" data-label="Última passagem">{formatDate(record.data)}</td>
                     </tr>
                   ))}
                   {!filtered.length && (

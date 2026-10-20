@@ -155,7 +155,7 @@ export default function UsersPage() {
           </div>
 
           <div className="overflow-auto">
-            <table className="data-table">
+            <table className="data-table data-table-brief">
               <thead className="bg-zinc-950/95">
                 <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                   <th className="font-medium">Nome</th>
@@ -175,10 +175,10 @@ export default function UsersPage() {
                         {user.nome || '—'}
                         {isMe && <span className="ml-2 text-[10px] text-zinc-500">(você)</span>}
                       </td>
-                      <td className="text-zinc-400" title={user.email} data-label="E-mail">
+                      <td className="cell-brief text-zinc-400" title={user.email} data-label="E-mail">
                         {user.email}
                       </td>
-                      <td  data-label="Situação">
+                      <td  data-label="Situação" className="cell-key cell-nolabel">
                         {user.ativo ? (
                           <span className="rounded-full border border-emerald-500/25 px-2 py-0.5 text-[11px] text-emerald-300">
                             ativo
@@ -189,8 +189,8 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap text-zinc-500" data-label="Cadastro">{formatDate(user.createdAt)}</td>
-                      <td data-label="Cargo">
+                      <td className="cell-more whitespace-nowrap text-zinc-500" data-label="Cadastro">{formatDate(user.createdAt)}</td>
+                      <td data-label="Cargo" className="cell-brief cell-nolabel">
                         <div className="flex items-center gap-2">
                           <select
                             value={user.cargo}

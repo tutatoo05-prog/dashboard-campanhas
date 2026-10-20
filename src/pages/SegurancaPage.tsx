@@ -314,7 +314,7 @@ export default function SegurancaPage() {
             <p className="section-label">Quem está logado</p>
             <h3 className="section-title mt-1">Sessões ativas</h3>
             <div className="mt-3 overflow-x-auto">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Pessoa</th>
@@ -331,9 +331,9 @@ export default function SegurancaPage() {
                         {sessao.atual && <span className="ml-2 rounded-full border border-emerald-500/40 px-2 text-[10px] text-emerald-300">você, agora</span>}
                         <span className="block text-xs text-zinc-500">{sessao.email}</span>
                       </td>
-                      <td className="text-zinc-400" data-label="Cargo">{sessao.cargo}</td>
-                      <td className="text-zinc-400" data-label="Entrou em">{dataHora(sessao.entrouEm)}</td>
-                      <td className="text-zinc-400" data-label="Vale até">{soData(sessao.expiraEm)}</td>
+                      <td className="cell-key cell-nolabel text-zinc-400" data-label="Cargo">{sessao.cargo}</td>
+                      <td className="cell-more text-zinc-400" data-label="Entrou em">{dataHora(sessao.entrouEm)}</td>
+                      <td className="cell-brief text-zinc-400" data-label="Vale até">{soData(sessao.expiraEm)}</td>
                     </tr>
                   ))}
                   {!dados.sessoes.length && (
@@ -432,7 +432,7 @@ export default function SegurancaPage() {
             <h3 className="section-title mt-1">O que foi mexido nas campanhas</h3>
             <p className="mt-1 text-xs text-zinc-500">Tudo que o painel alterou na Meta (pausar, reativar, mudar orçamento): quem fez e quando.</p>
             <div className="mt-3 overflow-x-auto">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Quando</th>
@@ -446,10 +446,10 @@ export default function SegurancaPage() {
                   {dados.acoes.map((acao, indice) => (
                     <tr key={`${acao.em}-${indice}`} className="border-b border-zinc-900/80">
                       <td className="cell-name whitespace-nowrap text-zinc-400" data-label="Quando">{dataHora(acao.em)}</td>
-                      <td className="text-zinc-300" data-label="Quem">{acao.usuario || '—'}</td>
-                      <td className="text-zinc-300" title={acao.campanha ?? ''} data-label="Campanha">{acao.campanha || '—'}</td>
-                      <td className="text-zinc-300" data-label="Ação">{acao.acao}</td>
-                      <td className={`${acao.ok ? 'text-emerald-300' : 'text-red-300'}`} data-label="Resultado">{acao.ok ? 'feito' : 'falhou'}</td>
+                      <td className="cell-brief text-zinc-300" data-label="Quem">{acao.usuario || '—'}</td>
+                      <td className="cell-brief text-zinc-300" title={acao.campanha ?? ''} data-label="Campanha">{acao.campanha || '—'}</td>
+                      <td className="cell-brief text-zinc-300" data-label="Ação">{acao.acao}</td>
+                      <td className={`cell-key cell-nolabel ${acao.ok ? 'text-emerald-300' : 'text-red-300'}`} data-label="Resultado">{acao.ok ? 'feito' : 'falhou'}</td>
                     </tr>
                   ))}
                   {!dados.acoes.length && (

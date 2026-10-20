@@ -154,7 +154,8 @@
 :root[data-theme='dark'] .sidebar.fx-menu { box-shadow: 6px 0 0 rgba(0, 0, 0, 0.35); }
 :root[data-theme='dark'] .cmdk-overlay,
 :root[data-theme='dark'] .drawer-backdrop { background: rgba(0, 0, 0, 0.62); }
-:root[data-theme='dark'] .drawer-panel { box-shadow: -8px 0 0 rgba(0, 0, 0, 0.4); }
+:root[data-theme='dark'] .drawer-panel { box-shadow: 0 -8px 0 rgba(0, 0, 0, 0.4); }
+@media (min-width: 768px) { :root[data-theme='dark'] .drawer-panel { box-shadow: -8px 0 0 rgba(0, 0, 0, 0.4); } }
 
 /* Central de Ações, saúde e gaveta */
 :root[data-theme='dark'] .health-text-good { color: #34d399; }

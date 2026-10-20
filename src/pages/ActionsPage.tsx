@@ -1377,7 +1377,7 @@ export default function ActionsPage() {
                   <p className="mt-1 text-xs text-zinc-600">Clique numa campanha para ver tudo sobre ela.</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="data-table">
+                  <table className="data-table data-table-brief">
                     <thead>
                       <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                         <th className="font-medium">Campanha</th>
@@ -1408,12 +1408,12 @@ export default function ActionsPage() {
                                 </small>
                               )}
                             </td>
-                            <td className="text-zinc-400" data-label="O que fazer">
+                            <td className="cell-more text-zinc-400" data-label="O que fazer">
                               {item.analysis.primary.emoji} {item.analysis.primary.label}
                             </td>
-                            <td className="num text-zinc-300" data-label="Gasto">{formatCurrency(item.spend)}</td>
-                            <td className="num text-zinc-300" data-label="Leads">{formatNumber(item.leads)}</td>
-                            <td className="num text-zinc-300" data-label="CPL">
+                            <td className="cell-key num text-zinc-300" data-label="Gasto">{formatCurrency(item.spend)}</td>
+                            <td className="cell-brief num text-zinc-300" data-label="Leads">{formatNumber(item.leads)}</td>
+                            <td className="cell-brief num text-zinc-300" data-label="CPL">
                               {item.leads > 0 ? formatCurrency(item.cpl) : '—'}
                             </td>
                           </tr>

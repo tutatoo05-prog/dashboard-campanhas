@@ -210,7 +210,7 @@ export default function LeadsPage() {
             </div>
 
             <div className="overflow-auto md:max-h-[520px]">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>
@@ -234,15 +234,15 @@ export default function LeadsPage() {
                         <td className="cell-name text-zinc-200" title={lead.nome} data-label="Nome">
                           {lead.nome || '—'}
                         </td>
-                        <td className="text-zinc-400" title={lead.email} data-label="Contato">
+                        <td className="cell-more text-zinc-400" title={lead.email} data-label="Contato">
                           {lead.email || lead.telefone || '—'}
                         </td>
-                        <td className="text-zinc-300" data-label="Origem">{originLabel(lead.origem)}</td>
-                        <td className="text-zinc-300" title={lead.campanha} data-label="Campanha">
+                        <td className="cell-brief text-zinc-300" data-label="Origem">{originLabel(lead.origem)}</td>
+                        <td className="cell-brief text-zinc-300" title={lead.campanha} data-label="Campanha">
                           {lead.campanha || '—'}
                         </td>
-                        <td className="text-zinc-500" data-label="Data">{lead.data || '—'}</td>
-                        <td className="num" data-label="Status">
+                        <td className="cell-more text-zinc-500" data-label="Data">{lead.data || '—'}</td>
+                        <td className="cell-key cell-nolabel num" data-label="Status">
                           {converted ? (
                             <span className="rounded-full border border-amber-500/25 bg-amber-500/8 px-2 py-0.5 text-xs text-amber-200">
                               Virou aluno

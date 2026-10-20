@@ -414,7 +414,7 @@ export default function LivePage() {
               <h3 className="section-title mt-1">Quem ligou e desligou</h3>
             </div>
             <div className="overflow-auto md:max-h-[420px]">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Quando</th>
@@ -428,14 +428,14 @@ export default function LivePage() {
                   {status.log.map((entry) => (
                     <tr key={entry.id} className="border-b border-zinc-900/80 last:border-0">
                       <td className="cell-name whitespace-nowrap text-zinc-500" data-label="Quando">{formatDate(entry.createdAt)}</td>
-                      <td className={`${entry.ok ? 'text-zinc-200' : 'text-red-300'}`} data-label="Ação">
+                      <td className={`cell-key ${entry.ok ? 'text-zinc-200' : 'text-red-300'}`} data-label="Ação">
                         {ACTION_LABELS[entry.action] ?? entry.action}
                       </td>
-                      <td className="text-zinc-400" data-label="Origem">{SOURCE_LABELS[entry.source] ?? entry.source}</td>
-                      <td className="text-zinc-400" title={entry.userEmail ?? ''} data-label="Quem">
+                      <td className="cell-more text-zinc-400" data-label="Origem">{SOURCE_LABELS[entry.source] ?? entry.source}</td>
+                      <td className="cell-brief text-zinc-400" title={entry.userEmail ?? ''} data-label="Quem">
                         {entry.userEmail || '—'}
                       </td>
-                      <td className={`${entry.ok ? 'text-zinc-300' : 'text-red-300'}`} data-label="Detalhe">{entry.detail}</td>
+                      <td className={`cell-brief ${entry.ok ? 'text-zinc-300' : 'text-red-300'}`} data-label="Detalhe">{entry.detail}</td>
                     </tr>
                   ))}
                   {!status.log.length && (

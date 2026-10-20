@@ -339,7 +339,7 @@ export default function PurchasesPage() {
             </div>
 
             <div className="overflow-auto md:max-h-[520px]">
-              <table className="data-table">
+              <table className="data-table data-table-brief">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>
@@ -371,20 +371,20 @@ export default function PurchasesPage() {
                           {purchase.nome || '—'}
                         </button>
                       </td>
-                      <td className="text-zinc-400" title={purchase.email} data-label="Contato">
+                      <td className="cell-more text-zinc-400" title={purchase.email} data-label="Contato">
                         {purchase.email || purchase.telefone || '—'}
                       </td>
-                      <td className="text-zinc-300" title={purchase.curso} data-label="Curso">
+                      <td className="cell-brief text-zinc-300" title={purchase.curso} data-label="Curso">
                         {purchase.curso || '—'}
                       </td>
-                      <td className="text-zinc-300" title={purchase.campanha} data-label="Campanha">
+                      <td className="cell-more text-zinc-300" title={purchase.campanha} data-label="Campanha">
                         {purchase.campanha || '—'}
                       </td>
-                      <td className="text-zinc-500" data-label="Data">{purchase.data || '—'}</td>
-                      <td className="num text-zinc-300" data-label="Valor">
+                      <td className="cell-more text-zinc-500" data-label="Data">{purchase.data || '—'}</td>
+                      <td className="cell-key num text-zinc-300" data-label="Valor">
                         {typeof purchase.valor === 'number' ? formatCurrency(purchase.valor) : '—'}
                       </td>
-                      <td  data-label="Status">
+                      <td  data-label="Status" className="cell-brief cell-nolabel">
                         {isCanceled(purchase) ? (
                           <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300">
                             Cancelado

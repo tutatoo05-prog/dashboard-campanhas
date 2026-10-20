@@ -1769,18 +1769,53 @@ kbd {
   animation: drawer-fade 0.2s ease;
 }
 
+/* Celular: folha que sobe do rodapé, com alça no topo. A partir de 768px, painel na lateral. */
 .drawer-panel {
   position: absolute;
-  top: 0;
   right: 0;
   bottom: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
-  width: min(100%, 40rem);
-  border-left: 1px solid var(--card-border);
+  max-height: 92dvh;
+  border-top: 1px solid var(--card-border);
+  border-radius: 22px 22px 0 0;
   background: #0c0c0f;
-  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.8);
-  animation: drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 -20px 60px -30px rgba(0, 0, 0, 0.8);
+  animation: drawer-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer-panel::before {
+  content: '';
+  align-self: center;
+  flex: none;
+  width: 2.75rem;
+  height: 0.3rem;
+  margin-top: 0.6rem;
+  border-radius: 999px;
+  background: var(--muted);
+  opacity: 0.5;
+}
+
+@keyframes drawer-up {
+  from { transform: translateY(100%); }
+}
+
+@media (min-width: 768px) {
+  .drawer-panel {
+    top: 0;
+    left: auto;
+    width: min(100%, 40rem);
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--card-border);
+    border-radius: 0;
+    box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.8);
+    animation: drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .drawer-panel::before {
+    display: none;
+  }
 }
 
 .drawer-head {

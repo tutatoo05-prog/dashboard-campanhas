@@ -166,6 +166,65 @@
   display: none;
 }
 
+/*
+ * Lista resumida (data-table-brief): no celular a linha mostra só o nome, um destaque (cell-key) e
+ * poucos dados (cell-brief). O resto (cell-more) fica para o cartão de detalhes que abre ao tocar.
+ */
+.data-table-brief tbody tr {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.9rem;
+  padding: 0.8rem 2.1rem 0.8rem 1rem;
+}
+.data-table-brief td.cell-more {
+  display: none;
+}
+.data-table-brief td.cell-name {
+  flex: 1 1 calc(100% - 6rem);
+  min-width: 0;
+  font-size: 0.95rem;
+}
+.data-table-brief td.cell-key {
+  flex: none;
+  order: 2;
+  text-align: right;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.data-table-brief td.cell-key::before {
+  text-align: right;
+}
+.data-table-brief td.cell-brief {
+  flex: none;
+  max-width: 100%;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.data-table-brief td.cell-brief::before {
+  display: inline;
+  margin: 0 0.3rem 0 0;
+}
+.data-table-brief td.cell-nolabel::before {
+  display: none;
+}
+.data-table-brief td.cell-empty {
+  flex: 1 1 100%;
+}
+/* seta que avisa que a linha abre os detalhes */
+.data-table-brief tbody tr.row-click::after,
+.data-table-brief tbody tr.cursor-pointer::after {
+  content: '\203A';
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
 @media (min-width: 768px) {
   .data-table {
     display: table;
@@ -178,6 +237,26 @@
   }
   .data-table tbody tr {
     display: table-row;
+    padding: 0;
+  }
+  .data-table tbody tr::after {
+    display: none;
+  }
+  .data-table-brief td.cell-more {
+    display: table-cell;
+  }
+  .data-table-brief td.cell-name,
+  .data-table-brief td.cell-key,
+  .data-table-brief td.cell-brief {
+    font-size: inherit;
+    color: inherit;
+  }
+  .data-table-brief td.cell-key {
+    font-weight: 400;
+  }
+  .data-table-brief td.cell-brief::before,
+  .data-table-brief td.cell-nolabel::before {
+    display: none;
   }
   .data-table th,
   .data-table td {
@@ -332,4 +411,40 @@ summary,
   .chip-btn {
     min-height: 2.75rem;
   }
+}
+
+/* Cartão de retorno (ROI) no topo dos detalhes de Vendas por campanha. */
+.roi-hero {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 2.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+.roi-hero-good {
+  background: #bfe6b6;
+  color: #15110d;
+}
+.roi-hero-bad {
+  background: #f3a49c;
+  color: #15110d;
+}
+.roi-hero-label {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.roi-hero-value {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 400;
+  line-height: 1;
+}
+.roi-hero-text {
+  font-size: 0.86rem;
+  font-weight: 600;
 }

@@ -380,7 +380,8 @@ kbd { background: var(--paper); border: 2px solid var(--line); color: var(--ink)
 .action-link { color: #c2570a; font-weight: 800; }
 
 .drawer-backdrop { background: rgba(21, 17, 13, 0.5); backdrop-filter: none; }
-.drawer-panel { background: var(--card); border-left: 4px solid var(--line); box-shadow: -8px 0 0 rgba(21, 17, 13, 0.2); }
+.drawer-panel { background: var(--card); border-top: 4px solid var(--line); box-shadow: 0 -8px 0 rgba(21, 17, 13, 0.2); }
+@media (min-width: 768px) { .drawer-panel { border-top: 0; border-left: 4px solid var(--line); box-shadow: -8px 0 0 rgba(21, 17, 13, 0.2); } }
 .drawer-head { border-bottom: 3px solid var(--line); }
 .drawer-title { color: var(--ink); font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; }
 .drawer-close { border: 2.5px solid var(--line); color: var(--ink); background: var(--white); box-shadow: 2px 2px 0 var(--shade); }
