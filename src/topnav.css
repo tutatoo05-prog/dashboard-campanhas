@@ -169,6 +169,14 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
 /* ───── Modo privacidade: o que for sensível fica borrado e sem seleção ───── */
 .modo-privado [data-sensivel],
 .modo-privado .priv-auto,
+.modo-privado .kpi2-value,
+.modo-privado .kpi2-spark,
+.modo-privado .delta-chip,
+.modo-privado .delta-note,
+.modo-privado .kpi-card .text-lg,
+.modo-privado .compare-kpi-prev-value,
+.modo-privado .recharts-wrapper,
+.modo-privado .data-table td:not(.cell-name),
 .modo-privado input[type='email'],
 .modo-privado input[type='tel'] {
   filter: blur(7px);
