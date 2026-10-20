@@ -63,7 +63,7 @@ export async function handleUsersRequest(req, res, env, user) {
   // Existe porque a aprovação pelo Telegram do n8n pode falhar sem o administrador perceber.
   if (aprovar) {
     try {
-      const result = await query(env, `update users set ativo = true where id = $1 and ativo = false returning ${USER_COLUMNS}`, [id])
+      const result = await query(env, `update users set ativo = true, recusado_em = null where id = $1 and ativo = false returning ${USER_COLUMNS}`, [id])
       if (!result.rows[0]) {
         const exists = await query(env, 'select ativo from users where id = $1', [id])
         if (!exists.rows[0]) return sendJson(res, 404, { error: 'Usuário não encontrado.' })

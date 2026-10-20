@@ -23,7 +23,7 @@ function recortar(corpo) {
   return String(corpo ?? '').replace(/\s+/g, ' ').slice(0, 300)
 }
 
-async function chamar(env, metodo, opcoes, fetchImpl) {
+export async function chamar(env, metodo, opcoes, fetchImpl = fetch) {
   const resposta = await fetchImpl(`https://api.telegram.org/bot${String(env.TELEGRAM_BOT_TOKEN).trim()}/${metodo}`, {
     ...opcoes,
     signal: AbortSignal.timeout(TIMEOUT_MS),

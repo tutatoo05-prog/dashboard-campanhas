@@ -1,4 +1,5 @@
 import { handleAuthRequest } from './authHandler.js'
+import { handleTelegramWebhook } from './aprovacaoTelegram.js'
 import { handleMetaRequest } from './metaHandler.js'
 import { handleReportRequest } from './reportHandler.js'
 import { handleDigestRequest } from './digestHandler.js'
@@ -44,6 +45,12 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // devolve opções de exibição. Fica antes da autenticação.
     if (req.url.startsWith('/api/player-config')) {
       await handlePlayerConfigRequest(req, res, env)
+      return
+    }
+
+    // Cliques nos botões Aprovar/Recusar do bot: autenticado pelo segredo do webhook, não por sessão.
+    if (req.url.startsWith('/api/telegram')) {
+      await handleTelegramWebhook(req, res, env)
       return
     }
 

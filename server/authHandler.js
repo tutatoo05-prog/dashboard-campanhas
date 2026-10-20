@@ -11,6 +11,7 @@ import {
   setSessionCookie,
 } from './session.js'
 import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
+import { avisarCadastroPendente } from './aprovacaoTelegram.js'
 import { atualizarPerfil, senhaForte as isStrongPassword, trocarSenha } from './perfil.js'
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000
@@ -28,20 +29,6 @@ function sendJson(res, status, payload) {
 function toPublicUser(row) {
   if (!row) return null
   return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario, cargo: row.cargo ?? 'usuario', avatar: row.avatar ?? null }
-}
-
-/** Avisa o n8n (WhatsApp) sobre um novo cadastro pendente de aprovação. Não bloqueia a resposta se falhar. */
-function notifyRegistration(env, { id, nome, email }) {
-  const webhookUrl = env.N8N_APPROVAL_WEBHOOK_URL
-  if (!webhookUrl) return
-
-  fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, nome, email }),
-  }).catch((error) => {
-    console.error('Erro ao avisar novo cadastro via n8n:', error)
-  })
 }
 
 /** Avisa o n8n (e-mail/WhatsApp) com o link de redefinição de senha. Não bloqueia a resposta se falhar. */
@@ -211,7 +198,8 @@ export async function handleAuthRequest(req, res, env) {
         [nome, email, senhaHash],
       )
 
-      notifyRegistration(env, { id: inserted.rows[0].id, nome, email })
+      // Aviso no Telegram com Aprovar/Recusar (não espera nem derruba o cadastro se falhar).
+      void avisarCadastroPendente(env, { id: inserted.rows[0].id, nome, email })
 
       return sendJson(res, 200, {
         success: true,
