@@ -1,9 +1,31 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchPlayerConfig, savePlayerConfig, type PlayerConfig, type PlayerConfigState } from '@/services/videoService.ts'
+import {
+  fetchPlayerConfig,
+  savePlayerConfig,
+  type AnimacaoBotao,
+  type FormaBotao,
+  type PlayerConfig,
+  type PlayerConfigState,
+  type PosicaoBotao,
+  type TamanhoBotao,
+} from '@/services/videoService.ts'
 
 /** Onde o player fica publicado (dist-player/ do projeto produtos). É o que as páginas de venda embutem. */
-const PLAYER_URL = 'https://tuzinho.academy/produtos/player/'
+const PLAYER_URL =
+  (import.meta.env.DEV && new URLSearchParams(location.search).get('player')) || 'https://tuzinho.academy/produtos/player/'
+const PLAYER_ORIGIN = new URL(PLAYER_URL, location.href).origin
+const DURACAO_PADRAO = 900
+
+/** Cores prontas: escolher uma muda a barra de progresso e o botão de uma vez (dá para ajustar cada uma depois). */
+const PALETA = [
+  { nome: 'Laranja', cor: '#ff8a1f' },
+  { nome: 'Verde', cor: '#22c55e' },
+  { nome: 'Azul', cor: '#2563eb' },
+  { nome: 'Vermelho', cor: '#ef4444' },
+  { nome: 'Roxo', cor: '#8b5cf6' },
+  { nome: 'Branco', cor: '#ffffff' },
+]
 
 function iframeCode(video: string): string {
   return [
@@ -20,22 +42,57 @@ function formatClock(segundos: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+/** Texto escuro sobre cor clara, claro sobre cor escura. */
+function textoSobre(cor: string): string {
+  const n = parseInt(cor.slice(1), 16)
+  const luz = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return luz > 0.6 ? '#15110d' : '#ffffff'
+}
+
+function Interruptor({ ligado, onChange, titulo, dica }: { ligado: boolean; onChange: (valor: boolean) => void; titulo: string; dica?: string }) {
   return (
-    <label className="block text-sm">
-      <span className="text-zinc-300">{label}</span>
-      {children}
-      {hint && <span className="mt-1 block text-xs text-zinc-500">{hint}</span>}
+    <div className="pc-row">
+      <div className="min-w-0">
+        <b className="block text-sm text-zinc-100">{titulo}</b>
+        {dica && <span className="block text-xs text-zinc-500">{dica}</span>}
+      </div>
+      <button type="button" role="switch" aria-checked={ligado} aria-label={titulo} className="ac-sw" onClick={() => onChange(!ligado)} />
+    </div>
+  )
+}
+
+function Opcoes<T extends string>({ valor, opcoes, onChange, rotulo }: { valor: T; opcoes: { v: T; label: string }[]; onChange: (valor: T) => void; rotulo: string }) {
+  return (
+    <div role="group" aria-label={rotulo}>
+      <span className="pc-label">{rotulo}</span>
+      <div className="seg">
+        {opcoes.map((opcao) => (
+          <button key={opcao.v} type="button" className={`seg-btn ${valor === opcao.v ? 'seg-btn-active' : ''}`} aria-pressed={valor === opcao.v} onClick={() => onChange(opcao.v)}>
+            {opcao.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Cor({ rotulo, valor, onChange }: { rotulo: string; valor: string; onChange: (cor: string) => void }) {
+  return (
+    <label className="pc-cor">
+      <input type="color" value={valor} onChange={(e) => onChange(e.target.value)} aria-label={rotulo} />
+      <span>
+        <b className="block text-sm text-zinc-100">{rotulo}</b>
+        <span className="block text-xs uppercase text-zinc-500">{valor}</span>
+      </span>
     </label>
   )
 }
 
-function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (value: boolean) => void; children: ReactNode }) {
+function Cartao({ id, titulo, destaque, children }: { id: string; titulo: string; destaque: boolean; children: ReactNode }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-200">
-      <input type="checkbox" className="mt-1" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-      <span>{children}</span>
-    </label>
+    <section id={id} className={`pc-card ${destaque ? 'pc-card-destaque' : ''}`} aria-label={titulo}>
+      {children}
+    </section>
   )
 }
 
@@ -46,13 +103,44 @@ export function PlayerControl({ video }: { video: string }) {
   const [form, setForm] = useState<PlayerConfig | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'erro'; text: string } | null>(null)
-  const [previewKey, setPreviewKey] = useState(0)
+  const [pronto, setPronto] = useState(false)
+  const [duracao, setDuracao] = useState(DURACAO_PADRAO)
+  const [destaque, setDestaque] = useState<'cta' | 'fim' | null>(null)
   const [copied, setCopied] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // o formulário nasce do que está salvo; depois disso só o próprio usuário mexe nele
   useEffect(() => {
     if (estado) setForm(structuredClone(estado.config))
   }, [estado])
+
+  const enviar = useCallback((mensagem: unknown) => {
+    iframeRef.current?.contentWindow?.postMessage(mensagem, PLAYER_ORIGIN)
+  }, [])
+
+  // a prévia mostra o formulário ao vivo (sem salvar): cada mudança vai para o player dentro do quadro
+  useEffect(() => {
+    if (pronto && form) enviar({ type: 'previa-config', config: form })
+  }, [form, pronto, enviar])
+
+  // o que o player conta de dentro da prévia: está pronto, o tamanho do vídeo e cliques no botão (abre aquele cartão)
+  useEffect(() => {
+    function aoReceber(evento: MessageEvent) {
+      if (evento.origin !== PLAYER_ORIGIN || evento.source !== iframeRef.current?.contentWindow) return
+      const msg = evento.data as { source?: string; event?: string; data?: { segundos?: number; alvo?: string } } | null
+      if (!msg || msg.source !== 'tuzinho-player') return
+      if (msg.event === 'ready') setPronto(true)
+      if (msg.event === 'duracao' && msg.data?.segundos) setDuracao(msg.data.segundos)
+      if (msg.event === 'editar' && (msg.data?.alvo === 'cta' || msg.data?.alvo === 'fim')) {
+        const alvo = msg.data.alvo
+        document.getElementById(`pc-${alvo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setDestaque(alvo)
+        window.setTimeout(() => setDestaque(null), 1600)
+      }
+    }
+    window.addEventListener('message', aoReceber)
+    return () => window.removeEventListener('message', aoReceber)
+  }, [])
 
   if (query.isLoading) return <section className="surface-card p-4"><div className="skeleton h-24 w-full" /></section>
   if (query.error) {
@@ -65,10 +153,19 @@ export function PlayerControl({ video }: { video: string }) {
   if (!estado || !form) return null
 
   const alterado = JSON.stringify(form) !== JSON.stringify(estado.config)
+  const maxSegundo = Math.max(60, duracao)
 
   function mudar(parcial: (atual: PlayerConfig) => PlayerConfig) {
     setForm((atual) => (atual ? parcial(structuredClone(atual)) : atual))
     setMessage(null)
+  }
+
+  function escolherPaleta(cor: string) {
+    mudar((c) => ({ ...c, aparencia: { ...c.aparencia, corDestaque: cor, corBotao: cor, corTextoBotao: textoSobre(cor) } }))
+  }
+
+  function mudarCor(campo: 'corDestaque' | 'corBotao' | 'corTextoBotao', cor: string) {
+    mudar((c) => ({ ...c, aparencia: { ...c.aparencia, [campo]: cor } }))
   }
 
   async function salvar() {
@@ -79,7 +176,6 @@ export function PlayerControl({ video }: { video: string }) {
       const novo: PlayerConfigState = await savePlayerConfig(video, form)
       queryClient.setQueryData(['player-config', video], novo)
       setForm(structuredClone(novo.config))
-      setPreviewKey((k) => k + 1)
       setMessage({ kind: 'ok', text: 'Salvo. Vale para quem abrir a página a partir de agora; quem já está assistindo termina com a versão antiga.' })
     } catch (erro) {
       setMessage({ kind: 'erro', text: (erro as Error).message })
@@ -99,7 +195,7 @@ export function PlayerControl({ video }: { video: string }) {
   }
 
   return (
-    <section className="surface-card p-4" data-tour="Controle do player" data-tour-text="Aqui você escolhe como o vídeo se comporta nas páginas: botão de compra num minuto, se dá para pular e o que aparece no fim. Salvou, as páginas já usam.">
+    <section className="surface-card p-4" data-tour="Controle do player" data-tour-text="Monte o player: cores, botão de compra num minuto, o que acontece no fim. A prévia mostra tudo ao vivo; salvou, as páginas já usam.">
       <p className="section-label">Controle do player</p>
       <h3 className="section-title mt-1 mb-1">Como o vídeo se comporta nas páginas</h3>
       <p className="mb-4 text-xs text-zinc-500">
@@ -118,111 +214,212 @@ export function PlayerControl({ video }: { video: string }) {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Arquivo HD (computador)" hint="Nome do .mp4 na pasta de vídeos do servidor.">
-              <input className="filter-select mt-1 w-full" value={form.arquivos.hd} onChange={(e) => mudar((c) => ({ ...c, arquivos: { ...c.arquivos, hd: e.target.value } }))} />
-            </Field>
-            <Field label="Arquivo leve (celular)" hint="Mais leve, para celular e conexão fraca.">
-              <input className="filter-select mt-1 w-full" value={form.arquivos.leve} onChange={(e) => mudar((c) => ({ ...c, arquivos: { ...c.arquivos, leve: e.target.value } }))} />
-            </Field>
+      <div className="pc-grid">
+        {/* ───── prévia ao vivo, fixa na tela enquanto os cartões rolam ───── */}
+        <div className="pc-previa">
+          <div className="relative overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
+            <iframe
+              ref={iframeRef}
+              src={`${PLAYER_URL}?v=${video}&manual=1`}
+              title="Prévia do player"
+              allow="autoplay; fullscreen; picture-in-picture"
+              className="absolute inset-0 h-full w-full border-0"
+              onLoad={() => setPronto(false)}
+            />
           </div>
+          <div className="pc-testes">
+            <button type="button" className="chip-btn" disabled={!pronto || !form.cta.ativo} onClick={() => enviar({ type: 'previa-cmd', cmd: 'testar-cta' })}>
+              <i className="fa-solid fa-play" aria-hidden="true" /> Testar o botão de compra
+            </button>
+            <button type="button" className="chip-btn" disabled={!pronto || !form.fim.ativo} onClick={() => enviar({ type: 'previa-cmd', cmd: 'ver-fim' })}>
+              <i className="fa-solid fa-flag-checkered" aria-hidden="true" /> Ver tela final
+            </button>
+            <button type="button" className="chip-btn" disabled={!pronto} onClick={() => enviar({ type: 'previa-cmd', cmd: 'reiniciar' })}>
+              <i className="fa-solid fa-rotate-left" aria-hidden="true" /> Recomeçar
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">
+            A prévia muda ao vivo, sem salvar. Clique no botão de compra dentro dela para ir direto às opções dele.
+          </p>
+        </div>
 
-          <Toggle checked={form.permitirAvancar} onChange={(v) => mudar((c) => ({ ...c, permitirAvancar: v }))}>
-            <b>Permitir pular para a frente</b>
-            <span className="block text-xs text-zinc-500">Desligado, a pessoa só volta ou continua de onde já assistiu.</span>
-          </Toggle>
-
-          <div className="space-y-2">
-            <Toggle checked={form.cta.ativo} onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, ativo: v } }))}>
-              <b>Mostrar o botão de compra durante o vídeo</b>
-              <span className="block text-xs text-zinc-500">Abre o mesmo fluxo de compra da página (cadastro e checkout).</span>
-            </Toggle>
+        {/* ───── opções, em cartões curtos ───── */}
+        <div className="pc-cartoes">
+          <Cartao id="pc-cta" titulo="Botão de compra" destaque={destaque === 'cta'}>
+            <Interruptor
+              ligado={form.cta.ativo}
+              onChange={(v) => {
+                mudar((c) => ({ ...c, cta: { ...c.cta, ativo: v } }))
+                if (v && pronto) window.setTimeout(() => enviar({ type: 'previa-cmd', cmd: 'ver-cta' }), 60)
+              }}
+              titulo="Botão de compra no vídeo"
+              dica="Abre o mesmo fluxo de compra da página."
+            />
             {form.cta.ativo && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Aparece aos (segundos)" hint={`Equivale a ${formatClock(form.cta.segundo)} do vídeo.`}>
+              <div className="pc-campos">
+                <label className="block">
+                  <span className="pc-label">Texto do botão</span>
+                  <input className="filter-select w-full" maxLength={60} value={form.cta.texto} onChange={(e) => mudar((c) => ({ ...c, cta: { ...c.cta, texto: e.target.value } }))} />
+                </label>
+                <label className="block">
+                  <span className="pc-label">
+                    Aparece em <b className="text-zinc-100">{formatClock(form.cta.segundo)}</b>
+                  </span>
                   <input
-                    type="number"
+                    type="range"
+                    className="pc-range"
                     min={0}
-                    max={7200}
-                    className="filter-select mt-1 w-full"
-                    value={form.cta.segundo}
+                    max={maxSegundo}
+                    step={1}
+                    value={Math.min(form.cta.segundo, maxSegundo)}
+                    aria-label="Segundo em que o botão aparece"
                     onChange={(e) => mudar((c) => ({ ...c, cta: { ...c.cta, segundo: Number(e.target.value) } }))}
                   />
-                </Field>
-                <Field label="Texto do botão">
-                  <input className="filter-select mt-1 w-full" maxLength={60} value={form.cta.texto} onChange={(e) => mudar((c) => ({ ...c, cta: { ...c.cta, texto: e.target.value } }))} />
-                </Field>
+                </label>
+                <Opcoes<PosicaoBotao>
+                  rotulo="Posição"
+                  valor={form.cta.posicao}
+                  opcoes={[{ v: 'esquerda', label: 'Esquerda' }, { v: 'centro', label: 'Centro' }, { v: 'direita', label: 'Direita' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, posicao: v } }))}
+                />
+                <Opcoes<TamanhoBotao>
+                  rotulo="Tamanho"
+                  valor={form.cta.tamanho}
+                  opcoes={[{ v: 'p', label: 'Pequeno' }, { v: 'm', label: 'Médio' }, { v: 'g', label: 'Grande' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, tamanho: v } }))}
+                />
+                <Opcoes<AnimacaoBotao>
+                  rotulo="Chamar atenção"
+                  valor={form.cta.animacao}
+                  opcoes={[{ v: 'nenhuma', label: 'Parado' }, { v: 'pulsar', label: 'Pulsar' }, { v: 'brilho', label: 'Brilho' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, animacao: v } }))}
+                />
               </div>
             )}
-          </div>
+          </Cartao>
 
-          <div className="space-y-2">
-            <Toggle checked={form.fim.ativo} onChange={(v) => mudar((c) => ({ ...c, fim: { ...c.fim, ativo: v } }))}>
-              <b>Mostrar uma tela quando o vídeo terminar</b>
-              <span className="block text-xs text-zinc-500">Mensagem e botão de compra sobre o vídeo parado.</span>
-            </Toggle>
+          <Cartao id="pc-fim" titulo="Tela final" destaque={destaque === 'fim'}>
+            <Interruptor
+              ligado={form.fim.ativo}
+              onChange={(v) => {
+                mudar((c) => ({ ...c, fim: { ...c.fim, ativo: v } }))
+                if (v && pronto) window.setTimeout(() => enviar({ type: 'previa-cmd', cmd: 'ver-fim' }), 60)
+              }}
+              titulo="Tela quando o vídeo terminar"
+              dica="Mensagem e botão de compra sobre o vídeo parado."
+            />
             {form.fim.ativo && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Mensagem (opcional)">
-                  <input className="filter-select mt-1 w-full" maxLength={120} value={form.fim.titulo} onChange={(e) => mudar((c) => ({ ...c, fim: { ...c.fim, titulo: e.target.value } }))} />
-                </Field>
-                <Field label="Texto do botão">
-                  <input className="filter-select mt-1 w-full" maxLength={60} value={form.fim.texto} onChange={(e) => mudar((c) => ({ ...c, fim: { ...c.fim, texto: e.target.value } }))} />
-                </Field>
+              <div className="pc-campos">
+                <label className="block">
+                  <span className="pc-label">Mensagem (opcional)</span>
+                  <input className="filter-select w-full" maxLength={120} value={form.fim.titulo} onChange={(e) => mudar((c) => ({ ...c, fim: { ...c.fim, titulo: e.target.value } }))} />
+                </label>
+                <label className="block">
+                  <span className="pc-label">Texto do botão</span>
+                  <input className="filter-select w-full" maxLength={60} value={form.fim.texto} onChange={(e) => mudar((c) => ({ ...c, fim: { ...c.fim, texto: e.target.value } }))} />
+                </label>
               </div>
             )}
-          </div>
+          </Cartao>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="btn-gold disabled:opacity-60" disabled={saving || !alterado || estado.precisaMigracao} onClick={() => void salvar()}>
-              {saving ? 'Salvando...' : 'Salvar'}
-            </button>
-            <button type="button" className="chip-btn" disabled={saving} onClick={() => mudar(() => structuredClone(estado.padrao))}>
-              Restaurar padrão
-            </button>
-            {alterado && <span className="text-xs text-amber-300">Mudanças ainda não salvas.</span>}
-          </div>
-          {message && (
-            <p className={`text-sm ${message.kind === 'ok' ? 'text-emerald-300' : 'text-red-300'}`} role={message.kind === 'erro' ? 'alert' : 'status'}>
-              {message.text}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <p className="mb-2 text-sm text-zinc-300">Prévia (o que está salvo)</p>
-            <div className="relative overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
-              <iframe
-                key={previewKey}
-                src={`${PLAYER_URL}?v=${video}`}
-                title="Prévia do player"
-                allow="fullscreen; picture-in-picture"
-                className="absolute inset-0 h-full w-full border-0"
+          <Cartao id="pc-estilo" titulo="Cores e estilo" destaque={false}>
+            <b className="block text-sm text-zinc-100">Cores e estilo</b>
+            <div className="pc-paleta" role="group" aria-label="Cores prontas">
+              {PALETA.map((item) => (
+                <button
+                  key={item.cor}
+                  type="button"
+                  className={`pc-amostra ${form.aparencia.corDestaque === item.cor && form.aparencia.corBotao === item.cor ? 'pc-amostra-on' : ''}`}
+                  style={{ background: item.cor }}
+                  title={item.nome}
+                  aria-label={`Usar ${item.nome}`}
+                  onClick={() => escolherPaleta(item.cor)}
+                />
+              ))}
+            </div>
+            <div className="pc-cores">
+              <Cor rotulo="Barra de progresso" valor={form.aparencia.corDestaque} onChange={(c) => mudarCor('corDestaque', c)} />
+              <Cor rotulo="Botão de compra" valor={form.aparencia.corBotao} onChange={(c) => mudarCor('corBotao', c)} />
+              <Cor rotulo="Texto do botão" valor={form.aparencia.corTextoBotao} onChange={(c) => mudarCor('corTextoBotao', c)} />
+            </div>
+            <div className="pc-campos">
+              <Opcoes<FormaBotao>
+                rotulo="Forma do botão"
+                valor={form.aparencia.formaBotao}
+                opcoes={[{ v: 'reto', label: 'Reto' }, { v: 'suave', label: 'Arredondado' }, { v: 'pilula', label: 'Pílula' }]}
+                onChange={(v) => mudar((c) => ({ ...c, aparencia: { ...c.aparencia, formaBotao: v } }))}
               />
+              <Interruptor ligado={form.controles.tempo} onChange={(v) => mudar((c) => ({ ...c, controles: { ...c.controles, tempo: v } }))} titulo="Mostrar o tempo na barra" />
+              <Interruptor ligado={form.controles.volume} onChange={(v) => mudar((c) => ({ ...c, controles: { ...c.controles, volume: v } }))} titulo="Mostrar o botão de som" />
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
-              A prévia mostra o que está salvo e não toca sozinha: dê play para ver o botão de compra aparecer e o bloqueio de avanço
-              funcionando.
-            </p>
-          </div>
+          </Cartao>
 
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <p className="text-sm text-zinc-300">Código para colar em uma página</p>
-              <button type="button" className="chip-btn" onClick={() => void copiar()}>
-                {copied ? 'Copiado!' : 'Copiar'}
-              </button>
+          <Cartao id="pc-comportamento" titulo="Comportamento" destaque={false}>
+            <Interruptor
+              ligado={form.permitirAvancar}
+              onChange={(v) => mudar((c) => ({ ...c, permitirAvancar: v }))}
+              titulo="Permitir pular para a frente"
+              dica="Desligado, a pessoa só volta ou continua de onde já assistiu."
+            />
+            <label className="mt-3 block">
+              <span className="pc-label">Texto de “toque para assistir”</span>
+              <input className="filter-select w-full" maxLength={40} value={form.textoToque} onChange={(e) => mudar((c) => ({ ...c, textoToque: e.target.value }))} />
+            </label>
+          </Cartao>
+
+          <details className="pc-card pc-avancado">
+            <summary>Avançado: arquivos do vídeo e código para colar</summary>
+            <div className="pc-campos mt-3">
+              <label className="block">
+                <span className="pc-label">Arquivo HD (computador)</span>
+                <input className="filter-select w-full" value={form.arquivos.hd} onChange={(e) => mudar((c) => ({ ...c, arquivos: { ...c.arquivos, hd: e.target.value } }))} />
+              </label>
+              <label className="block">
+                <span className="pc-label">Arquivo leve (celular e conexão fraca)</span>
+                <input className="filter-select w-full" value={form.arquivos.leve} onChange={(e) => mudar((c) => ({ ...c, arquivos: { ...c.arquivos, leve: e.target.value } }))} />
+              </label>
+              <p className="text-xs text-zinc-500">Nome do .mp4 na pasta de vídeos do servidor.</p>
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="pc-label">Código para colar em uma página</span>
+                  <button type="button" className="chip-btn" onClick={() => void copiar()}>
+                    {copied ? 'Copiado!' : 'Copiar código'}
+                  </button>
+                </div>
+                <textarea readOnly rows={5} className="filter-select w-full font-mono text-xs" value={iframeCode(video)} onFocus={(e) => e.currentTarget.select()} />
+                <p className="mt-1 text-xs text-zinc-500">
+                  Essentials, Membros e Live já usam o player. Em uma página nova, esse código mostra o vídeo com as opções acima; para
+                  também medir o vídeo e abrir o checkout, a página precisa da ponte <code>vsl-embed.js</code> do projeto produtos.
+                </p>
+              </div>
             </div>
-            <textarea readOnly rows={5} className="filter-select w-full font-mono text-xs" value={iframeCode(video)} onFocus={(e) => e.currentTarget.select()} />
-            <p className="mt-1 text-xs text-zinc-500">
-              Essentials, Membros e Live já usam o player. Em uma página nova, esse código mostra o vídeo com as opções acima; para
-              também medir o vídeo e abrir o checkout, a página precisa da ponte <code>vsl-embed.js</code> do projeto produtos.
-            </p>
-          </div>
+          </details>
         </div>
+      </div>
+
+      {/* ───── barra de salvar sempre à vista ───── */}
+      <div className="pc-salvar">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn-gold disabled:opacity-60" disabled={saving || !alterado || estado.precisaMigracao} onClick={() => void salvar()}>
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+          <button
+            type="button"
+            className="chip-btn"
+            disabled={saving}
+            onClick={() => {
+              if (window.confirm('Voltar todas as opções do player ao padrão? (só vale depois de salvar)')) mudar(() => structuredClone(estado.padrao))
+            }}
+          >
+            Restaurar padrão
+          </button>
+          {alterado && !message && <span className="text-xs text-amber-300">Mudanças ainda não salvas.</span>}
+        </div>
+        {message && (
+          <p className={`text-sm ${message.kind === 'ok' ? 'text-emerald-300' : 'text-red-300'}`} role={message.kind === 'erro' ? 'alert' : 'status'}>
+            {message.text}
+          </p>
+        )}
       </div>
     </section>
   )
