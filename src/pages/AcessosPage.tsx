@@ -76,13 +76,13 @@ function Verificador() {
           <h3 className="section-title mt-1">Conferir conexões</h3>
           <p className="mt-1 text-xs text-zinc-500">Testa a Brevo e o WhatsApp com as chaves do servidor, sem mexer em nenhum aluno.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="list-tools">
           <input
             type="email"
             value={emailTeste}
             onChange={(evento) => setEmailTeste(evento.target.value)}
             placeholder="Seu e-mail (opcional: manda 1 e-mail de teste)"
-            className="w-72 max-w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            className="filter-select"
           />
           <button
             type="button"
@@ -227,20 +227,20 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
   return (
     <>
       <tr onClick={() => setAberto((valor) => !valor)} className="cursor-pointer border-b border-zinc-900/80 transition-colors hover:bg-amber-400/10">
-        <td className="px-4 py-2.5 text-zinc-500">{dataHora(evento.recebidoEm)}</td>
-        <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-200" title={evento.email ?? ''}>
+        <td className="text-zinc-500" data-label="Recebido">{dataHora(evento.recebidoEm)}</td>
+        <td className="cell-name text-zinc-200" title={evento.email ?? ''} data-label="Aluno">
           {evento.nome || evento.email || '—'}
         </td>
-        <td className="px-4 py-2.5 text-zinc-300">{evento.curso || '—'}</td>
-        <td className="px-4 py-2.5 text-zinc-400">{(evento.decisao && DECISAO_LABEL[evento.decisao]) || evento.evento}</td>
-        <td className={`px-4 py-2.5 font-medium ${estado.classe}`}>
+        <td className="text-zinc-300" data-label="Curso">{evento.curso || '—'}</td>
+        <td className="cell-wide text-zinc-400" data-label="O que é">{(evento.decisao && DECISAO_LABEL[evento.decisao]) || evento.evento}</td>
+        <td className={`font-medium ${estado.classe}`} data-label="Situação">
           {estado.texto}
           {evento.simulado && <span className="ml-1.5 text-[11px] font-normal text-zinc-500">(simulado)</span>}
         </td>
       </tr>
       {aberto && (
         <tr className="border-b border-zinc-900/80 bg-zinc-950/60">
-          <td colSpan={5} className="px-4 py-3 text-xs text-zinc-400">
+          <td colSpan={5} className="cell-empty text-left text-xs text-zinc-400">
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
               <p>E-mail: <span className="text-zinc-200">{evento.email || '—'}</span></p>
               <p>Pagamento: <span className="text-zinc-200">{[evento.pagamentoTipo, evento.plano].filter(Boolean).join(' · ') || '—'}</span></p>
@@ -317,7 +317,7 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
   const status = STATUS_ALUNO[aluno.status] ?? { texto: aluno.status, classe: 'text-zinc-300' }
   return (
     <tr className="border-b border-zinc-900/80">
-      <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={aluno.email ?? ''}>
+      <td className="cell-name text-zinc-200" title={aluno.email ?? ''} data-label="Aluno">
         {aluno.email || aluno.telefone ? (
           <button type="button" onClick={() => setVerPessoa(true)} className="block max-w-full truncate text-left hover:underline" title="Ver a linha do tempo desta pessoa">
             {aluno.nome || aluno.email || '—'}
@@ -328,18 +328,18 @@ function AlunoLinha({ aluno }: { aluno: AcessoAluno }) {
         <span className="block truncate text-xs text-zinc-500">{aluno.email || 'e-mail ainda não conhecido'}</span>
         {verPessoa && <PessoaModal nome={aluno.nome} email={aluno.email} telefone={aluno.telefone} onClose={() => setVerPessoa(false)} />}
       </td>
-      <td className="px-4 py-2.5 text-zinc-300">{aluno.curso}</td>
-      <td className="px-4 py-2.5 text-zinc-400">
+      <td className="text-zinc-300" data-label="Curso">{aluno.curso}</td>
+      <td className="cell-wide text-zinc-400" data-label="Pagamento">
         {aluno.origem === 'plataforma'
           ? `Já na plataforma${aluno.plataformaId ? ` · nº ${aluno.plataformaId}` : ''}`
           : [aluno.parcelado ? 'Pix parcelado' : aluno.pagamentoTipo, aluno.diasRegra ? `${aluno.diasRegra} dias` : ''].filter(Boolean).join(' · ') || '—'}
       </td>
-      <td className="px-4 py-2.5 text-zinc-300">
+      <td className="text-zinc-300" data-label="Acesso até">
         {soData(aluno.liberadoAte)}
         {aluno.parcelado && aluno.pagoAte && <span className="block text-xs text-zinc-500">pago até {soData(aluno.pagoAte)}</span>}
       </td>
-      <td className="px-4 py-2.5 text-center text-zinc-400">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
-      <td className={`px-4 py-2.5 font-medium ${status.classe}`}>
+      <td className="text-zinc-400" data-label="Parcelas">{aluno.origem === 'plataforma' ? '—' : aluno.parcelasPagas}</td>
+      <td className={`cell-wide font-medium ${status.classe}`} data-label="Situação">
         {status.texto}
         {aluno.status === 'atrasado' && aluno.bloquearEm && <span className="block text-xs font-normal text-zinc-500">bloqueia {soData(aluno.bloquearEm)}</span>}
         {aluno.bloqueioErro && <span className="block text-xs font-normal text-red-300">{aluno.bloqueioErro}</span>}
@@ -455,15 +455,15 @@ export default function AcessosPage() {
             <h3 className="section-title mt-1">Vendas que não terminaram de liberar</h3>
             <p className="mt-1 text-xs text-zinc-500">O dash tenta de novo sozinho; se continuar, corrija o motivo e use "Tentar de novo agora".</p>
           </div>
-          <div className="max-h-[420px] overflow-auto">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-auto md:max-h-[420px]">
+            <table className="data-table">
               <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                 <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                  <th className="px-4 py-2 font-medium">Recebido</th>
-                  <th className="px-4 py-2 font-medium">Aluno</th>
-                  <th className="px-4 py-2 font-medium">Curso</th>
-                  <th className="px-4 py-2 font-medium">O que é</th>
-                  <th className="px-4 py-2 font-medium">Situação</th>
+                  <th className="font-medium">Recebido</th>
+                  <th className="font-medium">Aluno</th>
+                  <th className="font-medium">Curso</th>
+                  <th className="font-medium">O que é</th>
+                  <th className="font-medium">Situação</th>
                 </tr>
               </thead>
               <tbody>
@@ -491,20 +491,20 @@ export default function AcessosPage() {
             value={buscaAluno}
             onChange={(evento) => setBuscaAluno(evento.target.value)}
             placeholder="Buscar nome, e-mail ou curso..."
-            className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            className="filter-select"
           />
         </div>
 
-        <div className="max-h-[640px] overflow-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-auto md:max-h-[640px]">
+          <table className="data-table">
             <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
               <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                <th className="px-4 py-2 font-medium">Aluno</th>
-                <th className="px-4 py-2 font-medium">Curso</th>
-                <th className="px-4 py-2 font-medium">Pagamento</th>
-                <th className="px-4 py-2 font-medium">Acesso até</th>
-                <th className="px-4 py-2 text-center font-medium">Parcelas</th>
-                <th className="px-4 py-2 font-medium">Situação</th>
+                <th className="font-medium">Aluno</th>
+                <th className="font-medium">Curso</th>
+                <th className="font-medium">Pagamento</th>
+                <th className="font-medium">Acesso até</th>
+                <th className="text-center font-medium">Parcelas</th>
+                <th className="font-medium">Situação</th>
               </tr>
             </thead>
             <tbody>

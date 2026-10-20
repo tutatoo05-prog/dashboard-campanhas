@@ -935,11 +935,11 @@ export default function ActionsPage() {
         </p>
       </PageHero>
 
-      <section className="surface-card filter-bar flex flex-wrap items-center gap-3 p-4">
-        <div className="flex items-center gap-2">
+      <section className="surface-card filter-bar filter-grid">
+        <div className="filter-account">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`} title={accountName ?? ''} />
           <select
-            className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+            className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
             value={allMode ? ALL_ACCOUNTS : resolvedAccountId ?? ''}
             onChange={(event) => {
               setAccountId(event.target.value)
@@ -1377,14 +1377,14 @@ export default function ActionsPage() {
                   <p className="mt-1 text-xs text-zinc-600">Clique numa campanha para ver tudo sobre ela.</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                  <table className="data-table">
                     <thead>
                       <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                        <th className="px-4 py-2 font-medium">Campanha</th>
-                        <th className="px-4 py-2 font-medium">O que fazer</th>
-                        <th className="px-4 py-2 text-right font-medium">Gasto</th>
-                        <th className="px-4 py-2 text-right font-medium">Leads</th>
-                        <th className="px-4 py-2 text-right font-medium">CPL</th>
+                        <th className="font-medium">Campanha</th>
+                        <th className="font-medium">O que fazer</th>
+                        <th className="num font-medium">Gasto</th>
+                        <th className="num font-medium">Leads</th>
+                        <th className="num font-medium">CPL</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1400,7 +1400,7 @@ export default function ActionsPage() {
                               if (event.key === 'Enter') setSelectedId(item.id)
                             }}
                           >
-                            <td className="max-w-[260px] truncate px-4 py-2.5 text-zinc-200" title={item.name}>
+                            <td className="cell-name text-zinc-200" title={item.name} data-label="Campanha">
                               {item.name}
                               {item.tipo && TIPOS[item.tipo as keyof typeof TIPOS] && (
                                 <small className="block text-[11px] font-normal text-zinc-500">
@@ -1408,12 +1408,12 @@ export default function ActionsPage() {
                                 </small>
                               )}
                             </td>
-                            <td className="px-4 py-2.5 text-zinc-400">
+                            <td className="text-zinc-400" data-label="O que fazer">
                               {item.analysis.primary.emoji} {item.analysis.primary.label}
                             </td>
-                            <td className="px-4 py-2.5 text-right text-zinc-300">{formatCurrency(item.spend)}</td>
-                            <td className="px-4 py-2.5 text-right text-zinc-300">{formatNumber(item.leads)}</td>
-                            <td className="px-4 py-2.5 text-right text-zinc-300">
+                            <td className="num text-zinc-300" data-label="Gasto">{formatCurrency(item.spend)}</td>
+                            <td className="num text-zinc-300" data-label="Leads">{formatNumber(item.leads)}</td>
+                            <td className="num text-zinc-300" data-label="CPL">
                               {item.leads > 0 ? formatCurrency(item.cpl) : '—'}
                             </td>
                           </tr>

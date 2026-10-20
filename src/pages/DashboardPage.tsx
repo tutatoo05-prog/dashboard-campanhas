@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useMediaQuery } from '@/lib/useMediaQuery.ts'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdAccounts, fetchMetaInsights } from '@/services/dataService.ts'
@@ -169,7 +170,7 @@ function SortHeader({
   const active = sort.key === field
   return (
     <th
-      className={`px-4 py-2 font-medium ${align === 'right' ? 'text-right' : ''}`}
+      className={`font-medium ${align === 'right' ? 'num' : ''}`}
       aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <button type="button" className={`th-sort ${active ? 'th-sort-active' : ''}`} onClick={() => onSort(field)}>
@@ -243,6 +244,10 @@ export default function DashboardPage() {
   const [rankFilter, setRankFilter] = useState<RankFilter>('all')
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'desc' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Recomendações: no celular começam recolhidas (dropdown); no computador, abertas. O toque do usuário vale mais.
+  const wide = useMediaQuery('(min-width: 768px)')
+  const [recoOpen, setRecoOpen] = useState<boolean | null>(null)
+  const showReco = recoOpen ?? wide
 
   function handleSort(key: SortKey) {
     setSort((current) =>
@@ -330,20 +335,20 @@ export default function DashboardPage() {
       </PageHero>
 
       <section
-        className="surface-card filter-bar flex flex-wrap items-center gap-3 p-4"
+        className="surface-card filter-bar filter-grid"
         data-tour="Filtros"
         data-tour-text="Escolha a plataforma, a conta de anúncios, o período e o nível (campanhas, conjuntos ou anúncios). Tudo abaixo se ajusta na hora."
       >
         <PlatformSelect />
 
         {isMeta && (
-          <div className="flex items-center gap-2">
+          <div className="filter-account">
             <span
               className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
               title={selectedAccountName ?? ''}
             />
             <select
-              className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
               value={resolvedAccountId ?? ''}
               onChange={(event) => handleAccountChange(event.target.value)}
               disabled={!accounts.length}
@@ -360,7 +365,7 @@ export default function DashboardPage() {
 
         {isMeta && (
           <select
-            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            className="filter-select"
             value={period}
             onChange={(event) => setPeriod(event.target.value as Period)}
           >
@@ -373,10 +378,10 @@ export default function DashboardPage() {
         )}
 
         {isMeta && period === 'custom' && (
-          <div className="flex items-center gap-2">
+          <div className="filter-dates">
             <input
               type="date"
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+              className="filter-select"
               value={customRange.since}
               max={customRange.until}
               onChange={(event) =>
@@ -386,7 +391,7 @@ export default function DashboardPage() {
             <span className="text-zinc-600">—</span>
             <input
               type="date"
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+              className="filter-select"
               value={customRange.until}
               min={customRange.since}
               onChange={(event) =>
@@ -397,17 +402,14 @@ export default function DashboardPage() {
         )}
 
         {isMeta && (
-          <div className="ml-auto flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 p-1">
+          <div className="seg" role="group" aria-label="Nível">
             {LEVEL_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setLevel(option.value)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                  level === option.value
-                    ? 'bg-gold-dim text-gold'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
+                aria-pressed={level === option.value}
+                className={`seg-btn ${level === option.value ? 'seg-btn-active' : ''}`}
               >
                 {option.label}
               </button>
@@ -518,9 +520,21 @@ export default function DashboardPage() {
             tour="Recomendações"
             tourText="Leituras automáticas das campanhas: o que está funcionando, o que está caro e onde vale agir."
           >
-            <p className="section-label">Análise automática</p>
-            <h3 className="section-title mt-1 mb-3">Recomendações da IA</h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <button
+              type="button"
+              className="reco-toggle"
+              aria-expanded={showReco}
+              aria-controls="reco-list"
+              onClick={() => setRecoOpen(!showReco)}
+            >
+              <span className="min-w-0">
+                <span className="section-label block">Análise automática</span>
+                <span className="section-title mt-1 block">Recomendações da IA</span>
+              </span>
+              <span className="reco-count">{insightCards.length}</span>
+              <i className={`fa-solid fa-chevron-down reco-chevron ${showReco ? 'reco-chevron-open' : ''}`} />
+            </button>
+            <div id="reco-list" hidden={!showReco} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {insightCards.map((card) => (
                 <div
                   key={card.title}
@@ -545,15 +559,15 @@ export default function DashboardPage() {
             tour="Ranking"
             tourText="Cada campanha com nota, veredito e custo por lead. Clique nos cabeçalhos pra ordenar e exporte em CSV."
           >
-            <div className="flex items-center justify-between p-4">
-              <div>
+            <div className="flex items-center justify-between gap-3 p-4">
+              <div className="min-w-0">
                 <p className="section-label">Ranking</p>
                 <h3 className="section-title mt-1">
                   {LEVEL_OPTIONS.find((option) => option.value === level)?.label} por performance
                 </h3>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-zinc-600">
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="hidden whitespace-nowrap text-xs text-zinc-600 sm:inline">
                   {ranked.length === allRanked.length ? `${ranked.length} itens` : `${ranked.length} de ${allRanked.length}`}
                 </span>
                 <button
@@ -574,7 +588,7 @@ export default function DashboardPage() {
                       ]),
                     )
                   }
-                  className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                  className="whitespace-nowrap rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                 >
                   <i className="fa-solid fa-download mr-1.5" />
                   Exportar CSV
@@ -606,17 +620,43 @@ export default function DashboardPage() {
                   </button>
                 ))}
               </div>
+              <div className="rank-sort">
+                <select
+                  className="filter-select"
+                  aria-label="Ordenar por"
+                  value={sort.key}
+                  onChange={(event) => {
+                    const key = event.target.value as SortKey
+                    setSort({ key, dir: key === 'name' || key === 'cpl' ? 'asc' : 'desc' })
+                  }}
+                >
+                  <option value="score">Ordenar: nota</option>
+                  <option value="spend">Ordenar: gasto</option>
+                  <option value="leads">Ordenar: leads</option>
+                  <option value="cpl">Ordenar: CPL</option>
+                  <option value="ctr">Ordenar: CTR</option>
+                  <option value="name">Ordenar: nome</option>
+                </select>
+                <button
+                  type="button"
+                  className="chip-btn"
+                  aria-label={sort.dir === 'asc' ? 'Ordem crescente' : 'Ordem decrescente'}
+                  onClick={() => setSort((current) => ({ ...current, dir: current.dir === 'asc' ? 'desc' : 'asc' }))}
+                >
+                  <i className={`fa-solid ${sort.dir === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'}`} />
+                </button>
+              </div>
               <span className="hidden text-xs text-zinc-600 md:inline">Clique numa linha para ver os detalhes</span>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">#</th>
+                    <th className="font-medium">#</th>
                     <SortHeader label="Nome" field="name" sort={sort} onSort={handleSort} align="left" />
-                    <th className="px-4 py-2 font-medium">Status</th>
-                    <th className="px-4 py-2 font-medium">Veredito</th>
+                    <th className="font-medium">Status</th>
+                    <th className="font-medium">Veredito</th>
                     <SortHeader label="Gasto" field="spend" sort={sort} onSort={handleSort} />
                     <SortHeader label="CTR" field="ctr" sort={sort} onSort={handleSort} />
                     <SortHeader label="Leads" field="leads" sort={sort} onSort={handleSort} />
@@ -635,11 +675,11 @@ export default function DashboardPage() {
                       }}
                       tabIndex={0}
                     >
-                      <td className="px-4 py-2.5 text-zinc-600">{index + 1}</td>
-                      <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={item.name}>
+                      <td className="cell-rank text-zinc-600">{index + 1}</td>
+                      <td className="cell-name text-zinc-200" title={item.name}>
                         {item.name}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td data-label="Status">
                         <span
                           className={`text-xs ${
                             item.status === 'Ativa' ? 'text-emerald-400' : 'text-zinc-600'
@@ -648,30 +688,30 @@ export default function DashboardPage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="cell-wide" data-label="Veredito">
                         <VerdictBadge item={item} />
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                      <td className="num text-zinc-300" data-label="Gasto">
                         {formatCurrency(item.spend)}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                      <td className="num text-zinc-300" data-label="CTR">
                         {formatDecimal(item.ctr)}%
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300" title={leadsHint(item) ?? undefined}>
+                      <td className="num text-zinc-300" data-label="Leads" title={leadsHint(item) ?? undefined}>
                         {formatNumber(item.leads)}
                         {leadsHint(item) && <span className="ml-1 text-[10px] text-zinc-500">●</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                      <td className="num text-zinc-300" data-label="CPL">
                         {item.leads > 0 ? formatCurrency(item.cpl) : '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-zinc-200">
+                      <td className="num cell-score font-semibold text-zinc-200" data-label="Nota">
                         {item.analysis.score}
                       </td>
                     </tr>
                   ))}
                   {!ranked.length && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={9} className="cell-empty text-center text-zinc-600">
                         {allRanked.length ? 'Nenhum resultado para esse filtro.' : 'Nenhum dado para o período selecionado.'}
                       </td>
                     </tr>
@@ -699,15 +739,15 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">Campanha</th>
-                    <th className="px-4 py-2 text-right font-medium">Gasto (período)</th>
-                    <th className="px-4 py-2 text-right font-medium">Vendas (total)</th>
-                    <th className="px-4 py-2 text-right font-medium">Custo por venda</th>
-                    <th className="px-4 py-2 text-right font-medium">Receita</th>
-                    <th className="px-4 py-2 text-right font-medium">ROI</th>
+                    <th className="font-medium">Campanha</th>
+                    <th className="num font-medium">Gasto (período)</th>
+                    <th className="num font-medium">Vendas (total)</th>
+                    <th className="num font-medium">Custo por venda</th>
+                    <th className="num font-medium">Receita</th>
+                    <th className="num font-medium">ROI</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -716,22 +756,22 @@ export default function DashboardPage() {
                     const roi = row.revenueCount > 0 && row.spend > 0 ? row.revenue / row.spend : null
                     return (
                       <tr key={row.campaignId} className="border-b border-zinc-900/80 last:border-0">
-                        <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-200" title={row.name}>
+                        <td className="cell-name text-zinc-200" title={row.name}>
                           {row.name}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="num text-zinc-300" data-label="Gasto">
                           {formatCurrency(row.spend)}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="num text-zinc-300" data-label="Vendas">
                           {formatNumber(row.sales)}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="num text-zinc-300" data-label="Custo por venda">
                           {costPerSale != null ? formatCurrency(costPerSale) : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-zinc-300">
+                        <td className="num text-zinc-300" data-label="Receita">
                           {row.revenueCount > 0 ? formatCurrency(row.revenue) : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-zinc-200">
+                        <td className="num font-semibold text-zinc-200" data-label="ROI">
                           {roi != null ? `${formatDecimal(roi)}x` : '—'}
                         </td>
                       </tr>
@@ -739,7 +779,7 @@ export default function DashboardPage() {
                   })}
                   {!salesByCampaign.length && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={6} className="cell-empty text-center text-zinc-600">
                         Nenhuma venda encontrada para as campanhas deste período.
                       </td>
                     </tr>

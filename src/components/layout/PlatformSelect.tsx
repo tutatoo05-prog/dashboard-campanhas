@@ -11,7 +11,7 @@ export function PlatformSelect() {
 
   return (
     <select
-      className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+      className="filter-select"
       value={platform}
       onChange={(event) => setPlatform(event.target.value as AdPlatform)}
     >

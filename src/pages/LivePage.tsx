@@ -343,7 +343,7 @@ export default function LivePage() {
                     value={item.day}
                     onChange={(event) => updateWindow(index, { day: Number(event.target.value) })}
                     disabled={!canEdit || Boolean(busy)}
-                    className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                    className="filter-select"
                   >
                     {DAYS.map((label, day) => (
                       <option key={label} value={day}>
@@ -413,34 +413,34 @@ export default function LivePage() {
               <p className="section-label">Histórico</p>
               <h3 className="section-title mt-1">Quem ligou e desligou</h3>
             </div>
-            <div className="max-h-[420px] overflow-auto">
-              <table className="w-full text-left text-sm">
+            <div className="overflow-auto md:max-h-[420px]">
+              <table className="data-table">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">Quando</th>
-                    <th className="px-4 py-2 font-medium">Ação</th>
-                    <th className="px-4 py-2 font-medium">Origem</th>
-                    <th className="px-4 py-2 font-medium">Quem</th>
-                    <th className="px-4 py-2 font-medium">Detalhe</th>
+                    <th className="font-medium">Quando</th>
+                    <th className="font-medium">Ação</th>
+                    <th className="font-medium">Origem</th>
+                    <th className="font-medium">Quem</th>
+                    <th className="font-medium">Detalhe</th>
                   </tr>
                 </thead>
                 <tbody>
                   {status.log.map((entry) => (
                     <tr key={entry.id} className="border-b border-zinc-900/80 last:border-0">
-                      <td className="whitespace-nowrap px-4 py-2.5 text-zinc-500">{formatDate(entry.createdAt)}</td>
-                      <td className={`px-4 py-2.5 ${entry.ok ? 'text-zinc-200' : 'text-red-300'}`}>
+                      <td className="cell-name whitespace-nowrap text-zinc-500" data-label="Quando">{formatDate(entry.createdAt)}</td>
+                      <td className={`${entry.ok ? 'text-zinc-200' : 'text-red-300'}`} data-label="Ação">
                         {ACTION_LABELS[entry.action] ?? entry.action}
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-400">{SOURCE_LABELS[entry.source] ?? entry.source}</td>
-                      <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-400" title={entry.userEmail ?? ''}>
+                      <td className="text-zinc-400" data-label="Origem">{SOURCE_LABELS[entry.source] ?? entry.source}</td>
+                      <td className="text-zinc-400" title={entry.userEmail ?? ''} data-label="Quem">
                         {entry.userEmail || '—'}
                       </td>
-                      <td className={`px-4 py-2.5 ${entry.ok ? 'text-zinc-300' : 'text-red-300'}`}>{entry.detail}</td>
+                      <td className={`${entry.ok ? 'text-zinc-300' : 'text-red-300'}`} data-label="Detalhe">{entry.detail}</td>
                     </tr>
                   ))}
                   {!status.log.length && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={5} className="cell-empty text-center text-zinc-600">
                         Nada registrado ainda.
                       </td>
                     </tr>

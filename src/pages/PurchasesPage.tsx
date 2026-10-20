@@ -295,11 +295,11 @@ export default function PurchasesPage() {
                   {filteredRevenue > 0 && <> · {formatCurrency(filteredRevenue)}</>}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="list-tools">
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                  className="filter-select"
                 >
                   <option value="todos">Todos os status</option>
                   <option value="ativo">Somente ativos</option>
@@ -308,7 +308,7 @@ export default function PurchasesPage() {
                 <input
                   type="text"
                   placeholder="Buscar por nome, e-mail, curso ou campanha..."
-                  className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                  className="filter-select"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
@@ -338,17 +338,17 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="max-h-[520px] overflow-auto">
-              <table className="w-full text-left text-sm">
+            <div className="overflow-auto md:max-h-[520px]">
+              <table className="data-table">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">Nome</th>
-                    <th className="px-4 py-2 font-medium">Contato</th>
-                    <th className="px-4 py-2 font-medium">Curso</th>
-                    <th className="px-4 py-2 font-medium">Campanha</th>
-                    <th className="px-4 py-2 font-medium">Data</th>
-                    <th className="px-4 py-2 text-right font-medium">Valor</th>
-                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="font-medium">Nome</th>
+                    <th className="font-medium">Contato</th>
+                    <th className="font-medium">Curso</th>
+                    <th className="font-medium">Campanha</th>
+                    <th className="font-medium">Data</th>
+                    <th className="num font-medium">Valor</th>
+                    <th className="font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -358,7 +358,7 @@ export default function PurchasesPage() {
                       onClick={() => setSelected(purchase)}
                       className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                     >
-                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={purchase.nome}>
+                      <td className="cell-name text-zinc-200" title={purchase.nome} data-label="Nome">
                         <button
                           type="button"
                           onClick={(event) => {
@@ -371,20 +371,20 @@ export default function PurchasesPage() {
                           {purchase.nome || '—'}
                         </button>
                       </td>
-                      <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-400" title={purchase.email}>
+                      <td className="text-zinc-400" title={purchase.email} data-label="Contato">
                         {purchase.email || purchase.telefone || '—'}
                       </td>
-                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={purchase.curso}>
+                      <td className="text-zinc-300" title={purchase.curso} data-label="Curso">
                         {purchase.curso || '—'}
                       </td>
-                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={purchase.campanha}>
+                      <td className="text-zinc-300" title={purchase.campanha} data-label="Campanha">
                         {purchase.campanha || '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-500">{purchase.data || '—'}</td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300">
+                      <td className="text-zinc-500" data-label="Data">{purchase.data || '—'}</td>
+                      <td className="num text-zinc-300" data-label="Valor">
                         {typeof purchase.valor === 'number' ? formatCurrency(purchase.valor) : '—'}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td  data-label="Status">
                         {isCanceled(purchase) ? (
                           <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300">
                             Cancelado
@@ -399,7 +399,7 @@ export default function PurchasesPage() {
                   ))}
                   {!filtered.length && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={7} className="cell-empty text-center text-zinc-600">
                         Nenhuma venda encontrada.
                       </td>
                     </tr>

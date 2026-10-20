@@ -176,11 +176,11 @@ export default function LeadsPage() {
                 <p className="section-label">Lista</p>
                 <h3 className="section-title mt-1">Todos os leads</h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="list-tools">
                 <input
                   type="text"
                   placeholder="Buscar por nome, e-mail, campanha ou origem..."
-                  className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                  className="filter-select"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
@@ -209,16 +209,16 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            <div className="max-h-[520px] overflow-auto">
-              <table className="w-full text-left text-sm">
+            <div className="overflow-auto md:max-h-[520px]">
+              <table className="data-table">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">Nome</th>
-                    <th className="px-4 py-2 font-medium">Contato</th>
-                    <th className="px-4 py-2 font-medium">Origem</th>
-                    <th className="px-4 py-2 font-medium">Campanha</th>
-                    <th className="px-4 py-2 font-medium">Data</th>
-                    <th className="px-4 py-2 text-right font-medium">Status</th>
+                    <th className="font-medium">Nome</th>
+                    <th className="font-medium">Contato</th>
+                    <th className="font-medium">Origem</th>
+                    <th className="font-medium">Campanha</th>
+                    <th className="font-medium">Data</th>
+                    <th className="num font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,18 +231,18 @@ export default function LeadsPage() {
                         title="Ver a linha do tempo desta pessoa"
                         className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                       >
-                        <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={lead.nome}>
+                        <td className="cell-name text-zinc-200" title={lead.nome} data-label="Nome">
                           {lead.nome || '—'}
                         </td>
-                        <td className="max-w-[200px] truncate px-4 py-2.5 text-zinc-400" title={lead.email}>
+                        <td className="text-zinc-400" title={lead.email} data-label="Contato">
                           {lead.email || lead.telefone || '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-300">{originLabel(lead.origem)}</td>
-                        <td className="max-w-[160px] truncate px-4 py-2.5 text-zinc-300" title={lead.campanha}>
+                        <td className="text-zinc-300" data-label="Origem">{originLabel(lead.origem)}</td>
+                        <td className="text-zinc-300" title={lead.campanha} data-label="Campanha">
                           {lead.campanha || '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-500">{lead.data || '—'}</td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="text-zinc-500" data-label="Data">{lead.data || '—'}</td>
+                        <td className="num" data-label="Status">
                           {converted ? (
                             <span className="rounded-full border border-amber-500/25 bg-amber-500/8 px-2 py-0.5 text-xs text-amber-200">
                               Virou aluno
@@ -256,7 +256,7 @@ export default function LeadsPage() {
                   })}
                   {!filtered.length && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={6} className="cell-empty text-center text-zinc-600">
                         Nenhum lead encontrado.
                       </td>
                     </tr>

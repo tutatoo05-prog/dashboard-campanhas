@@ -198,28 +198,28 @@ export function CampaignDrawer({ item, averages, series, children, childrenLabel
                 {childrenLabel} ({rows.length})
               </p>
               <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
-                <table className="w-full text-left text-xs">
+                <table className="data-table">
                   <thead>
                     <tr className="border-b border-zinc-800/60 text-zinc-500">
-                      <th className="px-3 py-2 font-medium">Nome</th>
-                      <th className="px-3 py-2 text-right font-medium">Gasto</th>
-                      <th className="px-3 py-2 text-right font-medium">Leads</th>
-                      <th className="px-3 py-2 text-right font-medium">CPL</th>
-                      <th className="px-3 py-2 text-right font-medium">CTR</th>
+                      <th className="font-medium">Nome</th>
+                      <th className="num font-medium">Gasto</th>
+                      <th className="num font-medium">Leads</th>
+                      <th className="num font-medium">CPL</th>
+                      <th className="num font-medium">CTR</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
                       <tr key={row.id} className="border-b border-zinc-900/80 last:border-0">
-                        <td className="max-w-[200px] truncate px-3 py-2 text-zinc-200" title={row.name}>
+                        <td className="cell-name text-zinc-200" title={row.name} data-label="Nome">
                           {row.flag === 'best' && <span title="Menor custo por lead">🟢 </span>}
                           {row.flag === 'worst' && <span title="Maior custo por lead">🔴 </span>}
                           {row.name}
                         </td>
-                        <td className="px-3 py-2 text-right text-zinc-300">{formatCurrency(row.spend)}</td>
-                        <td className="px-3 py-2 text-right text-zinc-300">{formatNumber(row.leads)}</td>
-                        <td className="px-3 py-2 text-right text-zinc-300">{row.leads > 0 ? formatCurrency(row.cpl) : '—'}</td>
-                        <td className="px-3 py-2 text-right text-zinc-300">{formatDecimal(row.ctr)}%</td>
+                        <td className="num text-zinc-300" data-label="Gasto">{formatCurrency(row.spend)}</td>
+                        <td className="num text-zinc-300" data-label="Leads">{formatNumber(row.leads)}</td>
+                        <td className="num text-zinc-300" data-label="CPL">{row.leads > 0 ? formatCurrency(row.cpl) : '—'}</td>
+                        <td className="num text-zinc-300" data-label="CTR">{formatDecimal(row.ctr)}%</td>
                       </tr>
                     ))}
                   </tbody>

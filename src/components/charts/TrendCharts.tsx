@@ -45,10 +45,10 @@ export function TrendCharts({ data, stacked = false }: { data: DailyPoint[]; sta
   if (data.length < 2) return null
 
   return (
-    <section className={`grid grid-cols-1 gap-3 ${stacked ? '' : 'lg:grid-cols-3'}`}>
+    <section className={`trend-grid ${stacked ? 'trend-stacked' : ''}`}>
       <ChartCard title="Investimento por dia">
         <ResponsiveContainer>
-          <AreaChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="dashSpendFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={GOLD} stopOpacity={0.35} />
@@ -83,7 +83,7 @@ export function TrendCharts({ data, stacked = false }: { data: DailyPoint[]; sta
 
       <ChartCard title="Leads por dia">
         <ResponsiveContainer>
-          <BarChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis
               dataKey="date"
@@ -106,7 +106,7 @@ export function TrendCharts({ data, stacked = false }: { data: DailyPoint[]; sta
 
       <ChartCard title="Custo por lead">
         <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis
               dataKey="date"

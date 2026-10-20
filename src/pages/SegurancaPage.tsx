@@ -314,31 +314,31 @@ export default function SegurancaPage() {
             <p className="section-label">Quem está logado</p>
             <h3 className="section-title mt-1">Sessões ativas</h3>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-3 py-2 font-medium">Pessoa</th>
-                    <th className="px-3 py-2 font-medium">Cargo</th>
-                    <th className="px-3 py-2 font-medium">Entrou em</th>
-                    <th className="px-3 py-2 font-medium">Vale até</th>
+                    <th className="font-medium">Pessoa</th>
+                    <th className="font-medium">Cargo</th>
+                    <th className="font-medium">Entrou em</th>
+                    <th className="font-medium">Vale até</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dados.sessoes.map((sessao, indice) => (
                     <tr key={`${sessao.email}-${indice}`} className="border-b border-zinc-900/80">
-                      <td className="px-3 py-2 text-zinc-200">
+                      <td className="cell-name text-zinc-200" data-label="Pessoa">
                         {sessao.nome}
                         {sessao.atual && <span className="ml-2 rounded-full border border-emerald-500/40 px-2 text-[10px] text-emerald-300">você, agora</span>}
                         <span className="block text-xs text-zinc-500">{sessao.email}</span>
                       </td>
-                      <td className="px-3 py-2 text-zinc-400">{sessao.cargo}</td>
-                      <td className="px-3 py-2 text-zinc-400">{dataHora(sessao.entrouEm)}</td>
-                      <td className="px-3 py-2 text-zinc-400">{soData(sessao.expiraEm)}</td>
+                      <td className="text-zinc-400" data-label="Cargo">{sessao.cargo}</td>
+                      <td className="text-zinc-400" data-label="Entrou em">{dataHora(sessao.entrouEm)}</td>
+                      <td className="text-zinc-400" data-label="Vale até">{soData(sessao.expiraEm)}</td>
                     </tr>
                   ))}
                   {!dados.sessoes.length && (
                     <tr>
-                      <td colSpan={4} className="px-3 py-6 text-center text-zinc-600">Nenhuma sessão ativa.</td>
+                      <td colSpan={4} className="cell-empty text-center text-zinc-600">Nenhuma sessão ativa.</td>
                     </tr>
                   )}
                 </tbody>
@@ -432,29 +432,29 @@ export default function SegurancaPage() {
             <h3 className="section-title mt-1">O que foi mexido nas campanhas</h3>
             <p className="mt-1 text-xs text-zinc-500">Tudo que o painel alterou na Meta (pausar, reativar, mudar orçamento): quem fez e quando.</p>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="data-table">
                 <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-3 py-2 font-medium">Quando</th>
-                    <th className="px-3 py-2 font-medium">Quem</th>
-                    <th className="px-3 py-2 font-medium">Campanha</th>
-                    <th className="px-3 py-2 font-medium">Ação</th>
-                    <th className="px-3 py-2 font-medium">Resultado</th>
+                    <th className="font-medium">Quando</th>
+                    <th className="font-medium">Quem</th>
+                    <th className="font-medium">Campanha</th>
+                    <th className="font-medium">Ação</th>
+                    <th className="font-medium">Resultado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dados.acoes.map((acao, indice) => (
                     <tr key={`${acao.em}-${indice}`} className="border-b border-zinc-900/80">
-                      <td className="whitespace-nowrap px-3 py-2 text-zinc-400">{dataHora(acao.em)}</td>
-                      <td className="px-3 py-2 text-zinc-300">{acao.usuario || '—'}</td>
-                      <td className="max-w-[220px] truncate px-3 py-2 text-zinc-300" title={acao.campanha ?? ''}>{acao.campanha || '—'}</td>
-                      <td className="px-3 py-2 text-zinc-300">{acao.acao}</td>
-                      <td className={`px-3 py-2 ${acao.ok ? 'text-emerald-300' : 'text-red-300'}`}>{acao.ok ? 'feito' : 'falhou'}</td>
+                      <td className="cell-name whitespace-nowrap text-zinc-400" data-label="Quando">{dataHora(acao.em)}</td>
+                      <td className="text-zinc-300" data-label="Quem">{acao.usuario || '—'}</td>
+                      <td className="text-zinc-300" title={acao.campanha ?? ''} data-label="Campanha">{acao.campanha || '—'}</td>
+                      <td className="text-zinc-300" data-label="Ação">{acao.acao}</td>
+                      <td className={`${acao.ok ? 'text-emerald-300' : 'text-red-300'}`} data-label="Resultado">{acao.ok ? 'feito' : 'falhou'}</td>
                     </tr>
                   ))}
                   {!dados.acoes.length && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-6 text-center text-zinc-600">Nenhuma alteração feita pelo painel ainda.</td>
+                      <td colSpan={5} className="cell-empty text-center text-zinc-600">Nenhuma alteração feita pelo painel ainda.</td>
                     </tr>
                   )}
                 </tbody>

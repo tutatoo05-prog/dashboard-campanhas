@@ -76,12 +76,19 @@
   line-height: 1.1;
 }
 
+/* Fixa no topo só onde sobra tela: no celular uma barra de filtros alta cobriria o conteúdo. */
 .filter-bar {
-  position: sticky;
-  top: 4.5rem;
+  position: relative;
   z-index: 25;
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+@media (min-width: 900px) {
+  .filter-bar {
+    position: sticky;
+    top: 4.5rem;
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
 }
 
 .filter-bar select,
@@ -90,6 +97,64 @@
   border: 1px solid rgba(255, 255, 255, 0.09);
   background-color: rgba(255, 255, 255, 0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-select {
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 2.5px solid var(--line);
+  border-radius: 12px;
+  background-color: var(--white);
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+}
+
+/* Celular: seletores lado a lado quando couber (mín. 10rem), datas e nível em linha inteira. */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem;
+}
+
+.filter-grid .filter-select {
+  width: 100%;
+}
+
+.filter-account,
+.filter-dates {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.filter-account .filter-select,
+.filter-dates .filter-select {
+  flex: 1;
+}
+
+.filter-dates,
+.filter-grid > .seg {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .filter-grid .filter-select {
+    width: auto;
+  }
+  .filter-grid > .seg {
+    margin-left: auto;
+  }
 }
 
 .filter-bar select:hover,
@@ -129,10 +194,9 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Celular: carrossel (ver mobile.css). A partir de 640px, grade. */
 .kpi-grid {
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
 }
 
 @media (min-width: 900px) {
@@ -497,10 +561,14 @@ kbd {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 14vh 1rem 1rem;
+  padding: 4.5rem 0.75rem 1rem;
   background: rgba(3, 3, 5, 0.62);
   backdrop-filter: blur(6px);
   animation: cmdk-fade 0.18s ease both;
+}
+
+@media (min-width: 640px) {
+  .cmdk-overlay { padding: 14vh 1rem 1rem; }
 }
 
 .cmdk {
@@ -1649,7 +1717,8 @@ kbd {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 14rem;
+  flex: 1 1 14rem;
+  min-width: 0;
   padding: 0.4rem 0.75rem;
   border-radius: 0.6rem;
   border: 1px solid rgb(39 39 42);

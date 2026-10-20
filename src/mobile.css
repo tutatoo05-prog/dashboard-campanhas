@@ -43,3 +43,293 @@
     overflow-x: visible;
   }
 }
+
+/*
+ * Carrossel de cartões (KPIs e gráficos): no celular rola de lado, mostrando um pedaço do próximo
+ * cartão para convidar ao gesto. A partir de 640px vira grade; as colunas ficam no CSS de cada bloco.
+ */
+.kpi-grid,
+.kpi-scroll,
+.trend-grid {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* espaço para a sombra chapada dos cartões não ser cortada pela rolagem */
+  padding: 2px 8px 8px 2px;
+}
+.kpi-grid::-webkit-scrollbar,
+.kpi-scroll::-webkit-scrollbar,
+.trend-grid::-webkit-scrollbar {
+  display: none;
+}
+.kpi-grid > *,
+.kpi-scroll > * {
+  flex: 0 0 min(72%, 16rem);
+  scroll-snap-align: start;
+  min-width: 0;
+}
+.trend-grid > * {
+  flex: 0 0 min(88%, 24rem);
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .kpi-grid,
+  .kpi-scroll,
+  .trend-grid {
+    display: grid;
+    overflow-x: visible;
+    padding: 0;
+  }
+  .kpi-grid > *,
+  .kpi-scroll > *,
+  .trend-grid > * {
+    flex: initial;
+  }
+}
+
+.trend-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .trend-grid:not(.trend-stacked) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Tabelas: no celular cada linha vira um cartão (nome no topo, números em 3 colunas com rótulo).
+ * A partir de 720px volta a ser tabela. As células declaram o papel: cell-name, cell-wide (ocupa 2
+ * colunas), cell-score (sobe para o topo), cell-rank (só na tabela), num (número alinhado à direita).
+ */
+.data-table {
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.data-table,
+.data-table tbody,
+.data-table tr,
+.data-table td {
+  display: block;
+}
+.data-table thead {
+  display: none;
+}
+.data-table tbody tr {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  padding: 0.85rem 1rem;
+}
+.data-table td {
+  order: 3;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.data-table td[data-label]::before {
+  content: attr(data-label);
+  display: block;
+  margin-bottom: 0.1rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.data-table td.cell-name {
+  order: 1;
+  grid-column: span 2;
+  font-weight: 700;
+}
+.data-table td.cell-name::before {
+  display: none;
+}
+.data-table td.cell-score {
+  order: 2;
+}
+.data-table td.cell-wide {
+  grid-column: span 2;
+}
+.data-table td.cell-empty {
+  grid-column: 1 / -1;
+  padding: 1.5rem 0;
+}
+.data-table td.cell-rank {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .data-table {
+    display: table;
+  }
+  .data-table thead {
+    display: table-header-group;
+  }
+  .data-table tbody {
+    display: table-row-group;
+  }
+  .data-table tbody tr {
+    display: table-row;
+  }
+  .data-table th,
+  .data-table td {
+    display: table-cell;
+    padding: 0.625rem 1rem;
+    white-space: nowrap;
+  }
+  .data-table th {
+    padding-block: 0.5rem;
+  }
+  .data-table td {
+    order: 0;
+  }
+  .data-table td[data-label]::before {
+    display: none;
+  }
+  .data-table td.cell-name {
+    max-width: 15rem;
+    font-weight: 400;
+  }
+  .data-table td.cell-rank {
+    display: table-cell;
+  }
+  .data-table td.cell-empty {
+    padding: 2rem 1rem;
+  }
+  .data-table .num {
+    text-align: right;
+  }
+  /* Comparar: primeira coluna fixa enquanto a tabela rola de lado */
+  .data-table-sticky td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: var(--card);
+  }
+}
+
+/* Recomendações: título que abre e fecha a lista (dropdown). */
+.reco-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  color: inherit;
+}
+.reco-toggle:focus-visible {
+  outline: 3px solid var(--o);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.reco-toggle > span:first-child {
+  flex: 1;
+}
+.reco-count {
+  display: inline-grid;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 2.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--y);
+  color: #15110d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.reco-chevron {
+  flex: none;
+  transition: transform 0.2s ease;
+}
+.reco-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Ordenação do ranking no celular (no computador a ordem é pelo cabeçalho da tabela). */
+.rank-sort {
+  display: flex;
+  gap: 0.5rem;
+}
+.rank-sort .filter-select {
+  flex: 1;
+}
+.rank-sort .chip-btn {
+  min-height: 2.5rem;
+}
+@media (min-width: 768px) {
+  .rank-sort {
+    display: none;
+  }
+}
+
+/* Barra de ferramentas das listas (busca, filtro, exportar): quebra em linhas no celular. */
+.list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+.list-tools > input {
+  flex: 1 1 12rem;
+}
+.list-tools > button {
+  min-height: 2.5rem;
+  white-space: nowrap;
+}
+@media (min-width: 768px) {
+  .list-tools {
+    width: auto;
+  }
+  .list-tools > input {
+    flex: 0 1 20rem;
+  }
+}
+
+/* Toque: sem atraso de duplo toque, e campos com 16px para o iOS não dar zoom ao focar. */
+button,
+a,
+select,
+input,
+textarea,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+}
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Dedo no lugar do mouse: alvos de toque de pelo menos 44px nos controles fixos da tela. */
+@media (pointer: coarse) {
+  .topbar .topbar-icon-btn,
+  .topbar .cmdk-trigger,
+  .topbar-menu-btn,
+  .fx-close,
+  .fx-plus,
+  .sale-close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  .fx-mi {
+    min-height: 3rem;
+  }
+  .seg-btn,
+  .ac-tab,
+  .cfg-side a,
+  .chip-btn {
+    min-height: 2.75rem;
+  }
+}

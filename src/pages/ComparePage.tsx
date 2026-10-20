@@ -174,17 +174,17 @@ export default function ComparePage() {
         </p>
       </PageHero>
 
-      <section className="surface-card flex flex-wrap items-center gap-3 p-4">
+      <section className="surface-card filter-grid">
         <PlatformSelect />
 
         {isMeta && (
-          <div className="flex items-center gap-2">
+          <div className="filter-account">
             <span
               className={`h-2.5 w-2.5 shrink-0 rounded-full ${accountTheme.dot}`}
               title={selectedAccountName ?? ''}
             />
             <select
-              className={`rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:ring-2 focus:outline-none ${accountTheme.ring}`}
+              className={`filter-select focus:ring-2 focus:outline-none ${accountTheme.ring}`}
               value={resolvedAccountId ?? ''}
               onChange={(event) => handleAccountChange(event.target.value)}
               disabled={!accounts.length}
@@ -201,7 +201,7 @@ export default function ComparePage() {
 
         {isMeta && (
           <select
-            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            className="filter-select"
             value={presetKey}
             onChange={(event) => setPresetKey(event.target.value)}
           >
@@ -295,7 +295,7 @@ export default function ComparePage() {
 
             <div className="surface-card overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px] text-left text-sm">
+                <table className="data-table data-table-sticky">
                   <thead>
                     <tr className="border-b border-zinc-800/60 bg-zinc-950/60 text-xs tracking-wide text-zinc-500 uppercase">
                       <th className="sticky left-0 z-10 bg-zinc-950 px-4 py-3">Campanha</th>
@@ -308,13 +308,13 @@ export default function ComparePage() {
                   <tbody>
                     {rows.map((row) => (
                       <tr key={row.id} className="border-b border-zinc-800/50 transition-colors hover:bg-zinc-800/20">
-                        <td className="sticky left-0 z-10 bg-zinc-950/95 px-4 py-3 backdrop-blur-sm">
+                        <td className="cell-name" data-label="Campanha">
                           <p className="font-medium text-zinc-100">{row.name}</p>
                           <p className="text-xs text-zinc-500">
                             {row.missingInCurrent ? 'Só no período anterior' : (row.status ?? '')}
                           </p>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3" data-label="Gasto">
                           <MetricCell
                             currentLabel={row.current ? formatCurrency(row.current.spend) : '—'}
                             previousLabel={row.previous ? formatCurrency(row.previous.spend) : '—'}
@@ -322,14 +322,14 @@ export default function ComparePage() {
                             invert
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3" data-label="Leads">
                           <MetricCell
                             currentLabel={row.current ? formatNumber(row.current.leads) : '—'}
                             previousLabel={row.previous ? formatNumber(row.previous.leads) : '—'}
                             delta={row.leadsDelta}
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3" data-label="CPL">
                           <MetricCell
                             currentLabel={row.current?.leads ? formatCurrency(row.current.cpl) : '—'}
                             previousLabel={row.previous?.leads ? formatCurrency(row.previous.cpl) : '—'}
@@ -337,7 +337,7 @@ export default function ComparePage() {
                             invert
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3" data-label="CTR">
                           <MetricCell
                             currentLabel={row.current ? formatPercent(row.current.ctr) : '—'}
                             previousLabel={row.previous ? formatPercent(row.previous.ctr) : '—'}
@@ -348,7 +348,7 @@ export default function ComparePage() {
                     ))}
                     {!rows.length && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-zinc-600">
+                        <td colSpan={5} className="cell-empty text-center text-zinc-600">
                           Nenhuma campanha nos períodos selecionados.
                         </td>
                       </tr>

@@ -148,21 +148,21 @@ export default function UsersPage() {
             <input
               type="text"
               placeholder="Buscar nome ou e-mail..."
-              className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+              className="filter-select"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full text-left text-sm">
+            <table className="data-table">
               <thead className="bg-zinc-950/95">
                 <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                  <th className="px-4 py-2 font-medium">Nome</th>
-                  <th className="px-4 py-2 font-medium">E-mail</th>
-                  <th className="px-4 py-2 font-medium">Situação</th>
-                  <th className="px-4 py-2 font-medium">Cadastro</th>
-                  <th className="px-4 py-2 font-medium">Cargo</th>
+                  <th className="font-medium">Nome</th>
+                  <th className="font-medium">E-mail</th>
+                  <th className="font-medium">Situação</th>
+                  <th className="font-medium">Cadastro</th>
+                  <th className="font-medium">Cargo</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,14 +171,14 @@ export default function UsersPage() {
                   const lastAdmin = user.cargo === 'admin' && admins <= 1
                   return (
                     <tr key={user.id} className="border-b border-zinc-900/80 last:border-0">
-                      <td className="px-4 py-2.5 text-zinc-200">
+                      <td className="cell-name text-zinc-200" data-label="Nome">
                         {user.nome || '—'}
                         {isMe && <span className="ml-2 text-[10px] text-zinc-500">(você)</span>}
                       </td>
-                      <td className="max-w-[240px] truncate px-4 py-2.5 text-zinc-400" title={user.email}>
+                      <td className="text-zinc-400" title={user.email} data-label="E-mail">
                         {user.email}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td  data-label="Situação">
                         {user.ativo ? (
                           <span className="rounded-full border border-emerald-500/25 px-2 py-0.5 text-[11px] text-emerald-300">
                             ativo
@@ -189,15 +189,15 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-zinc-500">{formatDate(user.createdAt)}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="whitespace-nowrap text-zinc-500" data-label="Cadastro">{formatDate(user.createdAt)}</td>
+                      <td data-label="Cargo">
                         <div className="flex items-center gap-2">
                           <select
                             value={user.cargo}
                             onChange={(event) => handleChange(user, event.target.value as Cargo)}
                             disabled={Boolean(savingId) || lastAdmin}
                             title={lastAdmin ? 'É preciso ter pelo menos um administrador' : undefined}
-                            className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-200 disabled:opacity-60"
+                            className="filter-select disabled:opacity-60"
                           >
                             <option value="admin">{CARGO_LABELS.admin}</option>
                             <option value="usuario">{CARGO_LABELS.usuario}</option>
@@ -210,7 +210,7 @@ export default function UsersPage() {
                 })}
                 {!filtered.length && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-600">
+                    <td colSpan={5} className="cell-empty text-center text-zinc-600">
                       Nenhum usuário encontrado.
                     </td>
                   </tr>

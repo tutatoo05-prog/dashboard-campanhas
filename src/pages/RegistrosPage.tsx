@@ -335,7 +335,7 @@ export default function RegistrosPage() {
                 {selectedInfo ? `Aba ${selectedInfo.aba} · ` : 'Todas as abas · '}
                 {formatNumber(byCampanha.length)} campanhas. Clique para ver a lista.
               </p>
-              <div className="max-h-[420px] overflow-y-auto pr-1">
+              <div className="overflow-y-auto pr-1 md:max-h-[420px]">
                 <BarList
                   rows={byCampanha}
                   total={scoped.length}
@@ -373,11 +373,11 @@ export default function RegistrosPage() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="list-tools">
                 <input
                   type="text"
                   placeholder="Buscar nome, e-mail, telefone, campanha..."
-                  className="w-full max-w-xs rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+                  className="filter-select"
                   value={search}
                   onChange={(event) => {
                     setSearch(event.target.value)
@@ -418,17 +418,17 @@ export default function RegistrosPage() {
               </div>
             </div>
 
-            <div className="max-h-[560px] overflow-auto">
-              <table className="w-full text-left text-sm">
+            <div className="overflow-auto md:max-h-[560px]">
+              <table className="data-table">
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
-                    <th className="px-4 py-2 font-medium">Nome</th>
-                    <th className="px-4 py-2 font-medium">Contato</th>
-                    <th className="px-4 py-2 font-medium">Planilha · Aba</th>
-                    <th className="px-4 py-2 font-medium">Origem</th>
-                    <th className="px-4 py-2 font-medium">Campanha</th>
-                    <th className="px-4 py-2 font-medium">Situação</th>
-                    <th className="px-4 py-2 font-medium">Última passagem</th>
+                    <th className="font-medium">Nome</th>
+                    <th className="font-medium">Contato</th>
+                    <th className="font-medium">Planilha · Aba</th>
+                    <th className="font-medium">Origem</th>
+                    <th className="font-medium">Campanha</th>
+                    <th className="font-medium">Situação</th>
+                    <th className="font-medium">Última passagem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -438,16 +438,16 @@ export default function RegistrosPage() {
                       onClick={() => setSelected(record)}
                       className="cursor-pointer border-b border-zinc-900/80 transition-colors last:border-0 hover:bg-amber-400/10"
                     >
-                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-200" title={record.nome}>
+                      <td className="cell-name text-zinc-200" title={record.nome} data-label="Nome">
                         {record.nome || '—'}
                       </td>
                       <td
-                        className="max-w-[220px] truncate px-4 py-2.5 text-zinc-400"
+                        className="text-zinc-400"
                         title={`${record.email} ${record.telefone}`}
-                      >
+                       data-label="Contato">
                         {record.email || record.telefone || '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-zinc-400">
+                      <td className="text-xs text-zinc-400" data-label="Planilha · Aba">
                         <span className="flex items-center gap-1.5">
                           <span className="text-zinc-300">{record.aba}</span>
                           {record.aparece.length > 1 && (
@@ -461,11 +461,11 @@ export default function RegistrosPage() {
                         </span>
                         <span className="block text-[10px] text-zinc-600">{record.planilha}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-300">{record.canal}</td>
-                      <td className="max-w-[180px] truncate px-4 py-2.5 text-zinc-300" title={record.campanha}>
+                      <td className="text-zinc-300" data-label="Origem">{record.canal}</td>
+                      <td className="text-zinc-300" title={record.campanha} data-label="Campanha">
                         {record.campanha || '—'}
                       </td>
-                      <td className="max-w-[220px] px-4 py-2.5 text-xs text-zinc-400">
+                      <td className="text-xs text-zinc-400" data-label="Situação">
                         {record.status !== 'lead' && <span className={`tl-status tl-status-${record.status} mb-1`}>{STATUS_ROTULO[record.status]}</span>}
                         {record.tipo === 'evento' ? (
                           <>
@@ -482,12 +482,12 @@ export default function RegistrosPage() {
                           '—'
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-zinc-500">{formatDate(record.data)}</td>
+                      <td className="whitespace-nowrap text-zinc-500" data-label="Última passagem">{formatDate(record.data)}</td>
                     </tr>
                   ))}
                   {!filtered.length && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-600">
+                      <td colSpan={7} className="cell-empty text-center text-zinc-600">
                         Nenhum registro encontrado.
                       </td>
                     </tr>
