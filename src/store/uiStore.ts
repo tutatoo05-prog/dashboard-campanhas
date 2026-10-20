@@ -1,17 +1,5 @@
 import { create } from 'zustand'
 
-const SIDEBAR_KEY = 'dash-sidebar-open'
-
-/** No computador o menu começa aberto; a pessoa recolhe (só ícones) e a escolha fica salva. */
-function readSidebarPreference(): boolean {
-  try {
-    if (window.innerWidth < 1280) return false
-    return localStorage.getItem(SIDEBAR_KEY) !== 'false'
-  } catch {
-    return false
-  }
-}
-
 interface UiState {
   sidebarOpen: boolean
   paletteOpen: boolean
@@ -20,18 +8,14 @@ interface UiState {
   setPaletteOpen: (open: boolean) => void
 }
 
+/**
+ * O menu lateral SEMPRE começa fechado ao abrir o sistema (no computador fica só a faixa de ícones; no celular some).
+ * A pessoa abre quando quiser; a escolha vale só até recarregar a página (não é mais guardada).
+ */
 export const useUiStore = create<UiState>((set, get) => ({
-  sidebarOpen: readSidebarPreference(),
+  sidebarOpen: false,
   paletteOpen: false,
-  toggleSidebar: () => {
-    const next = !get().sidebarOpen
-    set({ sidebarOpen: next })
-    try {
-      localStorage.setItem(SIDEBAR_KEY, String(next))
-    } catch {
-      /* ignore */
-    }
-  },
+  toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
   closeSidebarOnMobile: () => {
     if (window.innerWidth < 1280 && get().sidebarOpen) {
       set({ sidebarOpen: false })

@@ -74,7 +74,8 @@ export default function TopBar() {
           aria-label={theme === 'dark' ? 'Mudar para o tema claro' : 'Mudar para o tema escuro'}
           aria-pressed={theme === 'dark'}
         >
-          <i className={`fa-regular ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
+          {/* Lâmpada que mostra o tema de agora: acesa no claro, apagada (só o contorno) no escuro. */}
+          <i className={theme === 'dark' ? 'fa-regular fa-lightbulb' : 'fa-solid fa-lightbulb topbar-lamp-on'} />
         </button>
         {admin && <LiveQuick />}
         <button type="button" className="topbar-icon-btn" onClick={handleTour} title="Tour com o TaTuzinho" aria-label="Tour guiado com o TaTuzinho">

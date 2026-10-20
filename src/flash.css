@@ -213,6 +213,12 @@ select, input:not([type='checkbox']):not([type='radio']):not([type='range']), te
   box-shadow: 2px 2px 0 var(--shade);
   color-scheme: light;
 }
+/* A lista aberta do select usa as cores do tema (sem isso ela saía clara no tema escuro, com o texto claro por cima). */
+select option,
+select optgroup {
+  background-color: var(--white);
+  color: var(--ink);
+}
 select:focus, input:focus, textarea:focus { outline: none; box-shadow: 3px 3px 0 var(--o); border-color: var(--line); }
 .filter-bar select, .filter-bar input { border: 2.5px solid var(--line); background-color: var(--white); }
 .filter-bar select:hover, .filter-bar input:hover { border-color: var(--line); }

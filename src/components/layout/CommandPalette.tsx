@@ -71,7 +71,7 @@ export function CommandPalette() {
         id: 'theme',
         label: theme === 'dark' ? 'Tema claro' : 'Tema escuro',
         hint: 'Alternar entre papel claro e noite',
-        icon: theme === 'dark' ? 'fa-sun' : 'fa-moon',
+        icon: 'fa-lightbulb',
         run: toggleTheme,
       },
       {

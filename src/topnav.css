@@ -100,6 +100,8 @@ button.fx-me:hover { background: var(--y); }
 /* ───── Botões do topo: mais limpos e fáceis de reconhecer ───── */
 .topbar .topbar-icon-btn, .topbar .cmdk-trigger { height: 2.5rem; min-width: 2.5rem; border-radius: 12px; border: 2px solid var(--line); background: var(--white); color: var(--ink); box-shadow: none; font-size: 1rem; transform: none; transition: background 0.15s, border-color 0.15s; }
 .topbar .topbar-icon-btn:hover, .topbar .cmdk-trigger:hover { background: var(--paper); transform: none; }
+/* Lâmpada do tema: acesa (amarela, com um leve brilho) no tema claro; no escuro é só o contorno, na cor do texto. */
+.topbar-lamp-on { color: #c26a00; filter: drop-shadow(0 0 3px rgba(255, 170, 30, 0.5)); }
 .topbar .topbar-icon-btn:focus-visible, .topbar .cmdk-trigger:focus-visible, .topbar .topbar-user:focus-visible, .topbar-menu-btn:focus-visible { outline: 3px solid var(--o); outline-offset: 2px; }
 .topbar .topbar-user { width: 2.5rem; height: 2.5rem; padding: 0; background: none; border: 0; border-radius: 50%; box-shadow: none; display: inline-grid; place-items: center; cursor: pointer; }
 .topbar .topbar-user .tn-avatar { width: 40px !important; height: 40px !important; }
