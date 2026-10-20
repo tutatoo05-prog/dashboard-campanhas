@@ -62,8 +62,7 @@
 .ac-int b { display: block; font-size: 0.9rem; }
 .ac-int small { color: var(--muted); font-weight: 600; }
 @media (min-width: 961px) {
-  .cfg-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 20px; }
-  .cfg-side { position: sticky; top: 96px; flex-direction: column; overflow: visible; }
+  /* Sem coluna lateral: as seções de Configurações ficam numa fileira de abas no topo (igual ao celular). */
   .ac-themes { grid-template-columns: repeat(3, 1fr); }
 }
 

@@ -117,13 +117,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {(id === 'operacao' || id === 'integracoes' || id === 'geral') && (
-      <PageHero>
-        <p className="section-label">Configurações</p>
-        <Typewriter as="h2" className="section-title mt-1" text={atual.label} />
-        <p className="mt-2 max-w-2xl text-sm text-zinc-500">Coisas do sistema inteiro. Só administradores veem esta área.</p>
-      </PageHero>
-      )}
       <div className="cfg-layout">
         <nav ref={abasRef} className="cfg-side" aria-label="Seções de configurações">
           {CONFIG_SECTIONS.map((item) => (
@@ -135,7 +128,15 @@ export default function SettingsPage() {
             </NavLink>
           ))}
         </nav>
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-6 sm:space-y-8">
+          {/* O cabeçalho vem DEPOIS das abas: Usuários e Segurança já trazem o próprio cabeçalho dentro da seção. */}
+          {(id === 'operacao' || id === 'integracoes' || id === 'geral') && (
+            <PageHero>
+              <p className="section-label">Configurações</p>
+              <Typewriter as="h2" className="section-title mt-1" text={atual.label} />
+              <p className="mt-2 max-w-2xl text-sm text-zinc-500">Coisas do sistema inteiro. Só administradores veem esta área.</p>
+            </PageHero>
+          )}
           <Suspense fallback={<p className="ac-help">Carregando...</p>}>
             {id === 'operacao' && <Operacao />}
             {id === 'seguranca' && <SegurancaPage />}
