@@ -17,6 +17,11 @@ export default function AppShell() {
   const act = useMascotStore((state) => state.act)
   const { pathname } = useLocation()
 
+  // a cada entrada no sistema (inclusive depois de sair e logar de novo sem recarregar) o menu volta fechado
+  useEffect(() => {
+    useUiStore.setState({ sidebarOpen: false })
+  }, [])
+
   // ao trocar de página, o Tatu "revela" o conteúdo novo
   useEffect(() => {
     if (!useMascotStore.getState().speech) act('reveal', 1500)
