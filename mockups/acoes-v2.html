@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Central de Ações v2 · Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700;800&family=Pirata+One&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#f1e6cd; --paper:#14100b; --card:#1f1912; --white:#2a2217; --muted:#a99d80; --line:#8d7e5f; --shade:#050403;
+    --o:#ff8a1f; --y:#eab12a; --r:#e5483b; --t:#27a8a3; --g:#34d399; --on:#15110d;
+    --display:'Pirata One',Georgia,serif;
+  }
+  [data-theme='light'] {
+    --ink:#15110d; --paper:#efe2c4; --card:#fcf6e6; --white:#fffaf0; --muted:#6f624b; --line:#15110d; --shade:#15110d; --g:#0f7a49;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',system-ui,sans-serif; background:var(--paper); color:var(--ink); min-height:100vh;
+    background-image:radial-gradient(rgba(241,230,205,.07) 1.2px,transparent 1.7px); background-size:15px 15px; }
+  [data-theme='light'] body { background-image:radial-gradient(rgba(21,17,13,.1) 1.2px,transparent 1.7px); }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:24px; max-width:1500px; margin:0 auto; padding:20px; align-items:start; }
+  @media (max-width:1100px){ .wrap{grid-template-columns:1fr} .legend{position:static!important;max-height:none!important} .tatu .bubble{display:none} }
+
+  .card { position:relative; background:var(--card); border:3px solid var(--line); border-radius:18px; box-shadow:5px 5px 0 var(--shade); }
+  .label { font-size:.66rem; font-weight:800; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); }
+  h1,h2,h3 { font-family:var(--display); font-weight:400; line-height:1; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border:2px solid var(--line); border-radius:8px; font-size:.72rem; font-weight:800; background:var(--white); }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border:2.5px solid var(--line); border-radius:10px; font-size:.78rem; font-weight:800; background:var(--white); box-shadow:2px 2px 0 var(--shade); }
+  .btn:hover { background:var(--y); color:var(--on); }
+  .btn.pri { background:var(--o); color:var(--on); }
+  .btn.danger { background:var(--r); color:#fff; }
+  .btn.ghost { box-shadow:none; border-style:dashed; }
+
+  /* topo */
+  .top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+  .top h1 { font-size:2.1rem; }
+  .theme { width:40px; height:40px; border-radius:50%; background:var(--y); color:var(--on); border:2.5px solid var(--line); box-shadow:2px 2px 0 var(--shade); font-size:1.1rem; }
+  .hero { padding:26px 28px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; margin-bottom:18px;
+    background-image:radial-gradient(rgba(255,138,31,.3) 2.2px,transparent 2.8px); background-size:16px 16px; background-position:right; }
+  .hero h2 { font-size:3rem; margin:8px 0; }
+  .hero p { color:var(--muted); max-width:46rem; font-size:.92rem; }
+  .tag { display:inline-block; background:var(--ink); color:var(--card); padding:4px 12px; border-radius:6px; font-size:.68rem; font-weight:800; letter-spacing:.26em; }
+  .daily { text-align:center; min-width:210px; padding:14px 16px; background:var(--card); border:3px solid var(--line); border-radius:14px; box-shadow:3px 3px 0 var(--shade); position:relative; }
+  .daily b { font-family:var(--display); font-size:2.3rem; font-weight:400; }
+  .bar { height:12px; border:2.5px solid var(--line); border-radius:8px; background:var(--white); overflow:hidden; margin:8px 0 6px; }
+  .bar i { display:block; height:100%; background:var(--o); }
+  .streak { font-size:.74rem; font-weight:800; color:var(--y); }
+
+  /* filtros */
+  .filters { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; margin-bottom:18px; }
+  .sel,.search { border:2.5px solid var(--line); border-radius:10px; background:var(--white); padding:7px 12px; font-size:.8rem; font-weight:700; box-shadow:2px 2px 0 var(--shade); }
+  .search { color:var(--muted); min-width:180px; }
+  .seg { display:inline-flex; border:2.5px solid var(--line); border-radius:12px; background:var(--white); padding:3px; gap:2px; box-shadow:2px 2px 0 var(--shade); }
+  .seg span { padding:5px 11px; border-radius:8px; font-size:.74rem; font-weight:800; color:var(--muted); }
+  .seg .on { background:var(--o); color:var(--on); }
+  .grow { flex:1; }
+
+  /* saúde + kpis */
+  .row2 { display:grid; grid-template-columns:1.25fr 1fr; gap:18px; margin-bottom:18px; }
+  @media (max-width:900px){ .row2{grid-template-columns:1fr} }
+  .health { padding:20px; display:flex; gap:20px; align-items:center; }
+  .ring { width:104px; height:104px; border-radius:50%; flex:none; display:grid; place-items:center;
+    background:conic-gradient(var(--y) 0 58%, var(--white) 58% 100%); position:relative; }
+  .ring::after { content:''; position:absolute; inset:11px; background:var(--card); border-radius:50%; }
+  .ring b { position:relative; z-index:1; font-size:1.9rem; font-weight:900; }
+  .spark { width:100%; height:44px; margin-top:8px; }
+  .forecast { padding:20px; }
+  .forecast h3 { font-size:1.6rem; margin:6px 0 10px; }
+  .meter { height:16px; border:2.5px solid var(--line); border-radius:9px; background:var(--white); position:relative; overflow:hidden; }
+  .meter i { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg,var(--t),var(--y)); }
+  .meter u { position:absolute; top:-2px; bottom:-2px; width:3px; background:var(--r); }
+  .small { font-size:.76rem; color:var(--muted); font-weight:600; }
+
+  /* foco */
+  .focus { padding:22px; margin-bottom:22px; border-color:var(--o); }
+  .focus-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .focus h3 { font-size:2rem; margin:6px 0; }
+  .money { background:rgba(229,72,59,.16); color:#fca5a5; border-color:var(--r); }
+  [data-theme='light'] .money { color:#7c1812; background:#f6bdb6; }
+  .steps { margin:14px 0 4px; display:grid; gap:8px; }
+  .step { display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--white); border:2px solid var(--line); border-radius:10px; font-size:.84rem; font-weight:600; }
+  .step .ck { width:22px; height:22px; border:2.5px solid var(--line); border-radius:6px; display:grid; place-items:center; font-size:.7rem; flex:none; }
+  .step.done { opacity:.6; text-decoration:line-through; }
+  .step.done .ck { background:var(--t); color:#fff; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; align-items:center; }
+  .why { position:relative; margin-top:12px; padding:10px 12px; border:2px dashed var(--line); border-radius:10px; font-size:.8rem; color:var(--muted); }
+  .why b { color:var(--ink); }
+
+  /* lista */
+  .group { display:flex; align-items:center; gap:10px; margin:22px 0 10px; }
+  .badge { padding:3px 12px; border:2.5px solid var(--line); border-radius:999px; font-size:.7rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--on); }
+  .badge.u { background:var(--r); color:#fff; } .badge.t { background:var(--y); } .badge.g { background:#6fc18f; }
+  .item { display:grid; grid-template-columns:auto 1fr auto; gap:14px; padding:14px 16px; margin-bottom:12px; border-left-width:8px; align-items:start; }
+  .item.u { border-left-color:var(--r); } .item.t { border-left-color:var(--y); } .item.g { border-left-color:var(--t); }
+  .item h4 { font-size:.98rem; font-weight:800; }
+  .item p { font-size:.8rem; color:var(--muted); margin-top:3px; }
+  .check { width:28px; height:28px; border:3px solid var(--line); border-radius:8px; background:var(--white); }
+  .tools { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:9px; }
+  .av { width:26px; height:26px; border-radius:50%; background:var(--o); color:var(--on); border:2.5px solid var(--line); display:grid; place-items:center; font-size:.7rem; font-weight:900; }
+  .mini { display:flex; align-items:center; gap:6px; padding:4px 9px; border:2px solid var(--line); border-radius:8px; font-size:.7rem; font-weight:800; background:var(--white); }
+  .progress { height:8px; width:90px; border:2px solid var(--line); border-radius:6px; background:var(--white); overflow:hidden; }
+  .progress i { display:block; height:100%; background:var(--t); }
+  .result { margin-top:10px; padding:10px 12px; border:2.5px solid var(--t); border-radius:10px; background:rgba(39,168,163,.12); font-size:.8rem; font-weight:700; }
+  .result b { color:var(--g); }
+
+  /* cartões laterais */
+  .rules { padding:18px; margin-top:22px; }
+  .rules h3 { font-size:1.5rem; margin:6px 0 12px; }
+  .rule { display:flex; align-items:center; gap:10px; padding:9px 12px; margin-bottom:8px; background:var(--white); border:2px solid var(--line); border-radius:10px; font-size:.8rem; font-weight:700; }
+  .sw { width:34px; height:20px; border-radius:12px; border:2.5px solid var(--line); background:var(--white); position:relative; flex:none; }
+  .sw::after { content:''; position:absolute; top:2px; left:2px; width:11px; height:11px; border-radius:50%; background:var(--muted); }
+  .sw.on { background:var(--t); } .sw.on::after { left:15px; background:#fff; }
+  .notify { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+  /* tatuzinho */
+  .tatu { position:fixed; right:18px; bottom:18px; z-index:20; display:flex; align-items:flex-end; gap:10px; max-width:380px; }
+  .bubble { background:var(--card); border:3px solid var(--line); border-radius:16px 16px 4px 16px; padding:11px 14px; box-shadow:4px 4px 0 var(--shade); font-size:.8rem; font-weight:600; position:relative; }
+  .bubble .row { margin-top:8px; }
+  .mascot { width:62px; height:62px; border-radius:50%; flex:none; border:3px solid var(--line); box-shadow:3px 3px 0 var(--shade); position:relative; overflow:hidden;
+    background:repeating-linear-gradient(100deg,rgba(0,0,0,.2) 0 3px,transparent 3px 11px),radial-gradient(circle at 35% 30%,#ffc04d,#ff9f0f 60%,#d98200); }
+  .mascot::before { content:""; position:absolute; left:6px; bottom:5px; width:30px; height:26px; border-radius:50%; background:#ffe2b0; border:2.5px solid #2a1a05; }
+  .mascot::after { content:""; position:absolute; left:15px; bottom:20px; width:6px; height:6px; border-radius:50%; background:#2a1a05; box-shadow:9px 0 0 #2a1a05; }
+
+  /* pins */
+  .pin { position:absolute; z-index:5; top:-12px; right:-12px; width:26px; height:26px; border-radius:50%; background:var(--r); color:#fff; border:2.5px solid var(--paper);
+    font-size:.74rem; font-weight:900; display:grid; place-items:center; box-shadow:0 0 0 2px var(--r); cursor:pointer; transition:transform .15s; }
+  .pin.l { right:auto; left:-12px; }
+  .pin.hot, .pin:hover { transform:scale(1.35); box-shadow:0 0 0 5px rgba(229,72,59,.35); }
+  .hl { outline:3px dashed var(--r); outline-offset:4px; }
+
+  /* legenda */
+  .legend { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; padding:18px; }
+  .legend h2 { font-size:1.7rem; margin:4px 0 4px; }
+  .leg { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:10px 8px; border-radius:10px; cursor:pointer; border:2px solid transparent; }
+  .leg:hover,.leg.hot { background:var(--white); border-color:var(--line); }
+  .leg .n { width:26px; height:26px; border-radius:50%; background:var(--r); color:#fff; display:grid; place-items:center; font-size:.74rem; font-weight:900; }
+  .leg b { font-size:.84rem; display:block; }
+  .leg span.d { font-size:.74rem; color:var(--muted); display:block; margin-top:2px; line-height:1.4; }
+  .eff { display:inline-block; margin-top:5px; margin-right:5px; padding:1px 8px; border-radius:6px; font-size:.64rem; font-weight:800; border:2px solid var(--line); }
+  .eff.p { background:rgba(52,211,153,.18); } .eff.m { background:rgba(234,177,42,.22); } .eff.g { background:rgba(229,72,59,.2); }
+  .key { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 6px; font-size:.7rem; color:var(--muted); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main>
+    <div class="top">
+      <div><div class="label">Academy Labs</div><h1>Central de Ações <span class="chip" style="vertical-align:middle;font-family:'DM Sans'">v2 · mockup</span></h1></div>
+      <button class="theme" id="theme" title="Alternar tema">☾</button>
+    </div>
+
+    <!-- HERO + progresso do dia -->
+    <section class="card hero">
+      <div>
+        <span class="tag">BOM DIA, ANDERSON</span>
+        <h2>Central de Ações</h2>
+        <p>O painel lê os números por você e diz o que fazer, em ordem de importância. Resolva de cima para baixo e marque como feito.</p>
+      </div>
+      <div class="daily">
+        <span class="pin" data-n="1">1</span>
+        <div class="label">Seu dia</div>
+        <b>3 de 5</b>
+        <div class="bar"><i style="width:60%"></i></div>
+        <div class="streak">🔥 4 dias sem urgência parada</div>
+      </div>
+    </section>
+
+    <!-- FILTROS -->
+    <section class="card filters">
+      <span class="pin l" data-n="3" style="left:auto;right:-12px">3</span>
+      <span class="sel">● Todas as contas ▾</span>
+      <div class="seg"><span>Hoje</span><span class="on">7 dias</span><span>30 dias</span><span>Este mês</span></div>
+      <div class="seg"><span class="on">Todas</span><span>Urgentes</span><span>Hoje</span><span>Pode esperar</span><span>Indo bem</span></div>
+      <span class="sel">Tipo: todos ▾</span>
+      <span class="sel">Agrupar: prioridade ▾</span>
+      <span class="grow"></span>
+      <span class="search">⌕ Buscar campanha…</span>
+    </section>
+
+    <!-- SAÚDE + PREVISÃO -->
+    <section class="row2">
+      <div class="card health">
+        <span class="pin" data-n="2">2</span>
+        <div class="ring"><b>58</b></div>
+        <div style="flex:1;min-width:0">
+          <div class="label">Saúde da conta</div>
+          <h3 style="font-size:1.9rem;color:var(--y);margin:4px 0">Atenção ↗</h3>
+          <div class="small">+9 pontos nos últimos 30 dias</div>
+          <svg class="spark" viewBox="0 0 200 44" preserveAspectRatio="none"><polyline fill="none" stroke="#eab12a" stroke-width="3" stroke-linejoin="round" points="0,34 22,30 44,36 66,28 88,26 110,30 132,20 154,22 176,14 200,10"/><circle cx="200" cy="10" r="4" fill="#eab12a"/></svg>
+        </div>
+      </div>
+      <div class="card forecast">
+        <div class="label">Verba do mês</div>
+        <h3>Acaba dia 24, não dia 31</h3>
+        <div class="meter"><i style="width:64%"></i><u style="left:48%"></u></div>
+        <div class="small" style="margin-top:8px">R$ 5.120 de R$ 8.000 · esperado até hoje: R$ 3.840 (linha vermelha)</div>
+      </div>
+    </section>
+
+    <!-- MODO FOCO -->
+    <section class="card focus">
+      <span class="pin" data-n="4">4</span>
+      <div class="focus-head">
+        <div>
+          <span class="badge u">Urgente · próxima ação</span>
+          <h3>Pausar ou reduzir: Leads — Formulário Instantâneo</h3>
+          <p class="small">Nos últimos dias o gasto subiu e o resultado não acompanhou.</p>
+        </div>
+        <div style="text-align:right">
+          <span class="chip money" style="position:relative"><span class="pin l" data-n="5" style="top:-16px;right:auto;left:-16px">5</span>💸 ~R$ 310/semana em jogo</span>
+          <div class="small" style="margin-top:6px">R$ 184,50 gastos · 6 leads (R$ 30,75 cada)</div>
+        </div>
+      </div>
+      <div class="steps" style="position:relative">
+        <span class="pin" data-n="7" style="top:-18px;right:6px">7</span>
+        <div class="step done"><span class="ck">✓</span>Abrir o Gerenciador de Anúncios e localizar a campanha</div>
+        <div class="step"><span class="ck"></span>Reduzir o orçamento diário pela metade (ou pausar)</div>
+        <div class="step"><span class="ck"></span>Trocar o criativo ou o público antes de reativar</div>
+        <div class="step"><span class="ck"></span>Redirecionar a verba para a campanha com menor custo por lead</div>
+      </div>
+      <div class="actions" style="position:relative">
+        <span class="pin" data-n="6" style="top:-18px;right:auto;left:0">6</span>
+        <button class="btn danger">⏸ Pausar na Meta</button>
+        <button class="btn">½ Reduzir orçamento 50%</button>
+        <button class="btn ghost">🕒 Adiar ▾</button>
+        <button class="btn ghost">Marcar como feito</button>
+        <span class="grow"></span>
+        <span class="small">1 de 3 urgentes · <b style="color:var(--ink)">Próxima →</b></span>
+      </div>
+      <div class="why"><span class="pin" data-n="13" style="top:-10px;right:10px;width:24px;height:24px">13</span><b>Por que o TaTuzinho sugeriu isso?</b> O CPL desta campanha (R$ 30,75) está 2,2× acima da média da conta (R$ 13,56) e o gasto subiu 38% sem aumento de leads.</div>
+    </section>
+
+    <!-- LISTA -->
+    <div class="group"><span class="badge u">Urgente</span><span class="small">Está custando dinheiro agora</span><span class="grow"></span><span class="small">2</span></div>
+
+    <article class="card item u">
+      <button class="check"></button>
+      <div>
+        <h4>Pausar ou reduzir: Tráfego Blog — Lookalike</h4>
+        <p>Nos últimos dias o gasto subiu e o resultado não acompanhou. Revise ou pause.</p>
+        <div class="row">
+          <span class="mini">💸 ~R$ 180/sem</span>
+          <span class="mini">🧾 2 de 4 passos <span class="progress"><i style="width:50%"></i></span></span>
+          <span class="mini">⏸ Pausar na Meta</span>
+        </div>
+      </div>
+      <div class="tools" style="position:relative">
+        <span class="pin" data-n="9" style="top:-16px;right:-16px">9</span>
+        <span class="av" title="Atribuída a Anderson">A</span>
+        <span class="mini" style="position:relative"><span class="pin l" data-n="8" style="top:-14px;left:-14px">8</span>🕒 Adiar 48h</span>
+      </div>
+    </article>
+
+    <div class="group"><span class="badge t">Fazer hoje</span><span class="small">Resolve em poucos minutos</span><span class="grow"></span><span class="small">1</span></div>
+    <article class="card item t">
+      <button class="check"></button>
+      <div>
+        <h4>Trocar um anúncio: UGC Story 03</h4>
+        <p>Custa R$ 22,10 por lead; o melhor da mesma campanha custa R$ 9,40 (UGC Story 01).</p>
+        <div class="row"><span class="mini">💸 ~R$ 95/sem</span><span class="mini">🧾 0 de 3 passos <span class="progress"><i style="width:0"></i></span></span></div>
+      </div>
+      <div class="tools"><span class="av" style="background:var(--t);color:#fff">M</span><span class="mini">🕒 Adiar</span></div>
+    </article>
+
+    <div class="group"><span class="badge g">Resolvidas</span><span class="small">O que deu certo depois de você agir</span></div>
+    <article class="card item g">
+      <button class="check" style="background:var(--t)">✓</button>
+      <div>
+        <h4>Reduzido: Remarketing Compradores <span class="small">· você resolveu há 3 dias</span></h4>
+        <div class="result" style="position:relative"><span class="pin" data-n="10" style="top:-14px;right:-8px">10</span>📉 Depois da ação: CPL <b>caiu 18%</b> (R$ 16,40 → R$ 13,45) e os leads se mantiveram. <b>Economia estimada: R$ 140.</b></div>
+      </div>
+      <div class="tools"><span class="av">A</span></div>
+    </article>
+
+    <!-- REGRAS + AVISOS -->
+    <section class="card rules">
+      <span class="pin" data-n="11" style="top:-12px;right:44px">11</span>
+      <span class="pin" data-n="12">12</span>
+      <div class="label">Automático</div>
+      <h3>Regras e avisos</h3>
+      <div class="rule"><span class="sw on"></span>Se o CPL ficar 30% acima da média por 2 dias, criar uma ação urgente</div>
+      <div class="rule"><span class="sw on"></span>Se uma campanha gastar R$ 50 sem nenhum lead, avisar na hora</div>
+      <div class="rule"><span class="sw"></span>Se a verba do mês passar de 90%, sugerir reduzir os orçamentos</div>
+      <div class="notify"><span class="btn">📧 Resumo diário por e-mail · 8h</span><span class="btn">💬 Urgentes no WhatsApp</span><span class="btn ghost">+ Nova regra</span></div>
+    </section>
+  </main>
+
+  <!-- LEGENDA -->
+  <aside class="card legend" id="legend">
+    <div class="label">Features propostas</div>
+    <h2>O que mudou nesta tela</h2>
+    <div class="key"><span><span class="eff p">pequeno</span> poucas horas</span><span><span class="eff m">médio</span> ~1–2 dias</span><span><span class="eff g">grande</span> backend/API</span></div>
+  </aside>
+</div>
+
+<!-- TaTuzinho -->
+<div class="tatu">
+  <div class="bubble">
+    Você resolveu 3 de 5 hoje. Faltam 2 urgentes: bora fechar o dia no verde?
+    <div class="row"><button class="btn pri">Próxima ação</button><button class="btn">Depois</button></div>
+  </div>
+  <div class="mascot" title="TaTuzinho"></div>
+</div>
+
+<script>
+  const features = [
+    [1,'Progresso do dia e sequência','Barra "3 de 5 resolvidas" e dias seguidos sem urgência parada. O TaTuzinho comemora ao zerar. Usa o "feito" que já existe.','p','Sem backend'],
+    [2,'Saúde com tendência e previsão de verba','Score dos últimos 30 dias em mini-gráfico e aviso "a verba acaba dia 24". A conta já existe (accountHealth + meta do mês).','p','Dados atuais'],
+    [3,'Filtros, busca e todas as contas','Filtrar por prioridade/tipo, buscar campanha, agrupar por campanha e ver as ações de todas as contas numa lista só.','p','Dados atuais'],
+    [4,'Modo foco','Um card grande com a próxima ação e setas "Próxima →". Reduz a sensação de lista infinita.','p','Sem backend'],
+    [5,'Impacto em R$','"~R$ 310/semana em jogo" calculado de gasto, CPL e média da conta. Ordena a lista por dinheiro.','p','Dados atuais'],
+    [6,'Ação direta na Meta','Botões "Pausar" e "Reduzir 50%" chamam a Marketing API, com confirmação e registro de quem fez. Exige permissão de escrita no token.','g','API Meta + permissão'],
+    [7,'Checklist por passo','Cada passo vira caixinha com % de conclusão no card. O progresso fica salvo por dia.','p','localStorage ou banco'],
+    [8,'Adiar','"Lembrar amanhã / em 48h / na segunda". A ação some e volta no dia (junta com os lembretes que sugeri).','m','Banco p/ valer entre aparelhos'],
+    [9,'Atribuir responsável','Dono da ação (avatar) para a equipe não duplicar trabalho. Opcional: comentário curto.','m','Banco + usuários'],
+    [10,'Resultado depois da ação','Compara CPL/leads antes e depois de marcar como feito e mostra a economia. Fecha o ciclo e prova valor.','g','Histórico no banco'],
+    [11,'Regras automáticas','"Se CPL > 30% da média por 2 dias, criar ação". O usuário liga/desliga e cria regras simples.','g','Job no servidor'],
+    [12,'Avisos fora do painel','Resumo diário por e-mail (o digest já existe) e urgentes por WhatsApp. Reaproveita server/digest.','m','Digest existente + WhatsApp API'],
+    [13,'Por que o TaTuzinho sugeriu isso?','Explica o raciocínio com os números da própria campanha. Transparência gera confiança nas ordens do painel.','p','Texto dos dados atuais'],
+  ];
+  const legend = document.getElementById('legend');
+  const effLabel = {p:'pequeno', m:'médio', g:'grande'};
+  features.forEach(([n,t,d,e,dep]) => {
+    const el = document.createElement('div'); el.className='leg'; el.dataset.n=n;
+    el.innerHTML = `<div class="n">${n}</div><div><b>${t}</b><span class="d">${d}</span><span class="eff ${e}">${effLabel[e]}</span><span class="eff" style="border-style:dashed">${dep}</span></div>`;
+    legend.appendChild(el);
+  });
+  const pins = [...document.querySelectorAll('.pin')];
+  function hot(n, on){
+    document.querySelectorAll(`.pin[data-n="${n}"]`).forEach(p => { p.classList.toggle('hot', on); p.parentElement.classList.toggle('hl', on); });
+    legend.querySelector(`.leg[data-n="${n}"]`)?.classList.toggle('hot', on);
+  }
+  document.querySelectorAll('.leg').forEach(el => {
+    el.addEventListener('mouseenter', () => hot(el.dataset.n, true));
+    el.addEventListener('mouseleave', () => hot(el.dataset.n, false));
+    el.addEventListener('click', () => document.querySelector(`.pin[data-n="${el.dataset.n}"]`)?.scrollIntoView({behavior:'smooth', block:'center'}));
+  });
+  pins.forEach(p => {
+    p.addEventListener('mouseenter', () => hot(p.dataset.n, true));
+    p.addEventListener('mouseleave', () => hot(p.dataset.n, false));
+    p.addEventListener('click', () => legend.querySelector(`.leg[data-n="${p.dataset.n}"]`)?.scrollIntoView({behavior:'smooth', block:'center'}));
+  });
+  const root = document.documentElement, btn = document.getElementById('theme');
+  btn.addEventListener('click', () => {
+    const light = root.dataset.theme === 'light';
+    if (light) { root.removeAttribute('data-theme'); btn.textContent = '☾'; } else { root.dataset.theme = 'light'; btn.textContent = '☀'; }
+  });
+</script>
+</body>
+</html>

@@ -107,7 +107,7 @@ export default function LoginPage() {
             Painel de campanhas
           </p>
           <p className="auth-enter mt-3 text-sm text-zinc-400" style={{ '--d': '0.35s' } as CSSProperties}>
-            Acompanhe suas <RotatingWord words={ROTATING_WORDS} /> em um só painel
+            Acompanhe <RotatingWord words={ROTATING_WORDS} /> em um só painel
           </p>
         </div>
 
