@@ -142,33 +142,72 @@ export function resumirEmails(itens, { agora = new Date(), dias = 30, env = {} }
   }
 }
 
+const SQL_FILA = `select f.id, f.passo, f.cenario, f.email, f.nome, f.dados->>'curso' as curso, f.estado, f.erro, f.enviar_em, f.enviado_em,
+            case when f.estado = 'enviado' and f.cenario in ('carrinho', 'pagamento')
+                 then exists (select 1 from purchases p where lower(p.email) = f.email and p.created_at > f.enviado_em and p.created_at < f.enviado_em + interval '7 days')
+            end as comprou_depois
+       from emails_fila f`
+const SQL_DIRETOS = `select id, nome, email, curso, simulado, recebido_em,
+            passos->'email_boas_vindas' as bv, passos->'email_apoio' as ap, passos->'_plano'->>'abandono' as abandono
+       from hotmart_eventos`
+
+const comRotulo = (itens) => itens.map((i) => ({ ...i, rotulo: POR_TIPO.get(i.tipo)?.rotulo ?? i.tipo }))
+const maisRecentePrimeiro = (itens) => itens.sort((a, b) => new Date(b.quando).getTime() - new Date(a.quando).getTime())
+
+/** Todos os e-mails de uma pessoa (qualquer época), do mais recente para o mais antigo: alimenta a linha do tempo dela. */
+export async function emailsDaPessoa(consultar, email) {
+  const chave = String(email ?? '').trim().toLowerCase()
+  if (!chave) return []
+  const fila = await tentar(consultar, `${SQL_FILA} where f.email = $1 order by coalesce(f.enviado_em, f.enviar_em) desc limit 100`, [chave])
+  const diretos = await tentar(
+    consultar,
+    `${SQL_DIRETOS} where lower(email) = $1 and (passos ? 'email_boas_vindas' or passos ? 'email_apoio') order by recebido_em desc limit 100`,
+    [chave],
+  )
+  return comRotulo(maisRecentePrimeiro([...itensDaFila(fila), ...itensDiretos(diretos)]))
+}
+
+/** Todos os e-mails de um tipo no período (até 500): alimenta a janela que abre ao clicar no cartão. */
+export async function emailsDoTipo(consultar, tipo, { dias = 30, agora = new Date() } = {}) {
+  const modelo = POR_TIPO.get(tipo)
+  if (!modelo) return []
+  const desde = new Date(agora.getTime() - dias * 86_400_000)
+  let itens
+  if (modelo.origem === 'fila') {
+    const fila = await tentar(
+      consultar,
+      `${SQL_FILA} where f.passo = $1 and (coalesce(f.enviado_em, f.enviar_em) >= $2 or f.estado = 'pendente') order by coalesce(f.enviado_em, f.enviar_em) desc limit 500`,
+      [tipo, desde],
+    )
+    itens = itensDaFila(fila)
+  } else {
+    const diretos = await tentar(
+      consultar,
+      `${SQL_DIRETOS} where recebido_em >= $1 and (passos ? 'email_boas_vindas' or passos ? 'email_apoio') order by recebido_em desc limit ${LINHAS_MAX}`,
+      [desde],
+    )
+    itens = itensDiretos(diretos).filter((i) => i.tipo === tipo).slice(0, 500)
+  }
+  return comRotulo(maisRecentePrimeiro(itens))
+}
+
 /** Monta a resposta completa do painel. */
 export async function montarPainelEmails(consultar, { dias = 30, agora = new Date(), env = {} } = {}) {
   const desde = new Date(agora.getTime() - dias * 86_400_000)
   const fila = await tentar(
     consultar,
-    `select f.id, f.passo, f.cenario, f.email, f.nome, f.dados->>'curso' as curso, f.estado, f.erro, f.enviar_em, f.enviado_em,
-            case when f.estado = 'enviado' and f.cenario in ('carrinho', 'pagamento')
-                 then exists (select 1 from purchases p where lower(p.email) = f.email and p.created_at > f.enviado_em and p.created_at < f.enviado_em + interval '7 days')
-            end as comprou_depois
-       from emails_fila f
-      where coalesce(f.enviado_em, f.enviar_em) >= $1 or f.estado = 'pendente'
-      order by coalesce(f.enviado_em, f.enviar_em) desc limit ${LINHAS_MAX}`,
+    `${SQL_FILA} where coalesce(f.enviado_em, f.enviar_em) >= $1 or f.estado = 'pendente' order by coalesce(f.enviado_em, f.enviar_em) desc limit ${LINHAS_MAX}`,
     [desde],
   )
   const diretos = await tentar(
     consultar,
-    `select id, nome, email, curso, simulado, recebido_em,
-            passos->'email_boas_vindas' as bv, passos->'email_apoio' as ap, passos->'_plano'->>'abandono' as abandono
-       from hotmart_eventos
-      where recebido_em >= $1 and (passos ? 'email_boas_vindas' or passos ? 'email_apoio')
-      order by recebido_em desc limit ${LINHAS_MAX}`,
+    `${SQL_DIRETOS} where recebido_em >= $1 and (passos ? 'email_boas_vindas' or passos ? 'email_apoio') order by recebido_em desc limit ${LINHAS_MAX}`,
     [desde],
   )
   const itens = [...itensDaFila(fila), ...itensDiretos(diretos)]
-  itens.sort((a, b) => new Date(b.quando).getTime() - new Date(a.quando).getTime())
+  maisRecentePrimeiro(itens)
   const resumo = resumirEmails(itens, { agora, dias, env })
-  const lista = itens.slice(0, LISTA_MAX).map((i) => ({ ...i, rotulo: POR_TIPO.get(i.tipo)?.rotulo ?? i.tipo }))
+  const lista = comRotulo(itens.slice(0, LISTA_MAX))
   return { ...resumo, lista, listaCortada: itens.length > LISTA_MAX }
 }
 

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fetchEmailsPainel, type EmailItem, type EmailTipo } from '@/services/acessosService.ts'
 import { formatNumber } from '@/lib/format.ts'
+import { EmailsTipoModal } from '@/components/acessos/EmailsTipoModal.tsx'
 
 const TZ = 'America/Sao_Paulo'
 const COR_FILA = '#ff8a1f'
@@ -45,7 +46,7 @@ function Cartao({ rotulo, valor, dica, tom }: { rotulo: string; valor: string; d
 }
 
 /** Cartão de um e-mail: quantos saíram e uma barra empilhada com enviados, agendados, cancelados e falhas. */
-function CartaoEmail({ t }: { t: EmailTipo }) {
+function CartaoEmail({ t, onAbrir }: { t: EmailTipo; onAbrir: () => void }) {
   const partes = [
     { chave: 'enviados', valor: t.enviados, classe: 'bg-emerald-400', rotulo: 'enviados' },
     { chave: 'simulados', valor: t.simulados, classe: 'bg-sky-400', rotulo: 'simulados' },
@@ -56,7 +57,7 @@ function CartaoEmail({ t }: { t: EmailTipo }) {
   const soma = partes.reduce((acc, p) => acc + p.valor, 0)
   const outros = partes.filter((p) => p.valor > 0 && p.chave !== 'enviados').map((p) => `${p.valor} ${p.rotulo}`)
   return (
-    <div className="kpi-card">
+    <button type="button" onClick={onAbrir} className="kpi-card w-full cursor-pointer text-left transition-colors hover:border-amber-500/40" aria-label={`Ver quem recebeu: ${t.rotulo}`}>
       <p className="text-sm font-semibold text-zinc-100">{t.rotulo}</p>
       <p className="text-[11px] text-zinc-500">Sai {t.quando}</p>
       <p className="mt-2 text-2xl font-semibold text-zinc-50">{formatNumber(t.enviados)}</p>
@@ -78,7 +79,11 @@ function CartaoEmail({ t }: { t: EmailTipo }) {
           {t.comprouDepois} compraram em até 7 dias depois ({String(t.taxaCompra).replace('.', ',')}%)
         </p>
       )}
-    </div>
+      <p className="mt-2 text-[11px] text-zinc-500">
+        <i className="fa-solid fa-list mr-1" />
+        Ver quem recebeu
+      </p>
+    </button>
   )
 }
 
@@ -88,6 +93,7 @@ export function EmailsPainel() {
   const [estado, setEstado] = useState('todos')
   const [busca, setBusca] = useState('')
   const [limite, setLimite] = useState(50)
+  const [aberto, setAberto] = useState<EmailTipo | null>(null)
 
   const painel = useQuery({ queryKey: ['acessos', 'emails', dias], queryFn: () => fetchEmailsPainel(dias), retry: false, refetchInterval: 60_000 })
   const dados = painel.data
@@ -179,7 +185,7 @@ export function EmailsPainel() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{grupo}</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {tipos.map((t) => (
-                  <CartaoEmail key={t.tipo} t={t} />
+                  <CartaoEmail key={t.tipo} t={t} onAbrir={() => setAberto(t)} />
                 ))}
               </div>
             </div>
@@ -298,6 +304,7 @@ export function EmailsPainel() {
           </div>
         </>
       )}
+      {aberto && <EmailsTipoModal tipo={aberto} dias={dias} onClose={() => setAberto(null)} />}
     </section>
   )
 }

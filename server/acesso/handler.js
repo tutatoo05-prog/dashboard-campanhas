@@ -5,7 +5,7 @@ import { modoAcesso } from './motor.js'
 import { normalizarEvento } from './hotmart.js'
 import { rodarAgora } from './scheduler.js'
 import { configuracaoFaltando, verificarConexoes } from './verificacao.js'
-import { painelEmails } from '../emails/painel.js'
+import { emailsDaPessoa, emailsDoTipo, painelEmails } from '../emails/painel.js'
 
 function sendJson(res, status, payload) {
   res.statusCode = status
@@ -50,6 +50,8 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/eventos?estado=&busca=&limite=
  *   GET  /api/acessos/lista
  *   GET  /api/acessos/emails?dias=30   (painel dos e-mails: gráficos por e-mail e lista dos enviados)
+ *   GET  /api/acessos/emails/tipo?tipo=&dias=   (todos os e-mails de um tipo e para quem foram)
+ *   GET  /api/acessos/emails/pessoa?email=      (e-mails de uma pessoa, para a linha do tempo dela)
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
  *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
@@ -95,6 +97,17 @@ export async function handleAcessosRequest(req, res, env, user) {
       valores.push(limite)
       const { rows } = await query(env, `select * from hotmart_eventos where ${filtros.join(' and ')} order by recebido_em desc limit $${valores.length}`, valores)
       return sendJson(res, 200, { eventos: rows.map(eventoParaApi) })
+    }
+
+    if (req.method === 'GET' && caminho === '/api/acessos/emails/tipo') {
+      const dias = Math.min(90, Math.max(7, Number(url.searchParams.get('dias')) || 30))
+      const lista = await emailsDoTipo((texto, params) => query(env, texto, params), String(url.searchParams.get('tipo') ?? ''), { dias })
+      return sendJson(res, 200, { lista })
+    }
+
+    if (req.method === 'GET' && caminho === '/api/acessos/emails/pessoa') {
+      const lista = await emailsDaPessoa((texto, params) => query(env, texto, params), url.searchParams.get('email'))
+      return sendJson(res, 200, { lista })
     }
 
     if (req.method === 'GET' && caminho === '/api/acessos/emails') {

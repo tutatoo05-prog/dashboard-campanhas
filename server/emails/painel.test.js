@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { CATALOGO, itensDaFila, itensDiretos, montarPainelEmails, resumirEmails } from './painel.js'
+import { CATALOGO, emailsDaPessoa, emailsDoTipo, itensDaFila, itensDiretos, montarPainelEmails, resumirEmails } from './painel.js'
 
 const AGORA = new Date('2026-10-21T15:00:00Z')
 const hora = (h) => new Date(AGORA.getTime() - h * 3_600_000).toISOString()
@@ -63,4 +63,28 @@ test('painel: sem a tabela da fila (sequências nunca ligadas) ainda mostra os e
   const p = await montarPainelEmails(consultar, { agora: AGORA })
   assert.equal(p.lista.length, 3)
   assert.equal(p.total.enviados, 2)
+})
+
+test('e-mails de uma pessoa: junta fila e diretos pelo e-mail, mais recente primeiro; sem e-mail volta vazio', async () => {
+  const chamadas = []
+  const consultar = async (texto, params) => {
+    chamadas.push(params)
+    return { rows: texto.includes('from emails_fila') ? filaLinhas.slice(0, 2) : eventos.slice(0, 1) }
+  }
+  const lista = await emailsDaPessoa(consultar, '  ANA@Exemplo.com ')
+  assert.equal(lista.length, 3)
+  assert.ok(chamadas.every((p) => p[0] === 'ana@exemplo.com'))
+  assert.ok(lista.every((i) => i.rotulo))
+  assert.deepEqual((await emailsDaPessoa(consultar, '')), [])
+})
+
+test('e-mails de um tipo: tipo da fila consulta pelo passo; tipo direto filtra os eventos; tipo desconhecido volta vazio', async () => {
+  let params
+  const daFila = await emailsDoTipo(async (texto, p) => { params = p; return { rows: filaLinhas.slice(0, 2) } }, 'pix_90min', { agora: AGORA })
+  assert.equal(params[0], 'pix_90min')
+  assert.equal(daFila.length, 2)
+
+  const diretos = await emailsDoTipo(async () => ({ rows: eventos }), 'apoio_carrinho', { agora: AGORA })
+  assert.deepEqual(diretos.map((i) => i.email), ['g@x.com'])
+  assert.deepEqual(await emailsDoTipo(async () => ({ rows: [] }), 'nao_existe'), [])
 })

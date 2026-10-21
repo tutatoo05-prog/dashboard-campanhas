@@ -604,6 +604,7 @@ kbd { background: var(--paper); border: 2px solid var(--line); color: var(--ink)
 .tl-pix { --cor-tl: var(--y); }
 .tl-abandono { --cor-tl: #bfe3ff; }
 .tl-cancela { --cor-tl: #f3a49c; }
+.tl-email { --cor-tl: #d9c8ff; }
 
 .tl-status { display: inline-flex; align-items: center; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 9px; font-size: 0.68rem; font-weight: 800; background: var(--white); color: var(--ink); white-space: nowrap; }
 .tl-status-comprou { background: #8fd18a; }

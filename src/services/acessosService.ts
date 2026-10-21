@@ -151,3 +151,15 @@ export interface EmailsPainel {
 }
 
 export const fetchEmailsPainel = (dias: number) => pedir<EmailsPainel>(`/api/acessos/emails?dias=${dias}`)
+
+/** Todos os e-mails de um tipo no período e para quem foram (janela que abre ao clicar no cartão). */
+export async function fetchEmailsDoTipo(tipo: string, dias: number): Promise<EmailItem[]> {
+  const data = await pedir<{ lista: EmailItem[] }>(`/api/acessos/emails/tipo?tipo=${encodeURIComponent(tipo)}&dias=${dias}`)
+  return data.lista
+}
+
+/** E-mails que uma pessoa recebeu (ou vai receber), para a linha do tempo dela. Só admin; para os demais dá 403. */
+export async function fetchEmailsDaPessoa(email: string): Promise<EmailItem[]> {
+  const data = await pedir<{ lista: EmailItem[] }>(`/api/acessos/emails/pessoa?email=${encodeURIComponent(email)}`)
+  return data.lista
+}

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import type { Purchase } from '@/types'
 import { STATUS_ROTULO, type CategoriaEvento, type Passagem, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency } from '@/lib/format.ts'
 import { whatsappLink } from '@/lib/buyerLeads.ts'
+import { fetchEmailsDaPessoa, type EmailItem } from '@/services/acessosService.ts'
 
 interface RegistroModalProps {
   record: RegistroAgrupado
@@ -81,11 +83,56 @@ function detalhesDaPassagem(passagem: Passagem, parcela?: string): string {
   return [...new Set(partes.filter(Boolean))].join(' · ')
 }
 
-function LinhaDoTempo({ passagens }: { passagens: Passagem[] }) {
+const SITUACAO_EMAIL: Record<EmailItem['estado'], string> = {
+  enviado: 'enviado',
+  simulado: 'simulado (teste, não saiu de verdade)',
+  pendente: 'agendado',
+  cancelado: 'cancelado',
+  falhou: 'falhou',
+}
+
+/** Uma linha da linha do tempo: ou uma passagem das planilhas, ou um e-mail enviado/agendado para a pessoa. */
+type ItemDoTempo = { tipo: 'passagem'; passagem: Passagem; quando: number } | { tipo: 'email'; email: EmailItem; quando: number }
+
+function LinhaDoTempo({ passagens, emails }: { passagens: Passagem[]; emails: EmailItem[] }) {
   const parcelas = rotulosDeParcela(passagens)
+  const itens = useMemo<ItemDoTempo[]>(() => {
+    const momento = (iso?: string) => {
+      const valor = iso ? new Date(iso).getTime() : NaN
+      return Number.isFinite(valor) ? valor : 0
+    }
+    const lista: ItemDoTempo[] = [
+      ...passagens.map((passagem) => ({ tipo: 'passagem' as const, passagem, quando: momento(passagem.data) })),
+      ...emails.map((email) => ({ tipo: 'email' as const, email, quando: momento(email.quando) })),
+    ]
+    return lista.sort((a, b) => b.quando - a.quando)
+  }, [passagens, emails])
   return (
     <ol className="tl">
-      {passagens.map((passagem, indice) => {
+      {itens.map((item, indice) => {
+        if (item.tipo === 'email') {
+          const { email } = item
+          const motivo = email.motivo === 'comprou' ? 'já tinha comprado' : email.motivo
+          return (
+            <li key={`email-${email.id}`} className="tl-item tl-email" style={{ animationDelay: `${Math.min(indice, 12) * 40}ms` }}>
+              <span className="tl-ponto" aria-hidden="true">
+                <i className="fa-solid fa-envelope" />
+              </span>
+              <div className="tl-corpo">
+                <p className="tl-titulo">
+                  E-mail: {email.rotulo}
+                  <small>{formatMoment(email.quando)}</small>
+                </p>
+                <p className="tl-sub">
+                  {SITUACAO_EMAIL[email.estado]}
+                  {email.comprouDepois ? ' · comprou depois' : ''}
+                  {motivo ? ` · ${motivo}` : ''}
+                </p>
+              </div>
+            </li>
+          )
+        }
+        const { passagem } = item
         const estilo = ICONE_PASSAGEM[passagem.categoria ?? 'lead']
         const detalhe = detalhesDaPassagem(passagem, parcelas.get(passagem))
         return (
@@ -144,6 +191,9 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
 
   const email = record.email.trim().toLowerCase()
   const phone = digitsKey(record.telefone)
+  // E-mails que o dash mandou para esta pessoa. Só admin enxerga; para os outros a chamada dá 403 e a seção some.
+  const emailsQuery = useQuery({ queryKey: ['acessos', 'emails', 'pessoa', email], queryFn: () => fetchEmailsDaPessoa(email), enabled: Boolean(email), retry: false, staleTime: 60_000 })
+  const emailsEnviados = emailsQuery.data ?? []
   const bought = purchases
     ? purchases.filter(
         (purchase) =>
@@ -244,13 +294,14 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
           <div className="tl-resumo">
             <span><b>{record.historico.length}</b> {record.historico.length === 1 ? 'passagem' : 'passagens'}</span>
             <span><b>{record.aparece.length}</b> {record.aparece.length === 1 ? 'aba' : 'abas'}</span>
+            {emailsEnviados.length > 0 && <span><b>{emailsEnviados.length}</b> {emailsEnviados.length === 1 ? 'e-mail' : 'e-mails'}</span>}
             {record.primeiraEm && <span>1º contato <b>{formatMoment(record.primeiraEm)}</b></span>}
             {record.ultimaEm && <span>último <b>{formatMoment(record.ultimaEm)}</b></span>}
           </div>
-          {record.historico.length === 0 ? (
+          {record.historico.length === 0 && emailsEnviados.length === 0 ? (
             <p className="sale-note">Ainda não achei esta pessoa nas planilhas nem nos eventos da Hotmart.</p>
           ) : (
-            <LinhaDoTempo passagens={record.historico} />
+            <LinhaDoTempo passagens={record.historico} emails={emailsEnviados} />
           )}
         </section>
 
