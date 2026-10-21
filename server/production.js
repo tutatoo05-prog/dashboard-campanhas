@@ -14,6 +14,7 @@ import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
 import { startVigia } from './vigia.js'
 import { startConciliacao } from './conciliacaoHotmart.js'
+import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
 import { startBackupScheduler } from './backup.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -22,7 +23,7 @@ const isProduction = process.env.NODE_ENV !== 'development'
 process.env.NODE_ENV = isProduction ? 'production' : 'development'
 
 function loadRuntimeEnv() {
-  return { ...process.env }
+  return aplicarNomesAntigos({ ...process.env })
 }
 
 const MIME_TYPES = {

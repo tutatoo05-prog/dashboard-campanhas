@@ -514,7 +514,7 @@ test('bloqueio: com endpoint, bloqueia e marca; falha vai para nova tentativa', 
     },
     async avisarEquipe() {},
   }
-  const env = { ACESSO_MODO: 'ativo', TEKWAY_BLOQUEAR_URL: 'https://exemplo/bloquear' }
+  const env = { ACESSO_MODO: 'ativo', TELWAY_BLOQUEAR_URL: 'https://exemplo/bloquear' }
   const motor = criarMotor(env, { repo, integ, agora })
   assert.equal(await bloquearAtrasados(motor), 0)
   falha = false
@@ -541,7 +541,7 @@ test('processarEvento: erro inesperado não perde o evento', async () => {
 
 // ── API V2 da plataforma: bloqueio, reativação e reembolso ────────────────────
 
-const ENV_V2 = { ACESSO_MODO: 'ativo', TEKWAY_V2_TOKEN: 'token-de-teste' }
+const ENV_V2 = { ACESSO_MODO: 'ativo', TELWAY_V2_TOKEN: 'token-de-teste' }
 
 test('decisão: reembolso de produto que libera curso revoga; particular é ignorado', () => {
   const reembolso = decidir(venda({ event: 'PURCHASE_REFUNDED' }))
@@ -601,7 +601,7 @@ test('motor: quem estava bloqueado e pagou de novo é reativado pela API V2 e vo
   assert.equal(repo.chamadas[3][1], 1)
 })
 
-test('bloqueio: com API V2 revoga o acesso sozinho (sem TEKWAY_BLOQUEAR_URL) e marca como bloqueado', async () => {
+test('bloqueio: com API V2 revoga o acesso sozinho (sem TELWAY_BLOQUEAR_URL) e marca como bloqueado', async () => {
   const chamadas = []
   const repo = {
     async acessosParaBloquear() {
@@ -634,7 +634,7 @@ test('API V2: consultar, revogar e reativar falam com os endpoints certos e esco
     const r = respostas[`${opcoes.method} ${caminho}`]
     return { ok: r.status < 400, status: r.status, text: async () => JSON.stringify(r.corpo) }
   }
-  const { consultarAcesso, revogarAcesso, reativarAcesso } = await import('./tekwayV2.js')
+  const { consultarAcesso, revogarAcesso, reativarAcesso } = await import('./telwayV2.js')
 
   const situacao = await consultarAcesso(ENV_V2, { email: 'a@x.com' }, fetchFalso)
   assert.equal(situacao.acessoLiberado, false)
@@ -651,7 +651,7 @@ test('API V2: consultar, revogar e reativar falam com os endpoints certos e esco
 
 test('API V2: aluno que não existe não quebra a revogação; sem token nem tenta', async () => {
   const fetch404 = async () => ({ ok: false, status: 404, text: async () => '{}' })
-  const { revogarAcesso, consultarAcesso } = await import('./tekwayV2.js')
+  const { revogarAcesso, consultarAcesso } = await import('./telwayV2.js')
   assert.equal((await revogarAcesso(ENV_V2, { email: 'a@x.com', motivo: 'reembolso' }, fetch404)).nada_a_revogar, true)
   assert.equal((await consultarAcesso(ENV_V2, { email: 'a@x.com' }, fetch404)).existe, false)
   await assert.rejects(() => consultarAcesso({}, { email: 'a@x.com' }, fetch404), /não configurada/)

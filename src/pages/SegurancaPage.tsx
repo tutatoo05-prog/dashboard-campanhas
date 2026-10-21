@@ -29,7 +29,7 @@ const CHAVES_PARA_TROCAR = [
   { id: 'banco-antigo', rotulo: 'Senha do banco antigo (Canadá) — ou apagar o projeto', como: 'Supabase → projeto antigo → Project Settings → Database' },
   { id: 'banco-essentials', rotulo: 'Senha do banco do Essentials (conferir onde é usada)', como: 'Supabase → Dados Essentials → Project Settings → Database; atualize o site e o ESSENTIALS_DATABASE_URL' },
   { id: 'hotmart', rotulo: 'Client secret e hottok da Hotmart', como: 'Hotmart → Ferramentas → Credenciais; depois HOTMART_* no Plesk' },
-  { id: 'tekway', rotulo: 'Token da plataforma de cursos (Tekway)', como: 'Peça um novo ao parceiro e troque TEKWAY_TOKEN no Plesk' },
+  { id: 'telway', rotulo: 'Token da plataforma de cursos (Telway)', como: 'Peça um novo ao parceiro e troque TELWAY_TOKEN no Plesk' },
   { id: 'brevo', rotulo: 'Chave do Brevo', como: 'Brevo → SMTP & API → API Keys; depois BREVO_API_KEY no Plesk' },
   { id: 'evolution', rotulo: 'Chaves da Evolution (aluno e equipe)', como: 'Painel da Evolution; depois EVOLUTION_*_APIKEY no Plesk' },
   { id: 'meta', rotulo: 'Token de acesso da Meta', como: 'Meta Business → usuários do sistema; depois META_ACCESS_TOKEN no Plesk' },

@@ -8,8 +8,8 @@ import { enviarEmail, enviarWhatsapp } from './integracoes.js'
 
 const CONFIG_OBRIGATORIA = {
   HOTMART_HOTTOK: 'Token do webhook da Hotmart',
-  TEKWAY_LIBERAR_URL: 'Endereço do liberar-curso da plataforma',
-  TEKWAY_TOKEN: 'Token da plataforma de cursos',
+  TELWAY_LIBERAR_URL: 'Endereço do liberar-curso da plataforma',
+  TELWAY_TOKEN: 'Token da plataforma de cursos',
   BREVO_API_KEY: 'Chave da Brevo (e-mail)',
   BREVO_REMETENTE_EMAIL: 'E-mail remetente na Brevo',
   EVOLUTION_URL: 'Endereço da Evolution (WhatsApp)',
@@ -19,7 +19,7 @@ const CONFIG_OBRIGATORIA = {
   EVOLUTION_EQUIPE_APIKEY: 'Chave da instância dos avisos',
   ACESSO_AVISO_NUMERO: 'Número da equipe que recebe os avisos',
 }
-const CONFIG_OPCIONAL = { TEKWAY_BLOQUEAR_URL: 'Endereço do bloqueio de acesso (sem ele, o bloqueio é manual)' }
+const CONFIG_OPCIONAL = { TELWAY_BLOQUEAR_URL: 'Endereço do bloqueio de acesso (sem ele, o bloqueio é manual)' }
 
 export function configuracaoFaltando(env) {
   const vazio = (nome) => !String(env[nome] ?? '').trim()

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { enviarTelegram, telegramConfigurado } from '../alertas.js'
 
 /**
- * Chamadas para fora do dash: plataforma de cursos (Tekway), Brevo (e-mail) e Evolution (WhatsApp).
+ * Chamadas para fora do dash: plataforma de cursos (Telway), Brevo (e-mail) e Evolution (WhatsApp).
  * Cada função lança erro quando algo dá errado, para a fila refazer a tentativa.
  * Todas aceitam `fetchImpl` para os testes não saírem pela rede.
  */
@@ -46,7 +46,7 @@ function recortar(corpo) {
  * (day vai como texto, como no n8n).
  */
 export async function liberarCurso(env, dados, fetchImpl = fetch) {
-  exigir(env, ['TEKWAY_LIBERAR_URL', 'TEKWAY_TOKEN'])
+  exigir(env, ['TELWAY_LIBERAR_URL', 'TELWAY_TOKEN'])
   const corpo = {
     id_venda: String(dados.idVenda),
     nome: dados.nome,
@@ -56,9 +56,9 @@ export async function liberarCurso(env, dados, fetchImpl = fetch) {
     day: String(dados.dias),
     documento: dados.documento,
   }
-  const { resposta, corpo: texto } = await pedir(fetchImpl, env.TEKWAY_LIBERAR_URL, {
+  const { resposta, corpo: texto } = await pedir(fetchImpl, env.TELWAY_LIBERAR_URL, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.TEKWAY_TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${env.TELWAY_TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo),
   })
   if (!resposta.ok) throw new Error(`liberar-curso respondeu ${resposta.status}: ${recortar(texto)}`)
@@ -72,20 +72,20 @@ export async function liberarCurso(env, dados, fetchImpl = fetch) {
   return { status: resposta.status, resposta: recortar(texto) }
 }
 
-/** Bloqueia o acesso de uma parcela atrasada. Só funciona com TEKWAY_BLOQUEAR_URL (endpoint a combinar com a Tekway). */
+/** Bloqueia o acesso de uma parcela atrasada. Só funciona com TELWAY_BLOQUEAR_URL (endpoint a combinar com a Telway). */
 export async function bloquearCurso(env, dados, fetchImpl = fetch) {
-  exigir(env, ['TEKWAY_BLOQUEAR_URL', 'TEKWAY_TOKEN'])
-  const { resposta, corpo: texto } = await pedir(fetchImpl, env.TEKWAY_BLOQUEAR_URL, {
+  exigir(env, ['TELWAY_BLOQUEAR_URL', 'TELWAY_TOKEN'])
+  const { resposta, corpo: texto } = await pedir(fetchImpl, env.TELWAY_BLOQUEAR_URL, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.TEKWAY_TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${env.TELWAY_TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: dados.email, campanha: dados.campanha, documento: dados.documento, motivo: dados.motivo ?? 'parcela atrasada' }),
   })
   if (!resposta.ok) throw new Error(`bloqueio respondeu ${resposta.status}: ${recortar(texto)}`)
   return { status: resposta.status, resposta: recortar(texto) }
 }
 
-// API V2 da plataforma (consultar / revogar / reativar acesso): ver tekwayV2.js.
-export { consultarAcesso, reativarAcesso, revogarAcesso, v2Configurado } from './tekwayV2.js'
+// API V2 da plataforma (consultar / revogar / reativar acesso): ver telwayV2.js.
+export { consultarAcesso, reativarAcesso, revogarAcesso, v2Configurado } from './telwayV2.js'
 
 /** E-mail transacional pela Brevo. */
 export async function enviarEmail(env, { para, nomePara, assunto, html }, fetchImpl = fetch) {

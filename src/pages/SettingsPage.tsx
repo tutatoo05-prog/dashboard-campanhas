@@ -14,7 +14,7 @@ const INTEGRACOES = [
   { nome: 'Hotmart', detalhe: 'Vendas e liberação de acesso (webhook)', icone: 'fa-fire' },
   { nome: 'Meta Ads', detalhe: 'Gastos e resultados das campanhas', icone: 'fa-bullhorn' },
   { nome: 'Telegram', detalhe: 'Avisos de problema e backup diário', icone: 'fa-paper-plane' },
-  { nome: 'Plataforma de cursos (Tekway)', detalhe: 'Liberação dos alunos', icone: 'fa-graduation-cap' },
+  { nome: 'Plataforma de cursos (Telway)', detalhe: 'Liberação dos alunos', icone: 'fa-graduation-cap' },
   { nome: 'WhatsApp (Evolution)', detalhe: 'Mensagens e plano B dos avisos', icone: 'fa-comment-dots' },
   { nome: 'Brevo', detalhe: 'E-mails do sistema', icone: 'fa-envelope' },
 ]

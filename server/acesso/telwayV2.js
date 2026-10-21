@@ -1,6 +1,6 @@
 /**
- * Cliente da API V2 da plataforma de cursos (Tekway): consultar, revogar e reativar acesso.
- * Só é usado quando TEKWAY_V2_TOKEN está configurado; sem ele o dash continua no caminho antigo
+ * Cliente da API V2 da plataforma de cursos (Telway): consultar, revogar e reativar acesso.
+ * Só é usado quando TELWAY_V2_TOKEN está configurado; sem ele o dash continua no caminho antigo
  * (aviso à equipe para bloquear/reativar na mão). Nunca registra o token nem dados de resposta em log.
  * Todas aceitam `fetchImpl` para os testes não saírem pela rede.
  */
@@ -11,11 +11,11 @@ const URL_PADRAO = 'https://gestao.tuzinho.academy/api/v2'
 const CURSO_ID_PADRAO = 21
 
 export function v2Configurado(env) {
-  return Boolean(String(env.TEKWAY_V2_TOKEN ?? '').trim())
+  return Boolean(String(env.TELWAY_V2_TOKEN ?? '').trim())
 }
 
 export function cursoIdV2(env) {
-  return Number(env.TEKWAY_V2_CURSO_ID) || CURSO_ID_PADRAO
+  return Number(env.TELWAY_V2_CURSO_ID) || CURSO_ID_PADRAO
 }
 
 function recortar(texto) {
@@ -23,11 +23,11 @@ function recortar(texto) {
 }
 
 async function chamar(env, metodo, caminho, corpo, fetchImpl = fetch) {
-  if (!v2Configurado(env)) throw new Error('API V2 da plataforma não configurada (TEKWAY_V2_TOKEN).')
-  const base = String(env.TEKWAY_V2_URL || URL_PADRAO).replace(/\/+$/, '')
+  if (!v2Configurado(env)) throw new Error('API V2 da plataforma não configurada (TELWAY_V2_TOKEN).')
+  const base = String(env.TELWAY_V2_URL || URL_PADRAO).replace(/\/+$/, '')
   const resposta = await fetchImpl(`${base}${caminho}`, {
     method: metodo,
-    headers: { Authorization: `Bearer ${env.TEKWAY_V2_TOKEN}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${env.TELWAY_V2_TOKEN}`, Accept: 'application/json', 'Content-Type': 'application/json' },
     body: corpo === undefined ? undefined : JSON.stringify(corpo),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   })

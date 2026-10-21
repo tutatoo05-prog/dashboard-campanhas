@@ -2,7 +2,7 @@ import { query } from './db.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { fetchHotmartSalesHistory, getHotmartAccessToken } from './hotmartApi.js'
 import { insertBatch, normalizeCourse, toPurchase } from './salesSync.js'
-import { consultarAcesso, v2Configurado } from './acesso/tekwayV2.js'
+import { consultarAcesso, v2Configurado } from './acesso/telwayV2.js'
 
 /**
  * Conferência Hotmart x dash: de tempos em tempos compara as vendas aprovadas na Hotmart (API de histórico)

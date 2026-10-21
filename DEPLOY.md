@@ -107,8 +107,8 @@ Código em `server/acesso/`. O dash recebe os eventos da Hotmart, grava, e execu
 - **Pix parcelado** (plano `REC_*` pago por `PIX`/`PIX_AUTOMATIC`) é só marcado à parte no dash: cada parcela paga cobre 30 dias (`pago_ate`, visível em Acessos → Alunos). A parcela seguinte (`recorrencia` > 1, ou mesmo assinante com outra transação) chama `liberar-curso` de novo e soma parcela, sem repetir e-mail nem venda.
 - **Parcela atrasada** (`PURCHASE_DELAYED`): quem é de Pix parcelado vira "atrasado" e, no **2º dia de atraso** (meia-noite de São Paulo, `ACESSO_BLOQUEIO_DIA`), passa a **"Inativar na plataforma"**: aparece em destaque na tela Acessos ("O que você precisa fazer agora") com WhatsApp, e a equipe recebe um aviso por WhatsApp. Depois de inativar na plataforma, clique **"Já inativei"**.
 - **Pagou de novo depois de inativado:** vira **"Reativar na plataforma"** (com aviso por WhatsApp). Depois de reativar lá, clique **"Já reativei"**. Pagou antes de inativar: o atraso é cancelado sozinho.
-- **API V2 da plataforma (Tekway):** com `TEKWAY_V2_TOKEN` no Plesk (e opcionalmente `TEKWAY_V2_URL`, padrão `https://gestao.tuzinho.academy/api/v2`, e `TEKWAY_V2_CURSO_ID`, padrão 21 = Essentials), o dash passa a: **revogar** sozinho o acesso de parcela atrasada (`acessos/revogar`); **reativar** sozinho quem estava bloqueado e pagou de novo (`matriculas/{id}/reativar`, sem criar aluno novo); **revogar no reembolso** (`PURCHASE_REFUNDED`, motivo `reembolso`; chargeback não faz nada por enquanto); e a conferência de vendas passa a consultar a plataforma (`acessos/consultar`) para dizer quem pagou e está sem acesso. Sem o token, tudo cai no caminho antigo (aviso à equipe para fazer na mão). Cadastre também o evento **Compra reembolsada** no webhook da Hotmart. A liberação continua pelo `liberar-curso` antigo. Nunca coloque o token no código nem em arquivos do repositório.
-- Antes da V2, o bloqueio automático dependia de `TEKWAY_BLOQUEAR_URL` (endpoint a combinar); com a V2 ele não é mais necessário.
+- **API V2 da plataforma (Telway):** com `TELWAY_V2_TOKEN` no Plesk (e opcionalmente `TELWAY_V2_URL`, padrão `https://gestao.tuzinho.academy/api/v2`, e `TELWAY_V2_CURSO_ID`, padrão 21 = Essentials), o dash passa a: **revogar** sozinho o acesso de parcela atrasada (`acessos/revogar`); **reativar** sozinho quem estava bloqueado e pagou de novo (`matriculas/{id}/reativar`, sem criar aluno novo); **revogar no reembolso** (`PURCHASE_REFUNDED`, motivo `reembolso`; chargeback não faz nada por enquanto); e a conferência de vendas passa a consultar a plataforma (`acessos/consultar`) para dizer quem pagou e está sem acesso. Sem o token, tudo cai no caminho antigo (aviso à equipe para fazer na mão). Cadastre também o evento **Compra reembolsada** no webhook da Hotmart. A liberação continua pelo `liberar-curso` antigo. Nunca coloque o token no código nem em arquivos do repositório.
+- Antes da V2, o bloqueio automático dependia de `TELWAY_BLOQUEAR_URL` (endpoint a combinar); com a V2 ele não é mais necessário.
 - Mentoria Particular e Workshop Presencial: só e-mail e aviso (não liberam curso), como no n8n.
 
 **Migration:** rodar o bloco "Liberação de acesso dentro do dash" do fim de `db/schema.sql` (tabelas `hotmart_eventos`, `acessos`, `abandonos`).
@@ -119,8 +119,8 @@ Código em `server/acesso/`. O dash recebe os eventos da Hotmart, grava, e execu
 |---|---|
 | `ACESSO_MODO` | `teste` (só grava e simula) → depois `ativo`. Vazio/`desligado` = o n8n segue sozinho |
 | `HOTMART_HOTTOK` | Hotmart → Ferramentas → Webhook → Hottok (já usada pelo cancelamento) |
-| `TEKWAY_LIBERAR_URL`, `TEKWAY_TOKEN` | nó "LIBERA ACESSO" (URL e cabeçalho `Authorization: Bearer …`) |
-| `TEKWAY_BLOQUEAR_URL` | a combinar com a Tekway (opcional) |
+| `TELWAY_LIBERAR_URL`, `TELWAY_TOKEN` | nó "LIBERA ACESSO" (URL e cabeçalho `Authorization: Bearer …`) |
+| `TELWAY_BLOQUEAR_URL` | a combinar com a Telway (opcional) |
 | `BREVO_API_KEY`, `BREVO_REMETENTE_EMAIL` (`nao-responda@tuzinho.academy`, remetente verificado na Brevo), `BREVO_REMETENTE_NOME` | Brevo |
 | `EVOLUTION_URL` | `https://evo01.tuzinho.academy` |
 | `EVOLUTION_ALUNO_INSTANCIA` / `_APIKEY` | nós "MSG ACESSO" (instância `iphone-branco`) |
@@ -136,7 +136,7 @@ A tela Acessos lista o que ainda falta configurar.
 4. Virada: **no mesmo momento**, remover o webhook do n8n na Hotmart (ou desativar o workflow) e trocar `ACESSO_MODO=ativo` + Restart. Os dois ativos ao mesmo tempo liberariam e avisariam em dobro.
 5. O n8n fica desativado (não apagado) como volta.
 
-**Pendente com a Tekway:** endpoints de inativar e reativar acesso (e, de preferência, renovar prazo). Hoje a 2ª chamada de `liberar-curso` para o mesmo aluno responde "Usuário já possui acesso ao curso".
+**Pendente com a Telway:** endpoints de inativar e reativar acesso (e, de preferência, renovar prazo). Hoje a 2ª chamada de `liberar-curso` para o mesmo aluno responde "Usuário já possui acesso ao curso".
 
 ## Cargos (tela `/usuarios`)
 

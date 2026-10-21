@@ -15,7 +15,7 @@ import {
   whatsappBrasileiroValido,
 } from './regras.js'
 import * as integracoesPadrao from './integracoes.js'
-import { v2Configurado } from './tekwayV2.js'
+import { v2Configurado } from './telwayV2.js'
 
 /**
  * Motor da liberação de acesso: pega um evento da Hotmart já gravado, decide o que fazer e executa
@@ -364,7 +364,7 @@ export async function processarFila(motor, { limite = 25 } = {}) {
 
 /**
  * Bloqueia quem passou do dia limite de atraso. Chamado pelo agendador. Se a plataforma ainda não tem
- * endpoint de bloqueio (TEKWAY_BLOQUEAR_URL), avisa a equipe uma vez para bloquear na mão.
+ * endpoint de bloqueio (TELWAY_BLOQUEAR_URL), avisa a equipe uma vez para bloquear na mão.
  */
 export async function bloquearAtrasados(motor) {
   const { env, repo, integ } = motor
@@ -375,7 +375,7 @@ export async function bloquearAtrasados(motor) {
   for (const acesso of lista) {
     const resumo = `${acesso.nome || acesso.email} (${acesso.email}) — ${acesso.curso}, atrasado desde ${dataBr(acesso.atraso_desde)}`
     try {
-      if (!v2Configurado(env) && !String(env.TEKWAY_BLOQUEAR_URL ?? '').trim()) {
+      if (!v2Configurado(env) && !String(env.TELWAY_BLOQUEAR_URL ?? '').trim()) {
         await integ.avisarEquipe(env, `🔒 *Inativar acesso na plataforma (parcela atrasada)*\n\n${resumo}\n\nA plataforma ainda não tem bloqueio automático: inative na mão e marque como feito em Acessos.\n`)
         await repo.marcarBloqueioManual(acesso.id)
         continue
