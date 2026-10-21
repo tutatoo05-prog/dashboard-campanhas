@@ -15,6 +15,7 @@ import {
 } from '@/services/acessosService.ts'
 import { formatNumber } from '@/lib/format.ts'
 import { PessoaModal } from '@/components/registros/PessoaModal.tsx'
+import { EmailsPainel } from '@/components/acessos/EmailsPainel.tsx'
 
 const MODO_LABEL = { desligado: 'Desligado (o n8n cuida)', teste: 'Teste (só simula)', ativo: 'Ativo' } as const
 
@@ -525,6 +526,8 @@ export default function AcessosPage() {
           {alunos.isSuccess && !alunosFiltrados.length && <p className="p-6 text-center text-sm text-zinc-500">Nenhum aluno encontrado.</p>}
         </div>
       </section>
+
+      <EmailsPainel />
 
       <Verificador />
     </div>

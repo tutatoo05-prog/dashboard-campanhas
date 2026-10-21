@@ -107,3 +107,47 @@ export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acess
 export const marcarReativacaoFeita = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/reativacao-feita`, { method: 'POST' })
 
 export const marcarBloqueioFeito = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/bloqueio-feito`, { method: 'POST' })
+
+export interface EmailItem {
+  id: string
+  tipo: string
+  rotulo: string
+  origem: 'fila' | 'direto'
+  /** Quando saiu (ou, se ainda não saiu, quando está agendado). */
+  quando: string
+  nome: string | null
+  email: string | null
+  curso: string | null
+  estado: 'enviado' | 'simulado' | 'pendente' | 'cancelado' | 'falhou'
+  motivo: string | null
+  /** Só para e-mails de carrinho e de pagamento: a pessoa comprou em até 7 dias depois do envio. */
+  comprouDepois: boolean | null
+}
+
+export interface EmailTipo {
+  tipo: string
+  rotulo: string
+  grupo: string
+  quando: string
+  origem: 'fila' | 'direto'
+  enviados: number
+  simulados: number
+  pendentes: number
+  cancelados: number
+  falhas: number
+  comprouDepois: number
+  taxaCompra: number | null
+}
+
+export interface EmailsPainel {
+  modo: 'desligado' | 'teste' | 'ativo'
+  dias: number
+  hoje: { total: number; fila: number; tetoBrevo: number; tetoFila: number }
+  total: { enviados: number; simulados: number; pendentes: number; cancelados: number; falhas: number }
+  porTipo: EmailTipo[]
+  porDia: { dia: string; fila: number; diretos: number }[]
+  lista: EmailItem[]
+  listaCortada: boolean
+}
+
+export const fetchEmailsPainel = (dias: number) => pedir<EmailsPainel>(`/api/acessos/emails?dias=${dias}`)
