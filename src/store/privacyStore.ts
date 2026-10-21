@@ -1,6 +1,6 @@
 import { create } from 'zustand'
+import { useAuthStore } from '@/store/authStore.ts'
 
-const PRIVACY_KEY = 'dash-privacidade'
 const CLASSE = 'modo-privado'
 const MARCA = 'priv-auto'
 
@@ -8,15 +8,8 @@ const MARCA = 'priv-auto'
  * Modo privacidade: borra o que é sensível para dividir a tela ou gravar sem expor ninguém.
  * Nomes de pessoas levam o atributo data-sensivel; e-mails, telefones e valores em R$ são achados pelo texto
  * (assim vale também para o que o código ainda não conhece, como modais e tabelas novas).
+ * Sempre começa ligado: ao abrir o dash e a cada login. Desligar vale só até recarregar a página ou sair.
  */
-function lerSalvo(): boolean {
-  try {
-    return localStorage.getItem(PRIVACY_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
 function aplicar(ligado: boolean) {
   document.documentElement.classList.toggle(CLASSE, ligado)
 }
@@ -27,18 +20,21 @@ interface PrivacyState {
 }
 
 export const usePrivacyStore = create<PrivacyState>((set, get) => ({
-  ligado: lerSalvo(),
+  ligado: true,
   alternar: () => {
     const ligado = !get().ligado
     set({ ligado })
     aplicar(ligado)
-    try {
-      localStorage.setItem(PRIVACY_KEY, ligado ? '1' : '0')
-    } catch {
-      /* ignore */
-    }
   },
 }))
+
+// Saiu (ou a sessão expirou): o próximo login volta com o desfoque ligado.
+useAuthStore.subscribe((estado, anterior) => {
+  if (estado.status === 'unauthenticated' && anterior.status !== 'unauthenticated' && !usePrivacyStore.getState().ligado) {
+    usePrivacyStore.setState({ ligado: true })
+    aplicar(true)
+  }
+})
 
 aplicar(usePrivacyStore.getState().ligado)
 
