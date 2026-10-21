@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEmailsDoTipo, type EmailItem, type EmailTipo } from '@/services/acessosService.ts'
 import { formatNumber } from '@/lib/format.ts'
-import { PessoaModal } from '@/components/registros/PessoaModal.tsx'
 
 const ESTADO: Record<EmailItem['estado'], { texto: string; classe: string }> = {
   enviado: { texto: 'Enviado', classe: 'text-emerald-300' },
@@ -18,11 +17,9 @@ const dataHora = (iso: string) => new Date(iso).toLocaleString('pt-BR', { timeZo
 export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias: number; onClose: () => void }) {
   const [estado, setEstado] = useState('todos')
   const [busca, setBusca] = useState('')
-  const [pessoa, setPessoa] = useState<EmailItem | null>(null)
   const consulta = useQuery({ queryKey: ['acessos', 'emails', 'tipo', tipo.tipo, dias], queryFn: () => fetchEmailsDoTipo(tipo.tipo, dias), retry: false })
 
   useEffect(() => {
-    if (pessoa) return undefined
     function aoTeclar(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose()
     }
@@ -33,7 +30,7 @@ export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias
       window.removeEventListener('keydown', aoTeclar)
       document.body.style.overflow = anterior
     }
-  }, [onClose, pessoa])
+  }, [onClose])
 
   const itens = useMemo(() => {
     const termo = busca.trim().toLowerCase()
@@ -51,9 +48,8 @@ export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias
   }, [consulta.data])
 
   return (
-    <>
-      <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-        <div className="dialog sale-dialog" role="dialog" aria-modal="true" aria-labelledby="email-tipo-titulo" style={{ maxWidth: 860 }}>
+    <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+        <div className="dialog sale-dialog" role="dialog" aria-modal="true" aria-labelledby="email-tipo-titulo" style={{ width: 'min(860px, 94vw)', maxWidth: 'none' }}>
           <div className="sale-head">
             <div className="min-w-0">
               <p className="section-label">{tipo.grupo} · sai {tipo.quando}</p>
@@ -102,7 +98,6 @@ export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias
                     <th className="font-medium">Para</th>
                     <th className="font-medium">Curso</th>
                     <th className="font-medium">Situação</th>
-                    <th className="font-medium" />
                   </tr>
                 </thead>
                 <tbody>
@@ -126,14 +121,6 @@ export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias
                           {item.comprouDepois && <span className="block text-xs font-normal text-emerald-300">comprou depois</span>}
                           {item.motivo && <span className="block text-xs font-normal text-zinc-500">{item.motivo === 'comprou' ? 'já tinha comprado' : item.motivo}</span>}
                         </td>
-                        <td className="cell-more" data-label="">
-                          {item.email && (
-                            <button type="button" onClick={() => setPessoa(item)} className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300 hover:border-zinc-500" title="Ver a linha do tempo desta pessoa">
-                              <i className="fa-solid fa-timeline mr-1" />
-                              Linha do tempo
-                            </button>
-                          )}
-                        </td>
                       </tr>
                     )
                   })}
@@ -148,8 +135,6 @@ export function EmailsTipoModal({ tipo, dias, onClose }: { tipo: EmailTipo; dias
             </button>
           </div>
         </div>
-      </div>
-      {pessoa && <PessoaModal nome={pessoa.nome} email={pessoa.email} onClose={() => setPessoa(null)} closeLabel="Voltar à lista" />}
-    </>
+    </div>
   )
 }
