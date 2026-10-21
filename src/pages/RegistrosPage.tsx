@@ -419,7 +419,16 @@ export default function RegistrosPage() {
             </div>
 
             <div className="overflow-auto md:max-h-[560px]">
-              <table className="data-table data-table-brief">
+              <table className="data-table data-table-brief data-table-fit">
+                <colgroup>
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '9%' }} />
+                </colgroup>
                 <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>

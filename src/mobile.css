@@ -427,6 +427,19 @@
   .data-table .num {
     text-align: right;
   }
+  /* Tabela que cabe na largura da tela (sem rolagem lateral): colunas com largura fixa e texto cortado com "…" (o título mostra tudo). */
+  .data-table-fit {
+    table-layout: fixed;
+  }
+  .data-table-fit th,
+  .data-table-fit td {
+    padding-inline: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .data-table-fit td.cell-name {
+    max-width: none;
+  }
   /* Comparar: primeira coluna fixa enquanto a tabela rola de lado */
   .data-table-sticky td:first-child {
     position: sticky;
