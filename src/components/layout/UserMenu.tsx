@@ -6,6 +6,7 @@ import { canAccessPath, isAdmin } from '@/lib/roles.ts'
 import { getDisplayName } from '@/lib/userDisplay.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { useMascotStore } from '@/store/mascotStore.ts'
+import { usePrivacyStore } from '@/store/privacyStore.ts'
 import { useThemeStore, type ThemeMode } from '@/store/themeStore.ts'
 import { useTourStore } from '@/store/tourStore.ts'
 
@@ -38,6 +39,8 @@ export function UserMenu({ onClose }: { onClose: () => void }) {
   const user = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
   const mode = useThemeStore((state) => state.mode)
+  const privado = usePrivacyStore((state) => state.ligado)
+  const alternarPrivacidade = usePrivacyStore((state) => state.alternar)
   const setMode = useThemeStore((state) => state.setMode)
   const mascotEnabled = useMascotStore((state) => state.enabled)
   const setMascotEnabled = useMascotStore((state) => state.setEnabled)
@@ -128,6 +131,11 @@ export function UserMenu({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </span>
+      </div>
+      <div className="dd-row dd-pref">
+        <i className={privado ? 'fa-solid fa-eye-slash' : 'fa-regular fa-eye'} />
+        Privacidade
+        <button type="button" role="switch" aria-checked={privado} aria-label="Modo privacidade (borra nomes, e-mails, telefones e valores)" className="ac-sw dd-sw" onClick={alternarPrivacidade} />
       </div>
       <div className="dd-row dd-pref">
         <i className="fa-solid fa-paw" />
