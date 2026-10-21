@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchPurchases } from '@/services/purchaseService.ts'
 import { fetchLeads } from '@/services/leadService.ts'
 import { PurchaseModal } from '@/components/purchases/PurchaseModal.tsx'
+import { SalesRhythm } from '@/components/purchases/SalesRhythm.tsx'
 import { GroupSalesModal, type GroupKind } from '@/components/purchases/GroupSalesModal.tsx'
 import { HotmartEventsPanel, type EventGroup } from '@/components/purchases/HotmartEventsPanel.tsx'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
@@ -230,6 +231,8 @@ export default function PurchasesPage() {
               médio e a receita por campanha aparecem aqui automaticamente.
             </section>
           )}
+
+          <SalesRhythm purchases={purchases} />
 
           {latestSales.length > 0 && (
             <section className="surface-card p-4">

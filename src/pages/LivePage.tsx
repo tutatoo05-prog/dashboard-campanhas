@@ -1,3 +1,4 @@
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
 import { useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -103,19 +104,26 @@ export default function LivePage() {
       : status.pausedUntil
         ? `até o fim do horário da agenda (${formatDate(status.pausedUntil)})`
         : `por ${status.maxHours} h (depois desabilita sozinha)`
-    const question = isOn
-      ? `Mudar o horário de desabilitar para ${offAt}?`
-      : `Habilitar a página de Live?\n\ntuzinho.academy/produtos/essentials/ vai mostrar a Live ${limit}.`
-    if (!window.confirm(question)) return
+    const confirmou = await confirmar(
+      isOn
+        ? { titulo: `Mudar o horário de desabilitar para ${offAt}?`, confirmar: 'Mudar horário' }
+        : { titulo: 'Habilitar a página de Live?', texto: `tuzinho.academy/produtos/essentials/ vai mostrar a Live ${limit}.`, confirmar: 'Habilitar' },
+    )
+    if (!confirmou) return
     const ok = await run('on', () => turnLiveOn(offAt), isOn ? 'Horário atualizado.' : 'Página de Live habilitada.')
     if (ok) setOffAt('')
   }
 
   async function handleOff() {
-    const question = status?.desired?.sources.includes('agenda')
-      ? 'Desabilitar a página de Live agora?\n\nA agenda fica pausada só até o fim deste horário e volta a valer normalmente no próximo.'
-      : 'Desabilitar a página de Live agora?\n\nO endereço volta a mostrar a página principal do Essentials.'
-    if (!window.confirm(question)) return
+    const ok = await confirmar({
+      titulo: 'Desabilitar a página de Live agora?',
+      texto: status?.desired?.sources.includes('agenda')
+        ? 'A agenda fica pausada só até o fim deste horário e volta a valer normalmente no próximo.'
+        : 'O endereço volta a mostrar a página principal do Essentials.',
+      confirmar: 'Desabilitar',
+      perigo: true,
+    })
+    if (!ok) return
     await run('off', turnLiveOff, 'Página de Live desabilitada.')
   }
 

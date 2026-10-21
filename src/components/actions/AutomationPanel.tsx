@@ -1,3 +1,4 @@
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
 import { useState } from 'react'
 import {
   createRule,
@@ -101,8 +102,9 @@ export function AutomationPanel({ state, onChanged }: AutomationPanelProps) {
               className="rule-delete"
               aria-label={`Apagar regra: ${RULE_LABELS[rule.type]}`}
               disabled={busy}
-              onClick={() => {
-                if (window.confirm('Apagar esta regra? Os alertas dela também somem.')) void run(() => deleteRule(rule.id))
+              onClick={async () => {
+                const ok = await confirmar({ titulo: 'Apagar esta regra?', texto: 'Os alertas dela também somem.', confirmar: 'Apagar', perigo: true })
+                if (ok) void run(() => deleteRule(rule.id))
               }}
             >
               <i className="fa-solid fa-trash" />

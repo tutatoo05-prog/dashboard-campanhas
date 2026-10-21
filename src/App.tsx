@@ -8,6 +8,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage.tsx'
 import ResetPasswordPage from '@/pages/ResetPasswordPage.tsx'
 import AppShell from '@/components/layout/AppShell.tsx'
 import { isAdmin } from '@/lib/roles.ts'
+import { ConfirmHost } from '@/components/ui/ConfirmDialog.tsx'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 // Cada tela é baixada só quando é aberta (Login e recuperação de senha ficam no pacote inicial).
@@ -215,6 +216,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppRoutes />
+        <ConfirmHost />
       </BrowserRouter>
     </QueryClientProvider>
   )

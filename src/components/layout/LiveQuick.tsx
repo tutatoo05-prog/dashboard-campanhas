@@ -1,3 +1,4 @@
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -52,20 +53,25 @@ export function LiveQuick() {
     }
   }
 
-  function alternar() {
+  async function alternar() {
     if (!status) return
     if (ligada) {
-      if (!window.confirm('Desabilitar a página de Live agora?')) return
+      if (!(await confirmar({ titulo: 'Desabilitar a página de Live agora?', confirmar: 'Desabilitar', perigo: true }))) return
       void executar(turnLiveOff)
       return
     }
     const limite = offAt ? `até ${offAt}` : `por até ${status.maxHours} h (depois desabilita sozinha)`
-    if (!window.confirm(`Habilitar a página de Live?\n\ntuzinho.academy/produtos/essentials/ vai mostrar a Live ${limite}.`)) return
+    const ok = await confirmar({
+      titulo: 'Habilitar a página de Live?',
+      texto: `tuzinho.academy/produtos/essentials/ vai mostrar a Live ${limite}.`,
+      confirmar: 'Habilitar',
+    })
+    if (!ok) return
     void executar(() => turnLiveOn(offAt))
   }
 
-  function salvarHorario() {
-    if (!offAt || !window.confirm(`Mudar o horário de desabilitar para ${offAt}?`)) return
+  async function salvarHorario() {
+    if (!offAt || !(await confirmar({ titulo: `Mudar o horário de desabilitar para ${offAt}?`, confirmar: 'Mudar horário' }))) return
     void executar(() => turnLiveOn(offAt))
   }
 

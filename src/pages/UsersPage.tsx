@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { approveUser, deleteUser, fetchUsers, updateUserRole } from '@/services/usersService.ts'
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
 import { useAuthStore } from '@/store/authStore.ts'
 import { formatNumber } from '@/lib/format.ts'
 import type { Cargo, ManagedUser } from '@/types'
@@ -48,13 +49,18 @@ export default function UsersPage() {
   async function handleChange(target: ManagedUser, cargo: Cargo) {
     if (cargo === target.cargo) return
     const isMe = target.id === me?.id
-    const question =
+    const quem = target.nome || target.email
+    const ok = await confirmar(
       cargo === 'admin'
-        ? `Tornar ${target.nome || target.email} administrador?\n\nEle poderá alterar tudo no dash, inclusive a Live e os cargos.`
-        : `Tornar ${target.nome || target.email} usuário comum?\n\nEle continua vendo tudo, mas não poderá alterar nada.${
-            isMe ? '\n\nAtenção: é você. Você perde o acesso a esta tela.' : ''
-          }`
-    if (!window.confirm(question)) return
+        ? { titulo: `Tornar ${quem} administrador?`, texto: 'Ele poderá alterar tudo no dash, inclusive a Live e os cargos.', confirmar: 'Tornar administrador' }
+        : {
+            titulo: `Tornar ${quem} usuário comum?`,
+            texto: `Ele continua vendo tudo, mas não poderá alterar nada.${isMe ? '\n\nAtenção: é você. Você perde o acesso a esta tela.' : ''}`,
+            confirmar: 'Tornar usuário',
+            perigo: isMe,
+          },
+    )
+    if (!ok) return
 
     setSavingId(target.id)
     setActionError('')
@@ -75,7 +81,12 @@ export default function UsersPage() {
   }
 
   async function handleApprove(target: ManagedUser) {
-    if (!window.confirm(`Aprovar ${target.nome || target.email}?\n\nA pessoa passa a poder entrar no dash com o cargo de ${CARGO_LABELS[target.cargo].toLowerCase()}.`)) return
+    const aprovado = await confirmar({
+      titulo: `Aprovar ${target.nome || target.email}?`,
+      texto: `A pessoa passa a poder entrar no dash com o cargo de ${CARGO_LABELS[target.cargo].toLowerCase()}.`,
+      confirmar: 'Aprovar',
+    })
+    if (!aprovado) return
 
     setSavingId(target.id)
     setActionError('')
@@ -97,7 +108,13 @@ export default function UsersPage() {
   }
 
   async function handleDelete(target: ManagedUser) {
-    if (!window.confirm(`Excluir ${target.nome || target.email}?\n\nA conta é apagada de vez e a pessoa perde o acesso. Não dá para desfazer.`)) return
+    const excluir = await confirmar({
+      titulo: `Excluir ${target.nome || target.email}?`,
+      texto: 'A conta é apagada de vez e a pessoa perde o acesso. Não dá para desfazer.',
+      confirmar: 'Excluir',
+      perigo: true,
+    })
+    if (!excluir) return
 
     setSavingId(target.id)
     setActionError('')

@@ -1,3 +1,4 @@
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -426,8 +427,13 @@ export function PlayerControl({ video }: { video: string }) {
             type="button"
             className="chip-btn"
             disabled={saving}
-            onClick={() => {
-              if (window.confirm('Voltar todas as opções do player ao padrão? (só vale depois de salvar)')) mudar(() => structuredClone(estado.padrao))
+            onClick={async () => {
+              const ok = await confirmar({
+                titulo: 'Voltar todas as opções do player ao padrão?',
+                texto: 'Só vale depois de salvar.',
+                confirmar: 'Restaurar padrão',
+              })
+              if (ok) mudar(() => structuredClone(estado.padrao))
             }}
           >
             Restaurar padrão
