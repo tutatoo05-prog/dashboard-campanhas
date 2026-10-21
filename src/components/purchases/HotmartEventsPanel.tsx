@@ -130,7 +130,7 @@ export function HotmartEventsPanel({ onOpen }: { onOpen: (group: EventGroup) => 
           Eventos da Hotmart registrados na planilha de tracking. Clique para ver a lista e chamar no WhatsApp.
         </p>
       </div>
-      <div className="kpi-scroll">
+      <div className="kpi-scroll kpi-grid-4">
         <Card
           label="Pix e boletos pendentes"
           value={resumo.pixBoleto.pendentes}
