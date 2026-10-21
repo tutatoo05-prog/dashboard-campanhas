@@ -13,6 +13,7 @@ import { startLeadsSyncScheduler } from './leadsSyncScheduler.js'
 import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
 import { startVigia } from './vigia.js'
+import { startConciliacao } from './conciliacaoHotmart.js'
 import { startBackupScheduler } from './backup.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -157,6 +158,7 @@ server.listen(port, '0.0.0.0', () => {
   startAcessoScheduler(env)
   startPlanilhasScheduler(env)
   startVigia(env)
+  startConciliacao(env)
   startBackupScheduler(env)
   void aquecerConexoes(env)
   if (env.DATABASE_URL) {
