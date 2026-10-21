@@ -37,6 +37,10 @@ export async function approveUser(id: string): Promise<ManagedUser> {
   return data.user
 }
 
+export async function deleteUser(id: string): Promise<void> {
+  await request(`/api/users/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 export async function updateUserRole(id: string, cargo: Cargo): Promise<ManagedUser> {
   const data = await request<{ user: ManagedUser }>(`/api/users/${encodeURIComponent(id)}`, {
     method: 'PATCH',

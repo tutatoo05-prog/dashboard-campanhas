@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { approveUser, fetchUsers, updateUserRole } from '@/services/usersService.ts'
+import { approveUser, deleteUser, fetchUsers, updateUserRole } from '@/services/usersService.ts'
 import { useAuthStore } from '@/store/authStore.ts'
 import { formatNumber } from '@/lib/format.ts'
 import type { Cargo, ManagedUser } from '@/types'
@@ -90,6 +90,25 @@ export default function UsersPage() {
       const message = (error as Error).message
       setActionError(message === 'SESSION_EXPIRED' ? 'Sua sessão expirou. Faça login novamente.' : message)
       // se o cadastro já estava ativo (aprovado por outro caminho), atualiza a lista para mostrar o estado real
+      void queryClient.invalidateQueries({ queryKey: ['users'] })
+    } finally {
+      setSavingId('')
+    }
+  }
+
+  async function handleDelete(target: ManagedUser) {
+    if (!window.confirm(`Excluir ${target.nome || target.email}?\n\nA conta é apagada de vez e a pessoa perde o acesso. Não dá para desfazer.`)) return
+
+    setSavingId(target.id)
+    setActionError('')
+    setNotice('')
+    try {
+      await deleteUser(target.id)
+      queryClient.setQueryData<ManagedUser[]>(['users'], (current) => (current ?? []).filter((user) => user.id !== target.id))
+      setNotice(`${target.nome || target.email} foi excluído.`)
+    } catch (error) {
+      const message = (error as Error).message
+      setActionError(message === 'SESSION_EXPIRED' ? 'Sua sessão expirou. Faça login novamente.' : message)
       void queryClient.invalidateQueries({ queryKey: ['users'] })
     } finally {
       setSavingId('')
@@ -236,6 +255,21 @@ export default function UsersPage() {
                             <option value="usuario">{CARGO_LABELS.usuario}</option>
                           </select>
                           {savingId === user.id && <i className="fa-solid fa-spinner fa-spin text-xs text-zinc-500" />}
+                          <button
+                            type="button"
+                            className="chip-btn disabled:opacity-40"
+                            disabled={Boolean(savingId) || isMe || lastAdmin}
+                            onClick={() => void handleDelete(user)}
+                            title={
+                              isMe
+                                ? 'Você não pode excluir a própria conta'
+                                : lastAdmin
+                                  ? 'É preciso ter pelo menos um administrador'
+                                  : `Excluir ${user.nome || user.email}`
+                            }
+                          >
+                            <i className="fa-solid fa-trash" />
+                          </button>
                         </div>
                       </td>
                     </tr>

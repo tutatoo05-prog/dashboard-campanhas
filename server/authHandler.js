@@ -12,6 +12,7 @@ import {
 } from './session.js'
 import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
 import { avisarCadastroPendente } from './aprovacaoTelegram.js'
+import { emailDomainExists, isValidEmailFormat } from './emailValidation.js'
 import { atualizarPerfil, senhaForte as isStrongPassword, trocarSenha } from './perfil.js'
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000
@@ -175,7 +176,7 @@ export async function handleAuthRequest(req, res, env) {
         return sendJson(res, 400, { error: 'Informe seu nome.' })
       }
 
-      if (!email || !isEmail(email)) {
+      if (!isValidEmailFormat(email) || !(await emailDomainExists(email))) {
         return sendJson(res, 400, { error: 'Informe um e-mail válido.' })
       }
 

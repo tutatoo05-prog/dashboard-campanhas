@@ -42,10 +42,35 @@ export async function handleUsersRequest(req, res, env, user) {
 
   const match = pathname.match(/^\/api\/users\/([^/]+)$/)
   if (!match) return sendJson(res, 404, { error: 'Rota não encontrada.' })
-  if (req.method !== 'PATCH') return sendJson(res, 405, { error: 'Método não permitido.' })
+  if (req.method !== 'PATCH' && req.method !== 'DELETE') return sendJson(res, 405, { error: 'Método não permitido.' })
 
   const id = match[1]
   if (!UUID_RE.test(id)) return sendJson(res, 400, { error: 'Usuário inválido.' })
+
+  if (req.method === 'DELETE') {
+    if (id === user.id) return sendJson(res, 400, { error: 'Você não pode excluir a própria conta.' })
+    try {
+      // Numa instrução só: nunca exclui o último administrador ativo. Sessões e pedidos de senha saem em cascata.
+      const result = await query(
+        env,
+        `delete from users
+          where id = $1
+            and (cargo <> 'admin' or exists (select 1 from users where cargo = 'admin' and ativo and id <> $1))
+          returning email`,
+        [id],
+      )
+      if (!result.rows[0]) {
+        const exists = await query(env, 'select 1 from users where id = $1', [id])
+        if (!exists.rows[0]) return sendJson(res, 404, { error: 'Usuário não encontrado.' })
+        return sendJson(res, 400, { error: 'É preciso ter pelo menos um administrador ativo.' })
+      }
+      console.log(`[cadastros] ${user.email} excluiu ${result.rows[0].email}`)
+      return sendJson(res, 200, { success: true })
+    } catch (error) {
+      console.error('Erro ao excluir usuário:', error)
+      return sendJson(res, 502, { error: 'Erro ao excluir o usuário no banco de dados.' })
+    }
+  }
 
   let cargo
   let aprovar = false

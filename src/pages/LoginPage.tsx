@@ -72,6 +72,9 @@ export default function LoginPage() {
         if (senha !== senhaConfirm) {
           throw new Error('As senhas não coincidem.')
         }
+        if (!/^[a-z0-9]+(?:[._+-][a-z0-9]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(email.trim())) {
+          throw new Error('Informe um e-mail válido.')
+        }
         const result = await register({ nome, email, usuario: email, senha })
         setMode('login')
         setMessage(result.message ?? 'Conta criada. Faça login.')
