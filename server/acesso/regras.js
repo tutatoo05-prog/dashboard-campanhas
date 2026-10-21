@@ -161,7 +161,7 @@ export function decidir(venda, { acesso = null } = {}) {
       const parcelado = ehPixParcelado(venda)
       // Quem tinha sido inativado na plataforma e pagou de novo: a equipe precisa reativar na mão.
       const reativar = acesso?.status === 'bloqueado'
-      const aviso = reativar ? ['aviso_reativar'] : []
+      const aviso = reativar ? ['reativar_acesso'] : []
       if (renovacao) {
         return { tipo: 'renovar', rota, curso, dias, parcelado, reativar, passos: ['liberar', 'registrar_acesso', ...aviso] }
       }
@@ -174,6 +174,13 @@ export function decidir(venda, { acesso = null } = {}) {
         reativar,
         passos: ['liberar', 'registrar_acesso', ...aviso, 'email_boas_vindas', 'registrar_venda', 'whatsapp_aluno', 'aviso_tuzinho'],
       }
+    }
+
+    case 'PURCHASE_REFUNDED': {
+      // Reembolso: tira o acesso (reversível) de quem comprou um produto que libera curso.
+      if (!venda.email) return { tipo: 'atencao', motivo: 'Reembolso sem e-mail do comprador.' }
+      if (rotaDaCompra(venda) !== 'liberar') return { tipo: 'ignorar' }
+      return { tipo: 'reembolso', curso: nomeDoCurso(venda), passos: ['revogar_acesso', 'marcar_reembolso', 'aviso_reembolso'] }
     }
 
     case 'PURCHASE_OUT_OF_SHOPPING_CART':

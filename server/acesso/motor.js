@@ -15,6 +15,7 @@ import {
   whatsappBrasileiroValido,
 } from './regras.js'
 import * as integracoesPadrao from './integracoes.js'
+import { v2Configurado } from './tekwayV2.js'
 
 /**
  * Motor da liberação de acesso: pega um evento da Hotmart já gravado, decide o que fazer e executa
@@ -33,7 +34,7 @@ export function modoAcesso(env) {
 export class ErroPermanente extends Error {}
 
 const ASSUNTO_BOAS_VINDAS = '🎨 Tudo certo! Você agora é um aluno da Tuzinho Academy'
-const PASSOS_CRITICOS = new Set(['liberar'])
+const PASSOS_CRITICOS = new Set(['liberar', 'revogar_acesso'])
 const ALERTA_NA_TENTATIVA = 3
 
 const dataBr = (data) => new Date(data).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
@@ -77,7 +78,7 @@ export function linhaDeVenda(venda, agora) {
   }
 }
 
-function criarExecutores({ env, repo, integ, agora }, venda, plano) {
+function criarExecutores({ env, repo, integ, agora }, venda, plano, passos = {}) {
   const telefone = telefoneWhatsapp(venda.telefoneBruto, venda.pais)
   const nomeMensagem = venda.primeiroNome || venda.nome
   const cursoMensagem = nomeDoCurso(venda)
@@ -112,8 +113,40 @@ function criarExecutores({ env, repo, integ, agora }, venda, plano) {
       })
     },
 
-    async aviso_reativar() {
-      return integ.avisarEquipe(env, textoReativar(venda.nome, venda.email, cursoMensagem))
+    /**
+     * Quem tinha sido inativado por atraso e pagou de novo volta sozinho pela API V2 (só tira o bloqueio, não cria aluno).
+     * Sem a API V2 configurada, cai no caminho antigo: avisa a equipe para reativar na mão.
+     */
+    async reativar_acesso() {
+      if (!v2Configurado(env)) return integ.avisarEquipe(env, textoReativar(venda.nome, venda.email, cursoMensagem))
+      const resultado = await integ.reativarAcesso(env, { email: venda.email, motivo: 'pagamento_regularizado' })
+      const acessoId = passos.registrar_acesso?.acessoId
+      if (acessoId) await repo.marcarReativado(acessoId)
+      return resultado
+    },
+    aviso_reativar() {
+      return this.reativar_acesso()
+    },
+
+    /** Reembolso: revoga o acesso na plataforma (reversível). Sem a API V2, vira "atenção" para a equipe revogar na mão. */
+    async revogar_acesso() {
+      if (!v2Configurado(env)) throw new ErroPermanente('Reembolso: a API V2 da plataforma não está configurada, revogue o acesso na mão.')
+      return integ.revogarAcesso(env, { email: venda.email, motivo: 'reembolso', observacoes: `Hotmart ${venda.transacao}` })
+    },
+
+    async marcar_reembolso() {
+      return repo.marcarReembolso({ email: venda.email, curso: cursoMensagem, transacao: venda.transacao })
+    },
+
+    async aviso_reembolso() {
+      return integ.avisarEquipe(env, `↩️ *Reembolso: acesso revogado*
+
+👤 ${venda.nome || venda.email}
+✉️ ${venda.email}
+📚 ${cursoMensagem}
+
+O acesso foi revogado na plataforma e a compra marcada como cancelada no dash.
+`)
     },
 
     async email_boas_vindas() {
@@ -231,7 +264,7 @@ export async function processarEvento(motor, evento) {
       return { estado: 'ignorado' }
     }
 
-    const executores = criarExecutores(motor, venda, plano)
+    const executores = criarExecutores(motor, venda, plano, passos)
     const lista = [...(plano.passos ?? [])]
     const falhas = []
     const permanentes = []
@@ -342,12 +375,13 @@ export async function bloquearAtrasados(motor) {
   for (const acesso of lista) {
     const resumo = `${acesso.nome || acesso.email} (${acesso.email}) — ${acesso.curso}, atrasado desde ${dataBr(acesso.atraso_desde)}`
     try {
-      if (!String(env.TEKWAY_BLOQUEAR_URL ?? '').trim()) {
+      if (!v2Configurado(env) && !String(env.TEKWAY_BLOQUEAR_URL ?? '').trim()) {
         await integ.avisarEquipe(env, `🔒 *Inativar acesso na plataforma (parcela atrasada)*\n\n${resumo}\n\nA plataforma ainda não tem bloqueio automático: inative na mão e marque como feito em Acessos.\n`)
         await repo.marcarBloqueioManual(acesso.id)
         continue
       }
-      await integ.bloquearCurso(env, { email: acesso.email, campanha: CAMPANHA_PADRAO, documento: acesso.documento, motivo: 'parcela atrasada' })
+      if (v2Configurado(env)) await integ.revogarAcesso(env, { email: acesso.email, motivo: 'parcela atrasada', observacoes: `Atrasado desde ${dataBr(acesso.atraso_desde)}` })
+      else await integ.bloquearCurso(env, { email: acesso.email, campanha: CAMPANHA_PADRAO, documento: acesso.documento, motivo: 'parcela atrasada' })
       await repo.marcarBloqueado(acesso.id)
       bloqueados += 1
       await integ.avisarEquipe(env, `🔒 *Acesso bloqueado (parcela atrasada)*\n\n${resumo}\n`).catch(() => {})

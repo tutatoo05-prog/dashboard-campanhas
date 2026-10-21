@@ -5,7 +5,7 @@ import { inserirEvento } from './acesso/repo.js'
 import { rodarAgora } from './acesso/scheduler.js'
 
 // Eventos que a liberação de acesso trata; os demais ficam gravados só para consulta.
-export const EVENTOS_DE_ACESSO = new Set(['PURCHASE_APPROVED', 'PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_DELAYED'])
+export const EVENTOS_DE_ACESSO = new Set(['PURCHASE_APPROVED', 'PURCHASE_OUT_OF_SHOPPING_CART', 'PURCHASE_DELAYED', 'PURCHASE_REFUNDED'])
 
 /** O que o webhook viu desde que o app subiu: serve para a tela Segurança e para o vigia dizerem se a Hotmart está chegando. */
 const estatisticas = { recusadas: 0, ultimaRecusaEm: null, aceitas: 0, ultimaAceitaEm: null }

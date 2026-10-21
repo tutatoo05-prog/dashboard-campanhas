@@ -2,12 +2,13 @@ import { query } from './db.js'
 import { avisarProblema } from './acesso/integracoes.js'
 import { fetchHotmartSalesHistory, getHotmartAccessToken } from './hotmartApi.js'
 import { insertBatch, normalizeCourse, toPurchase } from './salesSync.js'
+import { consultarAcesso, v2Configurado } from './acesso/tekwayV2.js'
 
 /**
  * Conferência Hotmart x dash: de tempos em tempos compara as vendas aprovadas na Hotmart (API de histórico)
  * com a tabela de compras. Venda que a Hotmart tem e o dash não tem (webhook que falhou, fluxo parado) é lançada
  * em Compras e avisada no Telegram. NÃO libera acesso nem manda e-mail: isso é só do webhook; o aviso diz quem
- * ficou sem acesso no dash para a equipe liberar na mão.
+ * está sem acesso na plataforma (consulta a API V2; sem ela, olha a tabela de acessos do dash).
  * Variáveis: CONCILIACAO_ENABLED (padrão true), CONCILIACAO_HORAS (padrão 3), CONCILIACAO_DIAS (padrão 7).
  */
 
@@ -63,15 +64,16 @@ export function vendasFaltando(vendas, compras) {
   })
 }
 
-export function textoDoAviso(lancadas, semAcesso) {
+export function textoDoAviso(lancadas, semAcesso, naoConferidos = []) {
   const linhas = lancadas.map((v) => {
     const valor = v.valor === null ? 'sem valor (moeda ' + v.moeda + ')' : `R$ ${v.valor.toFixed(2).replace('.', ',')}`
     const dia = v.aprovadaEm.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     return `• ${v.nome || v.email} · ${v.curso} · ${valor} · ${dia}`
   })
-  const acesso = semAcesso.length
-    ? `\n\nSem acesso liberado no dash (liberar na mão):\n${semAcesso.map((v) => `• ${v.email}`).join('\n')}`
-    : '\n\nTodos já constam com acesso no dash.'
+  let acesso = semAcesso.length
+    ? `\n\nSem acesso liberado (liberar na mão):\n${semAcesso.map((v) => `• ${v.email}`).join('\n')}`
+    : '\n\nTodos já têm acesso liberado.'
+  if (naoConferidos.length) acesso += `\n\nNão consegui conferir o acesso de:\n${naoConferidos.map((v) => `• ${v.email}`).join('\n')}`
   return (
     `🟠 Conferência Hotmart: ${lancadas.length} venda(s) aprovada(s) não tinham chegado ao dash. ` +
     `Lancei em Compras (sem liberar acesso nem mandar e-mail):\n\n${linhas.join('\n')}${acesso}\n\n` +
@@ -93,6 +95,24 @@ export async function conciliar(env, deps = {}) {
     consultar = (texto, params) => query(env, texto, params),
     inserir = (linhas) => insertBatch(env, linhas),
     avisar = (texto) => avisarProblema(env, texto),
+    // Quem pagou e está sem acesso: pergunta à plataforma (API V2); sem ela, usa a tabela de acessos do dash.
+    conferirAcesso = async (vendasLancadas) => {
+      if (v2Configurado(env)) {
+        const semAcesso = []
+        const naoConferidos = []
+        for (const venda of vendasLancadas) {
+          try {
+            if (!(await consultarAcesso(env, { email: venda.email })).acessoLiberado) semAcesso.push(venda)
+          } catch {
+            naoConferidos.push(venda)
+          }
+        }
+        return { semAcesso, naoConferidos }
+      }
+      const { rows } = await consultar(`select lower(email) as email from acessos where lower(email) = any($1::text[])`, [vendasLancadas.map((v) => v.email)])
+      const comAcesso = new Set(rows.map((r) => r.email))
+      return { semAcesso: vendasLancadas.filter((v) => !comAcesso.has(v.email)), naoConferidos: [] }
+    },
   } = deps
 
   const fim = new Date(agora)
@@ -133,9 +153,8 @@ export async function conciliar(env, deps = {}) {
   }
 
   if (lancadas.length) {
-    const { rows } = await consultar(`select lower(email) as email from acessos where lower(email) = any($1::text[])`, [lancadas.map((v) => v.email)])
-    const comAcesso = new Set(rows.map((r) => r.email))
-    await avisar(textoDoAviso(lancadas, lancadas.filter((v) => !comAcesso.has(v.email))))
+    const { semAcesso, naoConferidos } = await conferirAcesso(lancadas)
+    await avisar(textoDoAviso(lancadas, semAcesso, naoConferidos))
   }
   return { vendas: vendas.length, faltando: faltando.length, lancadas: lancadas.length }
 }

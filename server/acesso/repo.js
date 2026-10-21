@@ -197,6 +197,18 @@ export function criarRepo(env) {
       await q(`update acessos set status = 'bloqueado', bloqueado_em = now(), bloqueio_erro = null, atualizado_em = now() where id = $1`, [id])
     },
 
+    /** Reembolso: o aluno fica "bloqueado" (se ele pagar de novo, a reativação é automática) e a compra vira cancelada. */
+    async marcarReembolso({ email, curso, transacao }) {
+      const acesso = await q(
+        `update acessos set status = 'bloqueado', bloqueado_em = now(), atualizado_em = now() where email = $1 and curso = $2 returning id`,
+        [email, curso],
+      )
+      const compra = transacao
+        ? await q(`update purchases set status = 'cancelado', canceled_at = now() where transacao = $1 and status <> 'cancelado' returning id`, [transacao])
+        : { rows: [] }
+      return { acessos: acesso.rows.length, compras: compra.rows.length }
+    },
+
     async marcarReativado(id) {
       await q(`update acessos set status = 'ativo', bloqueado_em = null, atualizado_em = now() where id = $1 and status = 'reativar_pendente'`, [id])
     },

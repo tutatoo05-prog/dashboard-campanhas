@@ -125,7 +125,7 @@ test('decisão: compra nova libera e avisa; parcela seguinte só renova', () => 
   // quem tinha sido inativado na mão e pagou de novo: a equipe é avisada para reativar
   const reativar = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP7' }), { acesso: { ...acesso, status: 'bloqueado' } })
   assert.equal(reativar.reativar, true)
-  assert.deepEqual(reativar.passos, ['liberar', 'registrar_acesso', 'aviso_reativar'])
+  assert.deepEqual(reativar.passos, ['liberar', 'registrar_acesso', 'reativar_acesso'])
 
   const mesma = decidir(venda({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP1' }), { acesso })
   assert.equal(mesma.tipo, 'liberar')
@@ -142,7 +142,7 @@ test('decisão: sem documento não libera; particular só avisa; outros eventos'
 
   assert.equal(decidir(venda({ event: 'PURCHASE_OUT_OF_SHOPPING_CART' }), {}).tipo, 'abandono')
   assert.equal(decidir(venda({ event: 'PURCHASE_DELAYED' }), {}).tipo, 'atraso')
-  assert.equal(decidir(venda({ event: 'PURCHASE_REFUNDED' }), {}).tipo, 'ignorar')
+  assert.equal(decidir(venda({ event: 'PURCHASE_CANCELED' }), {}).tipo, 'ignorar')
 })
 
 test('bloqueio: 2º dia de atraso à meia-noite de São Paulo', () => {
@@ -537,4 +537,122 @@ test('processarEvento: erro inesperado não perde o evento', async () => {
   assert.equal(resultado.estado, 'erro')
   assert.equal(salvos.at(-1).estado, 'erro')
   assert.ok(salvos.at(-1).proxima instanceof Date)
+})
+
+// ── API V2 da plataforma: bloqueio, reativação e reembolso ────────────────────
+
+const ENV_V2 = { ACESSO_MODO: 'ativo', TEKWAY_V2_TOKEN: 'token-de-teste' }
+
+test('decisão: reembolso de produto que libera curso revoga; particular é ignorado', () => {
+  const reembolso = decidir(venda({ event: 'PURCHASE_REFUNDED' }))
+  assert.equal(reembolso.tipo, 'reembolso')
+  assert.deepEqual(reembolso.passos, ['revogar_acesso', 'marcar_reembolso', 'aviso_reembolso'])
+  assert.equal(decidir(venda({ event: 'PURCHASE_REFUNDED', produto: 'Mentoria Particular com Tuzinho Tattoo' })).tipo, 'ignorar')
+  assert.equal(decidir(venda({ event: 'PURCHASE_REFUNDED', email: '' })).tipo, 'atencao')
+})
+
+test('motor: reembolso com API V2 revoga o acesso, cancela a compra e avisa', async () => {
+  const { repo, integ, eventos } = criarFalsos()
+  integ.revogarAcesso = async (env, dados) => {
+    repo.chamadas.push(['revogarAcesso', dados])
+    return { status: 200 }
+  }
+  repo.marcarReembolso = async (dados) => {
+    repo.chamadas.push(['marcarReembolso', dados])
+    return {}
+  }
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload({ event: 'PURCHASE_REFUNDED', transacao: 'HP55' }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.deepEqual(nomesChamados(repo.chamadas), ['revogarAcesso', 'marcarReembolso', 'avisarEquipe'])
+  assert.equal(repo.chamadas[0][1].motivo, 'reembolso')
+  assert.equal(repo.chamadas[1][1].transacao, 'HP55')
+})
+
+test('motor: reembolso sem API V2 vira atenção (revogar na mão), sem tocar em nada', async () => {
+  const { repo, integ, eventos } = criarFalsos()
+  const motor = criarMotor(ENV, { repo, integ, agora })
+  novoEvento(eventos, payload({ event: 'PURCHASE_REFUNDED' }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'atencao')
+  assert.ok(!nomesChamados(repo.chamadas).includes('marcarReembolso'))
+})
+
+test('motor: quem estava bloqueado e pagou de novo é reativado pela API V2 e volta a "ativo"', async () => {
+  const { repo, integ, eventos, acessos } = criarFalsos()
+  acessos.push({ subscriber_code: 'SUB1', ultima_transacao: 'HP1', status: 'bloqueado' })
+  integ.reativarAcesso = async (env, dados) => {
+    repo.chamadas.push(['reativarAcesso', dados])
+    return { status: 200 }
+  }
+  repo.marcarReativado = async (id) => {
+    repo.chamadas.push(['marcarReativado', id])
+  }
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload({ id: 'ev-9', plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1', transacao: 'HP9', recorrencia: 3 }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.deepEqual(nomesChamados(repo.chamadas), ['liberarCurso', 'registrarPagamento', 'reativarAcesso', 'marcarReativado'])
+  assert.equal(repo.chamadas[2][1].email, 'ana@exemplo.com')
+  assert.equal(repo.chamadas[3][1], 1)
+})
+
+test('bloqueio: com API V2 revoga o acesso sozinho (sem TEKWAY_BLOQUEAR_URL) e marca como bloqueado', async () => {
+  const chamadas = []
+  const repo = {
+    async acessosParaBloquear() {
+      return [{ id: 7, email: 'ana@exemplo.com', nome: 'Ana', curso: 'Essentials', atraso_desde: new Date('2026-10-15T15:00:00Z'), bloqueio_tentativas: 0 }]
+    },
+    async marcarBloqueado(id) {
+      chamadas.push(['bloqueado', id])
+    },
+  }
+  const integ = {
+    async revogarAcesso(env, dados) {
+      chamadas.push(['revogar', dados.email, dados.motivo])
+    },
+    async avisarEquipe() {},
+  }
+  assert.equal(await bloquearAtrasados(criarMotor(ENV_V2, { repo, integ, agora })), 1)
+  assert.deepEqual(chamadas, [['revogar', 'ana@exemplo.com', 'parcela atrasada'], ['bloqueado', 7]])
+})
+
+test('API V2: consultar, revogar e reativar falam com os endpoints certos e escondem o token', async () => {
+  const pedidos = []
+  const respostas = {
+    'POST /acessos/consultar': { status: 200, corpo: { data: { acesso_liberado: false, bloqueio_manual: true, matriculas: [{ id: 10 }, { id: 12 }, { id: 11 }] } } },
+    'POST /acessos/revogar': { status: 200, corpo: { data: {} } },
+    'POST /matriculas/12/reativar': { status: 200, corpo: { data: {} } },
+  }
+  const fetchFalso = async (url, opcoes) => {
+    const caminho = new URL(url).pathname.replace('/api/v2', '')
+    pedidos.push({ chave: `${opcoes.method} ${caminho}`, corpo: opcoes.body ? JSON.parse(opcoes.body) : null, auth: opcoes.headers.Authorization })
+    const r = respostas[`${opcoes.method} ${caminho}`]
+    return { ok: r.status < 400, status: r.status, text: async () => JSON.stringify(r.corpo) }
+  }
+  const { consultarAcesso, revogarAcesso, reativarAcesso } = await import('./tekwayV2.js')
+
+  const situacao = await consultarAcesso(ENV_V2, { email: 'a@x.com' }, fetchFalso)
+  assert.equal(situacao.acessoLiberado, false)
+  assert.equal(situacao.bloqueioManual, true)
+
+  await revogarAcesso(ENV_V2, { email: 'a@x.com', motivo: 'm'.repeat(100) }, fetchFalso)
+  assert.equal(pedidos.at(-1).corpo.motivo.length, 64)
+  assert.equal(pedidos.at(-1).corpo.curso_id, 21)
+
+  const reativado = await reativarAcesso(ENV_V2, { email: 'a@x.com' }, fetchFalso)
+  assert.equal(reativado.matricula, 12) // a mais recente
+  assert.ok(pedidos.every((p) => p.auth === 'Bearer token-de-teste'))
+})
+
+test('API V2: aluno que não existe não quebra a revogação; sem token nem tenta', async () => {
+  const fetch404 = async () => ({ ok: false, status: 404, text: async () => '{}' })
+  const { revogarAcesso, consultarAcesso } = await import('./tekwayV2.js')
+  assert.equal((await revogarAcesso(ENV_V2, { email: 'a@x.com', motivo: 'reembolso' }, fetch404)).nada_a_revogar, true)
+  assert.equal((await consultarAcesso(ENV_V2, { email: 'a@x.com' }, fetch404)).existe, false)
+  await assert.rejects(() => consultarAcesso({}, { email: 'a@x.com' }, fetch404), /não configurada/)
 })

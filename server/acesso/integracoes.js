@@ -84,6 +84,9 @@ export async function bloquearCurso(env, dados, fetchImpl = fetch) {
   return { status: resposta.status, resposta: recortar(texto) }
 }
 
+// API V2 da plataforma (consultar / revogar / reativar acesso): ver tekwayV2.js.
+export { consultarAcesso, reativarAcesso, revogarAcesso, v2Configurado } from './tekwayV2.js'
+
 /** E-mail transacional pela Brevo. */
 export async function enviarEmail(env, { para, nomePara, assunto, html }, fetchImpl = fetch) {
   exigir(env, ['BREVO_API_KEY', 'BREVO_REMETENTE_EMAIL'])
