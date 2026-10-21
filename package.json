@@ -15,7 +15,7 @@
     "live:check": "node server/scripts/liveCheck.js",
     "acesso:verificar": "node server/scripts/verificarAcesso.js",
     "test:acesso": "node --test server/acesso/acesso.test.js",
-    "test": "node --test server/acesso/acesso.test.js server/campanhas.test.js server/dnsCache.test.js src/lib/mergeRegistros.test.js server/hotmartEvents.test.js server/alertasBackup.test.js server/seguranca.test.js server/deployLog.test.js server/deploy.test.js server/webhookStats.test.js server/importarVenda.test.js server/perfil.test.js server/videosMetrics.test.js server/playerConfig.test.js server/usersHandler.test.js server/aprovacaoTelegram.test.js server/conciliacaoHotmart.test.js server/nomesAntigosDeVariaveis.test.js"
+    "test": "node --test server/acesso/acesso.test.js server/campanhas.test.js server/dnsCache.test.js src/lib/mergeRegistros.test.js server/hotmartEvents.test.js server/alertasBackup.test.js server/seguranca.test.js server/deployLog.test.js server/deploy.test.js server/webhookStats.test.js server/importarVenda.test.js server/perfil.test.js server/videosMetrics.test.js server/playerConfig.test.js server/usersHandler.test.js server/aprovacaoTelegram.test.js server/conciliacaoHotmart.test.js server/nomesAntigosDeVariaveis.test.js server/emails/emails.test.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

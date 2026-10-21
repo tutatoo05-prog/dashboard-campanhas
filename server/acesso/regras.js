@@ -176,6 +176,11 @@ export function decidir(venda, { acesso = null } = {}) {
       }
     }
 
+    // Boleto/Pix gerado e pagamento expirado: nada a fazer na plataforma; só alimentam os e-mails de sequência.
+    case 'PURCHASE_BILLET_PRINTED':
+    case 'PURCHASE_EXPIRED':
+      return { tipo: 'sequencia', passos: [] }
+
     case 'PURCHASE_REFUNDED': {
       // Reembolso: tira o acesso (reversível) de quem comprou um produto que libera curso.
       if (!venda.email) return { tipo: 'atencao', motivo: 'Reembolso sem e-mail do comprador.' }

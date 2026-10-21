@@ -14,6 +14,7 @@ import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
 import { startVigia } from './vigia.js'
 import { startConciliacao } from './conciliacaoHotmart.js'
+import { startFilaEmails } from './emails/fila.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
 import { startBackupScheduler } from './backup.js'
 
@@ -160,6 +161,7 @@ server.listen(port, '0.0.0.0', () => {
   startPlanilhasScheduler(env)
   startVigia(env)
   startConciliacao(env)
+  startFilaEmails(env)
   startBackupScheduler(env)
   void aquecerConexoes(env)
   if (env.DATABASE_URL) {

@@ -327,6 +327,8 @@ export async function processarEvento(motor, evento) {
     }
 
     await repo.salvarProgresso(evento.id, { estado: 'ok', decisao: plano.tipo, passos, erro: null, simulado, processadoEm: motor.agora() })
+    // E-mails de sequência (carrinho, Pix/boleto, onboarding): fora dos passos de propósito, para nunca atrapalhar o acesso.
+    if (!simulado && motor.sequencias) await motor.sequencias.aoProcessar(venda, plano, motor.agora())
     return { estado: 'ok' }
   } catch (erro) {
     // Falha inesperada (banco fora do ar, bug): volta para a fila com espera, sem perder o evento.
@@ -345,8 +347,8 @@ export async function processarEvento(motor, evento) {
   }
 }
 
-export function criarMotor(env, { repo, integ = integracoesPadrao, agora = () => new Date() } = {}) {
-  return { env, repo, integ, agora }
+export function criarMotor(env, { repo, integ = integracoesPadrao, agora = () => new Date(), sequencias = null } = {}) {
+  return { env, repo, integ, agora, sequencias }
 }
 
 /** Processa tudo o que está pronto na fila (um evento por vez). Devolve quantos foram processados. */

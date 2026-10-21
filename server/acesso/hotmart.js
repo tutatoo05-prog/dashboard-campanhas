@@ -61,6 +61,9 @@ export function normalizarEvento(payload) {
     produtoItem: texto(produto.content?.products?.[0]?.name),
     plano: texto(assinatura.plan?.name),
     pagamentoTipo: texto(compra.payment?.type).toUpperCase(),
+    // Só vêm quando o evento é de boleto/Pix gerado; usados nos lembretes de pagamento.
+    pixCodigo: texto(compra.payment?.pix_code),
+    boletoLink: texto(compra.payment?.billet_url),
     recorrencia: Number.isFinite(recorrencia) ? recorrencia : null,
     assinante: texto(assinatura.subscriber?.code),
     aprovadaEm: parseData(compra.approved_date),
