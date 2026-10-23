@@ -194,8 +194,17 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
 /* ───── Central de vídeos: painel do player (prévia ao vivo + cartões curtos) ───── */
 .pc-grid { display: grid; gap: 1.25rem; padding-bottom: 0.25rem; }
 @media (min-width: 1024px) {
+  /* 1024–1279: prévia fixa à esquerda, os dois grupos de cartões empilhados à direita */
   .pc-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
-  .pc-previa { position: sticky; top: 5.5rem; }
+  .pc-previa { grid-column: 1; grid-row: 1 / span 2; position: sticky; top: 5.5rem; }
+  .pc-esq, .pc-dir { grid-column: 2; }
+}
+@media (min-width: 1280px) {
+  /* vídeo no centro, sempre à vista; comandos dos dois lados */
+  .pc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); }
+  .pc-previa { grid-column: 2; grid-row: 1; }
+  .pc-esq { grid-column: 1; grid-row: 1; }
+  .pc-dir { grid-column: 3; grid-row: 1; }
 }
 .pc-testes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 .pc-testes .chip-btn:disabled { opacity: 0.45; cursor: not-allowed; }

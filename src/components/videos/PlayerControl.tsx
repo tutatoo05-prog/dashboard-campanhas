@@ -238,7 +238,7 @@ export function PlayerControl({ video }: { video: string }) {
       )}
 
       <div className="pc-grid">
-        {/* ───── prévia ao vivo, fixa na tela enquanto os cartões rolam ───── */}
+        {/* ───── prévia ao vivo no centro, fixa na tela enquanto os cartões dos lados rolam ───── */}
         <div className="pc-previa">
           <div className="relative overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
             <iframe
@@ -279,8 +279,8 @@ export function PlayerControl({ video }: { video: string }) {
           </p>
         </div>
 
-        {/* ───── opções, em cartões curtos ───── */}
-        <div className="pc-cartoes">
+        {/* ───── coluna da esquerda: o que aparece no vídeo ───── */}
+        <div className="pc-cartoes pc-esq">
           <Cartao id="pc-cta" titulo="Botão de compra" destaque={destaque === 'cta'}>
             <Interruptor
               ligado={form.cta.ativo}
@@ -357,7 +357,10 @@ export function PlayerControl({ video }: { video: string }) {
               </div>
             )}
           </Cartao>
+        </div>
 
+        {/* ───── coluna da direita: aparência e comportamento ───── */}
+        <div className="pc-cartoes pc-dir">
           <Cartao id="pc-estilo" titulo="Cores e estilo" destaque={false}>
             <b className="block text-sm text-zinc-100">Cores e estilo</b>
             <div className="pc-paleta" role="group" aria-label="Cores prontas">
