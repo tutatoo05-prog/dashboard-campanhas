@@ -13,6 +13,7 @@ export const PADRAO = {
   aparencia: { corDestaque: '#ff8a1f', corBotao: '#ff8a1f', corTextoBotao: '#15110d', formaBotao: 'suave' },
   controles: { tempo: true, volume: true },
   protegerVideo: true,
+  lembrarPosicao: true,
   barraFalsa: { ativo: false, inicioSegundos: 3, inicioVelocidade: 4, trechoSegundos: 20, rapido: 1.6, lento: 0.6 },
   cta: { ativo: false, segundo: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
@@ -99,6 +100,7 @@ export function sanitizarConfig(entrada) {
     },
     controles: { tempo: e.controles?.tempo !== false, volume: e.controles?.volume !== false },
     protegerVideo: e.protegerVideo !== false,
+    lembrarPosicao: e.lembrarPosicao !== false,
     barraFalsa: sanitizarBarraFalsa(e.barraFalsa),
     cta: {
       ativo: e.cta?.ativo === true,

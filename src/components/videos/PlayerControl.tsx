@@ -420,6 +420,12 @@ export function PlayerControl({ video }: { video: string }) {
               dica="Desligado, a pessoa só volta ou continua de onde já assistiu."
             />
             <Interruptor
+              ligado={form.lembrarPosicao}
+              onChange={(v) => mudar((c) => ({ ...c, lembrarPosicao: v }))}
+              titulo="Continuar de onde a pessoa parou"
+              dica="Quem sai da página e volta retoma no mesmo ponto (guardado só no navegador dela). Se o vídeo terminou, recomeça do zero."
+            />
+            <Interruptor
               ligado={form.protegerVideo}
               onChange={(v) => mudar((c) => ({ ...c, protegerVideo: v }))}
               titulo="Esconder “Salvar vídeo” no botão direito"

@@ -119,3 +119,9 @@ test('barra com ritmo: valida a faixa de cada número e mantém o que vale', () 
   assert.equal(antiga.protegerVideo, true)
   assert.equal(sanitizarConfig({ ...PADRAO, protegerVideo: false }).protegerVideo, false)
 })
+
+test('lembrar posição: ligada por padrão, em registro antigo e quando desligada no painel', () => {
+  assert.equal(PADRAO.lembrarPosicao, true)
+  assert.equal(sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: false, texto: 'Comprar' }, fim: PADRAO.fim }).lembrarPosicao, true)
+  assert.equal(sanitizarConfig({ ...PADRAO, lembrarPosicao: false }).lembrarPosicao, false)
+})

@@ -101,6 +101,7 @@ export interface PlayerConfig {
   aparencia: { corDestaque: string; corBotao: string; corTextoBotao: string; formaBotao: FormaBotao }
   controles: { tempo: boolean; volume: boolean }
   protegerVideo: boolean
+  lembrarPosicao: boolean
   barraFalsa: BarraFalsa
   cta: { ativo: boolean; segundo: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
