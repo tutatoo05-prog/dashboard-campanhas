@@ -28,6 +28,18 @@ const PALETA = [
   { nome: 'Branco', cor: '#ffffff' },
 ]
 
+type Painel = 'cta' | 'fim' | 'estilo' | 'ritmo' | 'comportamento' | 'avancado'
+
+/** Cada item vira um botão ao lado do vídeo; clicar abre as opções dele num painel (o vídeo continua à vista). */
+const ITENS: { id: Painel; icone: string; nome: string; titulo: string }[] = [
+  { id: 'cta', icone: 'fa-cart-shopping', nome: 'Compra', titulo: 'Botão de compra' },
+  { id: 'fim', icone: 'fa-flag-checkered', nome: 'Fim', titulo: 'Tela final' },
+  { id: 'estilo', icone: 'fa-palette', nome: 'Cores', titulo: 'Cores e estilo' },
+  { id: 'ritmo', icone: 'fa-gauge-high', nome: 'Barra', titulo: 'Ritmo da barra de progresso' },
+  { id: 'comportamento', icone: 'fa-sliders', nome: 'Regras', titulo: 'Comportamento' },
+  { id: 'avancado', icone: 'fa-code', nome: 'Avançado', titulo: 'Arquivos do vídeo e código para colar' },
+]
+
 function iframeCode(video: string): string {
   return [
     '<div style="position:relative;padding-top:56.25%;background:#000">',
@@ -101,9 +113,9 @@ function Ajuste({ rotulo, unidade, min, max, passo, valor, onChange, dica }: { r
   )
 }
 
-function Cartao({ id, titulo, destaque, children }: { id: string; titulo: string; destaque: boolean; children: ReactNode }) {
+function Cartao({ id, titulo, destaque, visivel, children }: { id: string; titulo: string; destaque: boolean; visivel: boolean; children: ReactNode }) {
   return (
-    <section id={id} className={`pc-card ${destaque ? 'pc-card-destaque' : ''}`} aria-label={titulo}>
+    <section id={id} className={`pc-card ${destaque ? 'pc-card-destaque' : ''}`} aria-label={titulo} hidden={!visivel}>
       {children}
     </section>
   )
@@ -120,6 +132,7 @@ export function PlayerControl({ video }: { video: string }) {
   const [playerAntigo, setPlayerAntigo] = useState(false)
   const [duracao, setDuracao] = useState(DURACAO_PADRAO)
   const [destaque, setDestaque] = useState<'cta' | 'fim' | null>(null)
+  const [aberto, setAberto] = useState<Painel | null>(null)
   const [copied, setCopied] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -152,7 +165,7 @@ export function PlayerControl({ video }: { video: string }) {
       if (msg.event === 'duracao' && msg.data?.segundos) setDuracao(msg.data.segundos)
       if (msg.event === 'editar' && (msg.data?.alvo === 'cta' || msg.data?.alvo === 'fim')) {
         const alvo = msg.data.alvo
-        document.getElementById(`pc-${alvo}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setAberto(alvo)
         setDestaque(alvo)
         window.setTimeout(() => setDestaque(null), 1600)
       }
@@ -237,8 +250,8 @@ export function PlayerControl({ video }: { video: string }) {
         </div>
       )}
 
-      <div className="pc-grid">
-        {/* ───── prévia ao vivo no centro, fixa na tela enquanto os cartões dos lados rolam ───── */}
+      <div className={`pc-palco ${aberto ? 'pc-palco-aberto' : ''}`}>
+        {/* ───── prévia ao vivo no centro: sempre à vista ───── */}
         <div className="pc-previa">
           <div className="relative overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
             <iframe
@@ -275,13 +288,41 @@ export function PlayerControl({ video }: { video: string }) {
             </button>
           </div>
           <p className="mt-2 text-xs text-zinc-500">
-            A prévia muda ao vivo, sem salvar. Clique no botão de compra dentro dela para ir direto às opções dele.
+            A prévia muda ao vivo, sem salvar. Clique no botão de compra dentro dela para abrir as opções dele.
           </p>
         </div>
 
-        {/* ───── coluna da esquerda: o que aparece no vídeo ───── */}
-        <div className="pc-cartoes pc-esq">
-          <Cartao id="pc-cta" titulo="Botão de compra" destaque={destaque === 'cta'}>
+        {/* ───── botões ao lado do vídeo: cada um abre as opções de um assunto ───── */}
+        <nav className="pc-rail" aria-label="Opções do player">
+          {ITENS.map((item) => {
+            const ligado = item.id === 'cta' ? form.cta.ativo : item.id === 'fim' ? form.fim.ativo : item.id === 'ritmo' ? form.barraFalsa.ativo : false
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`pc-rail-btn ${aberto === item.id ? 'pc-rail-btn-on' : ''}`}
+                aria-pressed={aberto === item.id}
+                title={item.titulo}
+                onClick={() => setAberto((atual) => (atual === item.id ? null : item.id))}
+              >
+                <i className={`fa-solid ${item.icone}`} aria-hidden="true" />
+                <span>{item.nome}</span>
+                {ligado && <em className="pc-rail-ponto" aria-label="ligado" />}
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* ───── painel com as opções do botão escolhido ───── */}
+        <aside className="pc-painel" hidden={!aberto} aria-label="Opções">
+          <div className="pc-painel-cab">
+            <b>{ITENS.find((item) => item.id === aberto)?.titulo}</b>
+            <button type="button" className="pc-painel-x" aria-label="Fechar" onClick={() => setAberto(null)}>
+              <i className="fa-solid fa-xmark" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="pc-cartoes">
+          <Cartao id="pc-cta" titulo="Botão de compra" destaque={destaque === 'cta'} visivel={aberto === 'cta'}>
             <Interruptor
               ligado={form.cta.ativo}
               onChange={(v) => {
@@ -358,7 +399,7 @@ export function PlayerControl({ video }: { video: string }) {
             )}
           </Cartao>
 
-          <Cartao id="pc-fim" titulo="Tela final" destaque={destaque === 'fim'}>
+          <Cartao id="pc-fim" titulo="Tela final" destaque={destaque === 'fim'} visivel={aberto === 'fim'}>
             <Interruptor
               ligado={form.fim.ativo}
               onChange={(v) => {
@@ -381,11 +422,8 @@ export function PlayerControl({ video }: { video: string }) {
               </div>
             )}
           </Cartao>
-        </div>
 
-        {/* ───── coluna da direita: aparência e comportamento ───── */}
-        <div className="pc-cartoes pc-dir">
-          <Cartao id="pc-estilo" titulo="Cores e estilo" destaque={false}>
+          <Cartao id="pc-estilo" titulo="Cores e estilo" destaque={false} visivel={aberto === 'estilo'}>
             <b className="block text-sm text-zinc-100">Cores e estilo</b>
             <div className="pc-paleta" role="group" aria-label="Cores prontas">
               {PALETA.map((item) => (
@@ -417,7 +455,7 @@ export function PlayerControl({ video }: { video: string }) {
             </div>
           </Cartao>
 
-          <Cartao id="pc-ritmo" titulo="Ritmo da barra de progresso" destaque={false}>
+          <Cartao id="pc-ritmo" titulo="Ritmo da barra de progresso" destaque={false} visivel={aberto === 'ritmo'}>
             <Interruptor
               ligado={form.barraFalsa.ativo}
               onChange={(v) => mudar((c) => ({ ...c, barraFalsa: { ...c.barraFalsa, ativo: v } }))}
@@ -439,7 +477,7 @@ export function PlayerControl({ video }: { video: string }) {
             )}
           </Cartao>
 
-          <Cartao id="pc-comportamento" titulo="Comportamento" destaque={false}>
+          <Cartao id="pc-comportamento" titulo="Comportamento" destaque={false} visivel={aberto === 'comportamento'}>
             <Interruptor
               ligado={form.permitirAvancar}
               onChange={(v) => mudar((c) => ({ ...c, permitirAvancar: v }))}
@@ -464,7 +502,7 @@ export function PlayerControl({ video }: { video: string }) {
             </label>
           </Cartao>
 
-          <details className="pc-card pc-avancado">
+          <details className="pc-card pc-avancado" hidden={aberto !== 'avancado'}>
             <summary>Avançado: arquivos do vídeo e código para colar</summary>
             <div className="pc-campos mt-3">
               <label className="block">
@@ -491,7 +529,8 @@ export function PlayerControl({ video }: { video: string }) {
               </div>
             </div>
           </details>
-        </div>
+          </div>
+        </aside>
       </div>
 
       {/* ───── barra de salvar sempre à vista ───── */}

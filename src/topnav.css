@@ -192,19 +192,24 @@ button.dd-row:hover, button.dd-row:focus-visible { background: var(--white); out
 }
 
 /* ───── Central de vídeos: painel do player (prévia ao vivo + cartões curtos) ───── */
-.pc-grid { display: grid; gap: 1.25rem; padding-bottom: 0.25rem; }
+/* Palco: vídeo no centro (sempre à vista), botões de ícone ao lado, painel só quando um botão está aberto. */
+.pc-palco { display: grid; gap: 1rem; padding-bottom: 0.25rem; }
+.pc-rail { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+.pc-rail-btn { position: relative; display: grid; place-items: center; gap: 0.2rem; width: 4.5rem; padding: 0.6rem 0.2rem; border: 2.5px solid var(--line); border-radius: 14px; background: var(--card, var(--white)); color: var(--ink); cursor: pointer; font-size: 0.66rem; font-weight: 800; line-height: 1.1; transition: transform 0.12s, background 0.12s; }
+.pc-rail-btn i { font-size: 1.15rem; }
+.pc-rail-btn:hover { transform: translateY(-2px); }
+.pc-rail-btn-on { background: var(--o); color: #15110d; }
+.pc-rail-ponto { position: absolute; top: 5px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: #22c55e; border: 1.5px solid var(--line); }
+.pc-painel { min-width: 0; border: 2.5px solid var(--line); border-radius: 14px; padding: 0.85rem 1rem; background: var(--card, var(--white)); }
+.pc-painel-cab { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; padding-bottom: 0.6rem; border-bottom: 2px dashed var(--line); font-size: 0.95rem; }
+.pc-painel-x { display: grid; place-items: center; width: 2rem; height: 2rem; border: 2.5px solid var(--line); border-radius: 50%; background: transparent; cursor: pointer; color: var(--ink); }
+.pc-painel .pc-card { border: 0; padding: 0; background: transparent; }
 @media (min-width: 1024px) {
-  /* 1024–1279: prévia fixa à esquerda, os dois grupos de cartões empilhados à direita */
-  .pc-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
-  .pc-previa { grid-column: 1; grid-row: 1 / span 2; position: sticky; top: 5.5rem; }
-  .pc-esq, .pc-dir { grid-column: 2; }
-}
-@media (min-width: 1280px) {
-  /* vídeo no centro, sempre à vista; comandos dos dois lados */
-  .pc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); }
-  .pc-previa { grid-column: 2; grid-row: 1; }
-  .pc-esq { grid-column: 1; grid-row: 1; }
-  .pc-dir { grid-column: 3; grid-row: 1; }
+  .pc-palco { grid-template-columns: 4.75rem minmax(0, 1fr) 4.75rem; align-items: start; }
+  .pc-palco-aberto { grid-template-columns: 4.75rem minmax(0, 1fr) 23rem; }
+  .pc-rail { grid-column: 1; grid-row: 1; flex-direction: column; flex-wrap: nowrap; position: sticky; top: 5.5rem; }
+  .pc-previa { grid-column: 2; grid-row: 1; width: 100%; max-width: 1040px; margin: 0 auto; }
+  .pc-painel { grid-column: 3; grid-row: 1; position: sticky; top: 5.5rem; max-height: calc(100vh - 9rem); overflow-y: auto; }
 }
 .pc-testes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 .pc-testes .chip-btn:disabled { opacity: 0.45; cursor: not-allowed; }
