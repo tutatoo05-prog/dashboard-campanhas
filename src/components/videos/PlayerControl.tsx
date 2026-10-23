@@ -312,6 +312,30 @@ export function PlayerControl({ video }: { video: string }) {
                     onChange={(e) => mudar((c) => ({ ...c, cta: { ...c.cta, segundo: Number(e.target.value) } }))}
                   />
                 </label>
+                <Ajuste
+                  rotulo="Fica na tela por"
+                  unidade="s"
+                  min={0}
+                  max={300}
+                  passo={5}
+                  valor={form.cta.duracao}
+                  onChange={(n) => mudar((c) => ({ ...c, cta: { ...c.cta, duracao: n } }))}
+                  dica="0 = fica até o fim do vídeo. Acima de 0, o botão some depois desse tempo."
+                />
+                <Ajuste
+                  rotulo="Volta a cada"
+                  unidade="s"
+                  min={0}
+                  max={1800}
+                  passo={30}
+                  valor={form.cta.repetir}
+                  onChange={(n) => mudar((c) => ({ ...c, cta: { ...c.cta, repetir: n } }))}
+                  dica={
+                    form.cta.repetir > 0
+                      ? `Reaparece a cada ${formatClock(form.cta.repetir)} (começando em ${formatClock(form.cta.segundo)}).`
+                      : '0 = não repete: aparece uma vez só.'
+                  }
+                />
                 <Opcoes<PosicaoBotao>
                   rotulo="Posição"
                   valor={form.cta.posicao}

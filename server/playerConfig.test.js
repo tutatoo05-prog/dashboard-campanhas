@@ -125,3 +125,14 @@ test('lembrar posição: ligada por padrão, em registro antigo e quando desliga
   assert.equal(sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: false, texto: 'Comprar' }, fim: PADRAO.fim }).lembrarPosicao, true)
   assert.equal(sanitizarConfig({ ...PADRAO, lembrarPosicao: false }).lembrarPosicao, false)
 })
+
+test('botão de compra: tempo na tela e repetição validados, registros antigos ficam como antes (fixo até o fim)', () => {
+  const config = sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, ativo: true, segundo: 60, duracao: 20, repetir: 180 } })
+  assert.equal(config.cta.duracao, 20)
+  assert.equal(config.cta.repetir, 180)
+  const antiga = sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: true, segundo: 30, texto: 'Comprar' }, fim: PADRAO.fim })
+  assert.equal(antiga.cta.duracao, 0)
+  assert.equal(antiga.cta.repetir, 0)
+  assert.throws(() => sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, repetir: -5 } }), ConfigInvalida)
+  assert.throws(() => sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, duracao: 99999 } }), ConfigInvalida)
+})

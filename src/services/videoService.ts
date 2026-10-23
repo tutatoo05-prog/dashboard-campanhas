@@ -103,7 +103,7 @@ export interface PlayerConfig {
   protegerVideo: boolean
   lembrarPosicao: boolean
   barraFalsa: BarraFalsa
-  cta: { ativo: boolean; segundo: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
+  cta: { ativo: boolean; segundo: number; duracao: number; repetir: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
 }
 

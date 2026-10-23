@@ -15,7 +15,7 @@ export const PADRAO = {
   protegerVideo: true,
   lembrarPosicao: true,
   barraFalsa: { ativo: false, inicioSegundos: 3, inicioVelocidade: 4, trechoSegundos: 20, rapido: 1.6, lento: 0.6 },
-  cta: { ativo: false, segundo: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
+  cta: { ativo: false, segundo: 0, duracao: 0, repetir: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
 }
 
@@ -105,6 +105,8 @@ export function sanitizarConfig(entrada) {
     cta: {
       ativo: e.cta?.ativo === true,
       segundo: Math.round(segundo),
+      duracao: Math.round(numeroEntre(e.cta?.duracao, 'Tempo na tela do botão', 0, MAX_SEGUNDO, 0)),
+      repetir: Math.round(numeroEntre(e.cta?.repetir, 'Repetir o botão a cada', 0, MAX_SEGUNDO, 0)),
       texto: textoCurto(e.cta?.texto, 'Texto do botão', 60, { obrigatorio: true }),
       posicao: opcao(e.cta?.posicao, POSICOES, PADRAO.cta.posicao),
       tamanho: opcao(e.cta?.tamanho, TAMANHOS, PADRAO.cta.tamanho),
