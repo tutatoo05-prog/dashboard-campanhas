@@ -82,6 +82,7 @@ export async function fetchVideoMetrics(video: string, dias: number): Promise<Vi
 
 export type FormaBotao = 'suave' | 'reto' | 'pilula'
 export type PosicaoBotao = 'centro' | 'esquerda' | 'direita'
+export type VerticalBotao = 'baixo' | 'topo'
 export type TamanhoBotao = 'p' | 'm' | 'g'
 export type AnimacaoBotao = 'nenhuma' | 'pulsar' | 'brilho'
 
@@ -103,7 +104,7 @@ export interface PlayerConfig {
   protegerVideo: boolean
   lembrarPosicao: boolean
   barraFalsa: BarraFalsa
-  cta: { ativo: boolean; segundo: number; duracao: number; repetir: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
+  cta: { ativo: boolean; segundo: number; duracao: number; repetir: number; texto: string; posicao: PosicaoBotao; vertical: VerticalBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
 }
 

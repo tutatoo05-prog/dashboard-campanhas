@@ -15,12 +15,13 @@ export const PADRAO = {
   protegerVideo: true,
   lembrarPosicao: true,
   barraFalsa: { ativo: false, inicioSegundos: 3, inicioVelocidade: 4, trechoSegundos: 20, rapido: 1.6, lento: 0.6 },
-  cta: { ativo: false, segundo: 0, duracao: 0, repetir: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
+  cta: { ativo: false, segundo: 0, duracao: 0, repetir: 0, texto: 'Quero começar agora', posicao: 'centro', vertical: 'baixo', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
 }
 
 const FORMAS = ['suave', 'reto', 'pilula']
 const POSICOES = ['centro', 'esquerda', 'direita']
+const VERTICAIS = ['baixo', 'topo']
 const TAMANHOS = ['p', 'm', 'g']
 const ANIMACOES = ['nenhuma', 'pulsar', 'brilho']
 
@@ -109,6 +110,7 @@ export function sanitizarConfig(entrada) {
       repetir: Math.round(numeroEntre(e.cta?.repetir, 'Repetir o botão a cada', 0, MAX_SEGUNDO, 0)),
       texto: textoCurto(e.cta?.texto, 'Texto do botão', 60, { obrigatorio: true }),
       posicao: opcao(e.cta?.posicao, POSICOES, PADRAO.cta.posicao),
+      vertical: opcao(e.cta?.vertical, VERTICAIS, PADRAO.cta.vertical),
       tamanho: opcao(e.cta?.tamanho, TAMANHOS, PADRAO.cta.tamanho),
       animacao: opcao(e.cta?.animacao, ANIMACOES, PADRAO.cta.animacao),
     },

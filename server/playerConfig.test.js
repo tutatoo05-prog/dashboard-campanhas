@@ -136,3 +136,9 @@ test('botão de compra: tempo na tela e repetição validados, registros antigos
   assert.throws(() => sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, repetir: -5 } }), ConfigInvalida)
   assert.throws(() => sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, duracao: 99999 } }), ConfigInvalida)
 })
+
+test('botão de compra: altura em cima/embaixo, valor estranho e registro antigo caem em embaixo', () => {
+  assert.equal(sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, vertical: 'topo' } }).cta.vertical, 'topo')
+  assert.equal(sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, vertical: 'meio' } }).cta.vertical, 'baixo')
+  assert.equal(sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: true, texto: 'Comprar' }, fim: PADRAO.fim }).cta.vertical, 'baixo')
+})

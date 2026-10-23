@@ -10,6 +10,7 @@ import {
   type PlayerConfigState,
   type PosicaoBotao,
   type TamanhoBotao,
+  type VerticalBotao,
 } from '@/services/videoService.ts'
 
 /** Onde o player fica publicado (dist-player/ do projeto produtos). É o que as páginas de venda embutem. */
@@ -382,6 +383,12 @@ export function PlayerControl({ video }: { video: string }) {
                   valor={form.cta.posicao}
                   opcoes={[{ v: 'esquerda', label: 'Esquerda' }, { v: 'centro', label: 'Centro' }, { v: 'direita', label: 'Direita' }]}
                   onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, posicao: v } }))}
+                />
+                <Opcoes<VerticalBotao>
+                  rotulo="Altura"
+                  valor={form.cta.vertical}
+                  opcoes={[{ v: 'topo', label: 'Em cima' }, { v: 'baixo', label: 'Embaixo' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, cta: { ...c.cta, vertical: v } }))}
                 />
                 <Opcoes<TamanhoBotao>
                   rotulo="Tamanho"
