@@ -85,12 +85,23 @@ export type PosicaoBotao = 'centro' | 'esquerda' | 'direita'
 export type TamanhoBotao = 'p' | 'm' | 'g'
 export type AnimacaoBotao = 'nenhuma' | 'pulsar' | 'brilho'
 
+export interface BarraFalsa {
+  ativo: boolean
+  inicioSegundos: number
+  inicioVelocidade: number
+  trechoSegundos: number
+  rapido: number
+  lento: number
+}
+
 export interface PlayerConfig {
   arquivos: { hd: string; leve: string }
   permitirAvancar: boolean
   textoToque: string
   aparencia: { corDestaque: string; corBotao: string; corTextoBotao: string; formaBotao: FormaBotao }
   controles: { tempo: boolean; volume: boolean }
+  protegerVideo: boolean
+  barraFalsa: BarraFalsa
   cta: { ativo: boolean; segundo: number; texto: string; posicao: PosicaoBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
 }

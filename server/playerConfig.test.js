@@ -107,3 +107,15 @@ test('desligar tempo e volume da barra é respeitado', () => {
   const config = sanitizarConfig({ ...PADRAO, controles: { tempo: false, volume: false } })
   assert.deepEqual(config.controles, { tempo: false, volume: false })
 })
+
+test('barra com ritmo: valida a faixa de cada número e mantém o que vale', () => {
+  const config = sanitizarConfig({ ...PADRAO, barraFalsa: { ativo: true, inicioSegundos: 5, inicioVelocidade: 3, trechoSegundos: 15, rapido: 2, lento: 0.5 } })
+  assert.deepEqual(config.barraFalsa, { ativo: true, inicioSegundos: 5, inicioVelocidade: 3, trechoSegundos: 15, rapido: 2, lento: 0.5 })
+  assert.throws(() => sanitizarConfig({ ...PADRAO, barraFalsa: { ...PADRAO.barraFalsa, inicioVelocidade: 99 } }), ConfigInvalida)
+  assert.throws(() => sanitizarConfig({ ...PADRAO, barraFalsa: { ...PADRAO.barraFalsa, lento: 0 } }), ConfigInvalida)
+  // registro antigo, sem os campos novos: barra desligada e proteção ligada
+  const antiga = sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: false, texto: 'Comprar' }, fim: PADRAO.fim })
+  assert.equal(antiga.barraFalsa.ativo, false)
+  assert.equal(antiga.protegerVideo, true)
+  assert.equal(sanitizarConfig({ ...PADRAO, protegerVideo: false }).protegerVideo, false)
+})

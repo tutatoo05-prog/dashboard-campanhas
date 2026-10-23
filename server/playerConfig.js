@@ -12,6 +12,8 @@ export const PADRAO = {
   textoToque: 'Toque para assistir',
   aparencia: { corDestaque: '#ff8a1f', corBotao: '#ff8a1f', corTextoBotao: '#15110d', formaBotao: 'suave' },
   controles: { tempo: true, volume: true },
+  protegerVideo: true,
+  barraFalsa: { ativo: false, inicioSegundos: 3, inicioVelocidade: 4, trechoSegundos: 20, rapido: 1.6, lento: 0.6 },
   cta: { ativo: false, segundo: 0, texto: 'Quero começar agora', posicao: 'centro', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
 }
@@ -24,6 +26,8 @@ const ANIMACOES = ['nenhuma', 'pulsar', 'brilho']
 const VIDEO_VALIDO = /^[\w-]{1,40}$/
 const CACHE_MS = 30_000
 const MAX_SEGUNDO = 7200
+const VELOCIDADE_MIN = 0.1
+const VELOCIDADE_MAX = 10
 
 export class ConfigInvalida extends Error {}
 
@@ -53,6 +57,28 @@ function arquivoMp4(valor, campo) {
   return nome
 }
 
+/** Número dentro de [min, max]; vazio cai no padrão, fora da faixa avisa a tela. */
+function numeroEntre(valor, campo, min, max, padrao) {
+  if (valor === undefined || valor === null || valor === '') return padrao
+  const n = Number(valor)
+  if (!Number.isFinite(n) || n < min || n > max) throw new ConfigInvalida(`${campo}: use um número entre ${min} e ${max}.`)
+  return Math.round(n * 100) / 100
+}
+
+/** Barra de progresso "ritmada": anda mais rápido ou mais devagar que o vídeo (só o desenho da barra, o vídeo não muda). */
+function sanitizarBarraFalsa(entrada) {
+  const b = entrada && typeof entrada === 'object' ? entrada : {}
+  const p = PADRAO.barraFalsa
+  return {
+    ativo: b.ativo === true,
+    inicioSegundos: numeroEntre(b.inicioSegundos, 'Segundos iniciais da barra', 0, 120, p.inicioSegundos),
+    inicioVelocidade: numeroEntre(b.inicioVelocidade, 'Velocidade do início', VELOCIDADE_MIN, VELOCIDADE_MAX, p.inicioVelocidade),
+    trechoSegundos: numeroEntre(b.trechoSegundos, 'Duração de cada trecho', 0, 600, p.trechoSegundos),
+    rapido: numeroEntre(b.rapido, 'Velocidade dos trechos rápidos', VELOCIDADE_MIN, VELOCIDADE_MAX, p.rapido),
+    lento: numeroEntre(b.lento, 'Velocidade dos trechos lentos', VELOCIDADE_MIN, VELOCIDADE_MAX, p.lento),
+  }
+}
+
 /** Valida o que veio do painel e devolve a configuração limpa. Lança ConfigInvalida com mensagem para a tela. */
 export function sanitizarConfig(entrada) {
   const e = entrada && typeof entrada === 'object' ? entrada : {}
@@ -72,6 +98,8 @@ export function sanitizarConfig(entrada) {
       formaBotao: opcao(e.aparencia?.formaBotao, FORMAS, a.formaBotao),
     },
     controles: { tempo: e.controles?.tempo !== false, volume: e.controles?.volume !== false },
+    protegerVideo: e.protegerVideo !== false,
+    barraFalsa: sanitizarBarraFalsa(e.barraFalsa),
     cta: {
       ativo: e.cta?.ativo === true,
       segundo: Math.round(segundo),

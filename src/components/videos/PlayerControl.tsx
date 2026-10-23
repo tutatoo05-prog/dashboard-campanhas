@@ -89,6 +89,18 @@ function Cor({ rotulo, valor, onChange }: { rotulo: string; valor: string; onCha
   )
 }
 
+function Ajuste({ rotulo, unidade, min, max, passo, valor, onChange, dica }: { rotulo: string; unidade: string; min: number; max: number; passo: number; valor: number; onChange: (valor: number) => void; dica?: string }) {
+  return (
+    <label className="block">
+      <span className="pc-label">
+        {rotulo} <b className="text-zinc-100">{String(valor).replace('.', ',')}{unidade}</b>
+      </span>
+      <input type="range" className="pc-range" min={min} max={max} step={passo} value={Math.min(max, Math.max(min, valor))} aria-label={rotulo} onChange={(e) => onChange(Number(e.target.value))} />
+      {dica && <span className="block text-xs text-zinc-500">{dica}</span>}
+    </label>
+  )
+}
+
 function Cartao({ id, titulo, destaque, children }: { id: string; titulo: string; destaque: boolean; children: ReactNode }) {
   return (
     <section id={id} className={`pc-card ${destaque ? 'pc-card-destaque' : ''}`} aria-label={titulo}>
@@ -169,6 +181,10 @@ export function PlayerControl({ video }: { video: string }) {
 
   function escolherPaleta(cor: string) {
     mudar((c) => ({ ...c, aparencia: { ...c.aparencia, corDestaque: cor, corBotao: cor, corTextoBotao: textoSobre(cor) } }))
+  }
+
+  function mudarRitmo(parcial: Partial<PlayerConfig['barraFalsa']>) {
+    mudar((c) => ({ ...c, barraFalsa: { ...c.barraFalsa, ...parcial } }))
   }
 
   function mudarCor(campo: 'corDestaque' | 'corBotao' | 'corTextoBotao', cor: string) {
@@ -374,12 +390,40 @@ export function PlayerControl({ video }: { video: string }) {
             </div>
           </Cartao>
 
+          <Cartao id="pc-ritmo" titulo="Ritmo da barra de progresso" destaque={false}>
+            <Interruptor
+              ligado={form.barraFalsa.ativo}
+              onChange={(v) => mudar((c) => ({ ...c, barraFalsa: { ...c.barraFalsa, ativo: v } }))}
+              titulo="Barra de progresso com ritmo"
+              dica="A barra anda mais rápido ou mais devagar que o vídeo, para ele parecer mais curto. Só muda o desenho da barra; o vídeo e as métricas continuam reais. O relógio some enquanto estiver ligada."
+            />
+            {form.barraFalsa.ativo && (
+              <div className="pc-campos">
+                <Ajuste rotulo="Arrancada: primeiros" unidade="s" min={0} max={30} passo={1} valor={form.barraFalsa.inicioSegundos} onChange={(n) => mudarRitmo({ inicioSegundos: n })} />
+                <Ajuste rotulo="Velocidade da arrancada" unidade="x" min={1} max={10} passo={0.5} valor={form.barraFalsa.inicioVelocidade} onChange={(n) => mudarRitmo({ inicioVelocidade: n })} />
+                <Ajuste rotulo="Cada trecho dura" unidade="s" min={0} max={120} passo={5} valor={form.barraFalsa.trechoSegundos} onChange={(n) => mudarRitmo({ trechoSegundos: n })} dica="0 = sem alternar (depois da arrancada anda normal)." />
+                <Ajuste rotulo="Trechos lentos" unidade="x" min={0.2} max={1} passo={0.05} valor={form.barraFalsa.lento} onChange={(n) => mudarRitmo({ lento: n })} />
+                <Ajuste rotulo="Trechos rápidos" unidade="x" min={1} max={4} passo={0.1} valor={form.barraFalsa.rapido} onChange={(n) => mudarRitmo({ rapido: n })} />
+                <p className="text-xs text-zinc-500">
+                  Depois da arrancada a barra alterna entre lento e rápido. Não importa o ritmo: ela sempre chega a 100% junto com o fim do
+                  vídeo. Teste na prévia ao lado.
+                </p>
+              </div>
+            )}
+          </Cartao>
+
           <Cartao id="pc-comportamento" titulo="Comportamento" destaque={false}>
             <Interruptor
               ligado={form.permitirAvancar}
               onChange={(v) => mudar((c) => ({ ...c, permitirAvancar: v }))}
               titulo="Permitir pular para a frente"
               dica="Desligado, a pessoa só volta ou continua de onde já assistiu."
+            />
+            <Interruptor
+              ligado={form.protegerVideo}
+              onChange={(v) => mudar((c) => ({ ...c, protegerVideo: v }))}
+              titulo="Esconder “Salvar vídeo” no botão direito"
+              dica="Tira do menu do navegador salvar vídeo/frame e copiar o endereço. Impede o baixar casual, mas não é à prova de quem usa extensão de download."
             />
             <label className="mt-3 block">
               <span className="pc-label">Texto de “toque para assistir”</span>
