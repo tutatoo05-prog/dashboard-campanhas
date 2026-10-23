@@ -406,3 +406,7 @@ create table if not exists video_config (
 -- (Já aplicado no banco de produção em 20/10/2026, migração dash_users_recusado_em.)
 -- ───────────────────────────────────────────────────────────────────────────────
 alter table users add column if not exists recusado_em timestamptz;
+
+-- Data de nascimento do lead (campo novo dos formularios do site; chega em respostas.data_nascimento).
+-- Tipo date: sem hora, sem fuso. Fica null enquanto o formulario nao perguntar ou a pessoa nao responder.
+alter table leads add column if not exists data_nascimento date;

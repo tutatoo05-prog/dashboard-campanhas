@@ -11,6 +11,27 @@ function toBrDate(value) {
 
 const text = (value) => String(value ?? '').trim()
 
+const CHAVES_NASCIMENTO = ['data_nascimento', 'nascimento', 'data_de_nascimento', 'birthdate', 'birth_date', 'dob']
+
+/**
+ * Data de nascimento (AAAA-MM-DD) vinda das respostas do formulário. Aceita AAAA-MM-DD, DD/MM/AAAA e
+ * DD-MM-AAAA (o Brasil escreve dia primeiro). Devolve null se vazia, impossível (31/02) ou fora de 1900 até hoje.
+ */
+export function parseNascimento(respostas, hoje = new Date()) {
+  const bruto = text(CHAVES_NASCIMENTO.map((chave) => respostas?.[chave]).find((v) => text(v)))
+  if (!bruto) return null
+  let ano, mes, dia
+  let m = bruto.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) [, ano, mes, dia] = m
+  else if ((m = bruto.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/))) [, dia, mes, ano] = m
+  else return null
+  const [a, me, d] = [Number(ano), Number(mes), Number(dia)]
+  const data = new Date(Date.UTC(a, me - 1, d))
+  if (data.getUTCFullYear() !== a || data.getUTCMonth() !== me - 1 || data.getUTCDate() !== d) return null
+  if (a < 1900 || data > hoje) return null
+  return `${String(a).padStart(4, '0')}-${String(me).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
 function toDashLead(row) {
   const utm = row.utm ?? {}
   const respostas = row.respostas ?? {}
@@ -33,6 +54,7 @@ function toDashLead(row) {
     // ID do anúncio: o ad_id que a página mandou, ou o utm_content quando ele é um ID.
     ad_id: text(respostas.ad_id) || (contentIsId ? text(utm.utm_content) : ''),
     landing_url: row.source_url ?? '',
+    data_nascimento: parseNascimento(respostas),
     data: toBrDate(row.criado_em),
     created_at: row.criado_em,
   }
@@ -44,23 +66,25 @@ async function upsertBatch(env, leads) {
   // nunca perde nem troca o que já tinha.
   const result = await query(
     env,
-    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at)
+    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at, data_nascimento)
      select * from unnest(
        $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[],
-       $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::timestamptz[]
+       $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::timestamptz[], $15::date[]
      )
      on conflict (fonte_id) do update set
        campaign_id = coalesce(leads.campaign_id, excluded.campaign_id),
+       data_nascimento = coalesce(leads.data_nascimento, excluded.data_nascimento),
        ad_id = case when leads.ad_id = '' then excluded.ad_id else leads.ad_id end,
        criativo = case when leads.criativo = '' then excluded.criativo else leads.criativo end
      where (leads.campaign_id is null and excluded.campaign_id is not null)
+        or (leads.data_nascimento is null and excluded.data_nascimento is not null)
         or (leads.ad_id = '' and excluded.ad_id <> '')
         or (leads.criativo = '' and excluded.criativo <> '')
      returning (xmax = 0) as novo`,
     [
       col('fonte_id'), col('nome'), col('email'), col('telefone'), col('origem'),
       col('campanha'), col('campaign_id'), col('midia'), col('veio_de'), col('criativo'), col('ad_id'),
-      col('landing_url'), col('data'), col('created_at'),
+      col('landing_url'), col('data'), col('created_at'), col('data_nascimento'),
     ],
   )
   const inserted = result.rows.filter((row) => row.novo).length

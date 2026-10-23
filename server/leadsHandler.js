@@ -19,6 +19,7 @@ function toLead(row) {
     ad_id: row.ad_id,
     landing_url: row.landing_url,
     data: row.data,
+    data_nascimento: row.data_nascimento,
     created_at: row.created_at,
   }
 }
@@ -37,7 +38,7 @@ export async function handleLeadsRequest(req, res, env) {
   try {
     const result = await query(
       env,
-      `select nome, email, telefone, origem, campanha, midia, veio_de, criativo, ad_id, landing_url, data, created_at
+      `select nome, email, telefone, origem, campanha, midia, veio_de, criativo, ad_id, landing_url, data, created_at, to_char(data_nascimento, 'YYYY-MM-DD') as data_nascimento
          from leads
         order by created_at desc
         limit 5000`,

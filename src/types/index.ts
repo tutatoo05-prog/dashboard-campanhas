@@ -140,6 +140,7 @@ export interface Lead {
   ad_id?: string
   landing_url?: string
   data?: string
+  data_nascimento?: string | null
   created_at?: string
   [key: string]: unknown
 }
