@@ -27,7 +27,7 @@ const VIDEO_VALIDO = /^[\w-]{1,40}$/
 const CACHE_MS = 30_000
 const MAX_SEGUNDO = 7200
 const VELOCIDADE_MIN = 0.1
-const VELOCIDADE_MAX = 10
+const VELOCIDADE_MAX = 30
 
 export class ConfigInvalida extends Error {}
 

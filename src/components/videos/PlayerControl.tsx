@@ -399,11 +399,11 @@ export function PlayerControl({ video }: { video: string }) {
             />
             {form.barraFalsa.ativo && (
               <div className="pc-campos">
-                <Ajuste rotulo="Arrancada: primeiros" unidade="s" min={0} max={30} passo={1} valor={form.barraFalsa.inicioSegundos} onChange={(n) => mudarRitmo({ inicioSegundos: n })} />
-                <Ajuste rotulo="Velocidade da arrancada" unidade="x" min={1} max={10} passo={0.5} valor={form.barraFalsa.inicioVelocidade} onChange={(n) => mudarRitmo({ inicioVelocidade: n })} />
+                <Ajuste rotulo="Arrancada: primeiros" unidade="s" min={0} max={60} passo={1} valor={form.barraFalsa.inicioSegundos} onChange={(n) => mudarRitmo({ inicioSegundos: n })} />
+                <Ajuste rotulo="Velocidade da arrancada" unidade="x" min={1} max={30} passo={1} valor={form.barraFalsa.inicioVelocidade} onChange={(n) => mudarRitmo({ inicioVelocidade: n })} />
                 <Ajuste rotulo="Cada trecho dura" unidade="s" min={0} max={120} passo={5} valor={form.barraFalsa.trechoSegundos} onChange={(n) => mudarRitmo({ trechoSegundos: n })} dica="0 = sem alternar (depois da arrancada anda normal)." />
-                <Ajuste rotulo="Trechos lentos" unidade="x" min={0.2} max={1} passo={0.05} valor={form.barraFalsa.lento} onChange={(n) => mudarRitmo({ lento: n })} />
-                <Ajuste rotulo="Trechos rápidos" unidade="x" min={1} max={4} passo={0.1} valor={form.barraFalsa.rapido} onChange={(n) => mudarRitmo({ rapido: n })} />
+                <Ajuste rotulo="Trechos lentos" unidade="x" min={0.2} max={3} passo={0.1} valor={form.barraFalsa.lento} onChange={(n) => mudarRitmo({ lento: n })} />
+                <Ajuste rotulo="Trechos rápidos" unidade="x" min={1} max={10} passo={0.5} valor={form.barraFalsa.rapido} onChange={(n) => mudarRitmo({ rapido: n })} />
                 <p className="text-xs text-zinc-500">
                   Depois da arrancada a barra alterna entre lento e rápido. Não importa o ritmo: ela sempre chega a 100% junto com o fim do
                   vídeo. Teste na prévia ao lado.
