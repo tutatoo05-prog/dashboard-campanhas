@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { montarRegistros, registrosDosLeads } from './registrosHandler.js'
+import { comprasComoLeads, montarRegistros, registrosDosLeads } from './registrosHandler.js'
 
 const lead = (extras = {}) => ({
   nome: 'Ana',
@@ -67,6 +67,7 @@ test('montarRegistros junta leads e Hotmart e aplica o que foi apagado', async (
     {
       esquema: async () => {},
       consultar: async (sql) => {
+        if (/from purchases/.test(sql)) return { rows: [] }
         pedidoSql = sql
         return { rows: [lead()] }
       },
@@ -81,4 +82,55 @@ test('montarRegistros junta leads e Hotmart e aplica o que foi apagado', async (
   assert.equal(r.records.length, 2)
   assert.deepEqual(r.tabs.map((t) => t.planilha), ['Workshops', 'Hotmart'])
   assert.equal(r.apagadosAplicado, true)
+})
+
+const compra = (extras = {}) => ({ nome: 'Rafa', email: 'rafa@x.com', telefone: '5511911112222', campanha: 'essentials_live', src: '', created_at: new Date('2026-10-02T10:00:00Z'), ...extras })
+
+test('compra com identificação live vai para Essentials · Live; membros para Membros; o resto fica de fora', () => {
+  const linhas = comprasComoLeads([
+    compra(),
+    compra({ email: 'b@x.com', campanha: 'live' }),
+    compra({ email: 'c@x.com', campanha: '', src: 'essentials_membros' }),
+    compra({ email: 'd@x.com', campanha: 'essentials_a' }),
+    compra({ email: 'e@x.com', campanha: '' }),
+  ])
+  assert.deepEqual(linhas.map((l) => l.slug), ['essentials-live', 'essentials-live', 'essentials-membros'])
+  assert.equal(linhas[0].origem, 'essentials_live')
+})
+
+test('montarRegistros põe as compras live em Essentials · Live sem repetir quem já é lead de lá', async () => {
+  const r = await montarRegistros(
+    {},
+    {
+      esquema: async () => {},
+      consultar: async (sql) => {
+        if (/from purchases/.test(sql)) {
+          return { rows: [compra(), compra({ nome: 'Ana Live', email: 'ana@x.com', telefone: '5511900000001', created_at: new Date('2026-10-05T10:00:00Z') })] }
+        }
+        return { rows: [lead({ slug: 'essentials-live', origem: 'essentials_live', nome: 'Ana Live', email: 'ana@x.com', telefone: '5511900000001', created_at: new Date('2026-10-01T10:00:00Z') })] }
+      },
+      hotmart: async () => ({ tabs: [], records: [] }),
+      apagados: async (d) => d,
+    },
+  )
+  const live = r.tabs.find((t) => t.planilha === 'Essentials' && t.aba === 'Live')
+  assert.equal(live.count, 2) // Ana (lead, uma vez só) + Rafa (compra)
+  const rafa = r.records.find((x) => x.nome === 'Rafa')
+  assert.deepEqual([rafa.planilha, rafa.aba, rafa.canal], ['Essentials', 'Live', 'Compra (Hotmart)'])
+})
+
+test('se a leitura das compras falhar, os leads continuam aparecendo', async () => {
+  const r = await montarRegistros(
+    {},
+    {
+      esquema: async () => {},
+      consultar: async (sql) => {
+        if (/from purchases/.test(sql)) throw new Error('sem a coluna src')
+        return { rows: [lead()] }
+      },
+      hotmart: async () => ({ tabs: [], records: [] }),
+      apagados: async (d) => d,
+    },
+  )
+  assert.equal(r.records.length, 1)
 })

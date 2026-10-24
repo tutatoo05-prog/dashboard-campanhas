@@ -80,6 +80,33 @@ export function registrosDosLeads(linhas) {
   return { tabs, records }
 }
 
+/**
+ * Compras da Hotmart com identificação de vertente (a página de origem vai em campanha/src: "live", "essentials_live",
+ * "membros"...) viram registros do projeto certo (Essentials · Live / Membros), no mesmo formato dos leads.
+ * Quem já está no projeto (como lead, mesmo e-mail ou telefone) não conta duas vezes.
+ */
+export function comprasComoLeads(compras) {
+  const linhas = []
+  for (const compra of compras) {
+    const identificacao = `${compra.campanha ?? ''} ${compra.src ?? ''}`
+    const slug = /membros/i.test(identificacao) ? 'essentials-membros' : /live/i.test(identificacao) ? 'essentials-live' : null
+    if (!slug) continue
+    linhas.push({
+      nome: compra.nome,
+      email: compra.email,
+      telefone: compra.telefone,
+      origem: classificar(slug).origem,
+      slug,
+      campanha: compra.campanha ?? '',
+      midia: '',
+      veio_de: 'Compra (Hotmart)',
+      criativo: '',
+      created_at: compra.created_at,
+    })
+  }
+  return linhas
+}
+
 /** Eventos da Hotmart do banco (webhook direto) + histórico já guardado. Se não der para ler, segue só com os leads. */
 export async function eventosDaHotmart(env) {
   let eventos
@@ -116,7 +143,17 @@ export async function montarRegistros(
       order by created_at asc
       limit 50000`,
   )
-  const leads = registrosDosLeads(rows)
+  // Compras com identificação de vertente (live/membros). Se a leitura falhar, a tela segue só com os leads.
+  let compras = []
+  try {
+    compras = comprasComoLeads((await consultar(
+      `select nome, email, telefone, campanha, src, created_at from purchases where campanha ~* '(live|membros)' or src ~* '(live|membros)'`,
+    )).rows)
+  } catch (erro) {
+    console.error('Erro ao juntar as compras nos registros:', erro.message || erro)
+  }
+  const juntos = [...rows, ...compras].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const leads = registrosDosLeads(juntos)
   const eventos = await hotmart(env)
   const dados = { tabs: [...leads.tabs, ...eventos.tabs], records: [...leads.records, ...eventos.records] }
   return apagados(dados, env)
