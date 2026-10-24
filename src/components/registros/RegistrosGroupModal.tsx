@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { STATUS_ROTULO, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
+import { type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency, formatNumber } from '@/lib/format.ts'
-import { exportCsv } from '@/lib/csv.ts'
+import { ExportCsvModal } from './ExportCsvModal.tsx'
 
 export type RegistroGroupKind = 'origem' | 'campanha'
 
@@ -36,6 +36,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
   const closeRef = useRef<HTMLButtonElement>(null)
   const [search, setSearch] = useState('')
   const [visible, setVisible] = useState(PAGE)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const sorted = useMemo(() => [...records].sort((a, b) => timeOf(b) - timeOf(a)), [records])
   const filtered = useMemo(() => {
@@ -68,6 +69,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
   }, [onClose])
 
   return (
+    <>
     <div
       className="dialog-backdrop"
       onMouseDown={(event) => {
@@ -93,30 +95,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
             <button
               type="button"
               className="sale-chip-btn"
-              onClick={() =>
-                exportCsv(
-                  `registros-${kind}.csv`,
-                  ['Planilha', 'Aba', 'Aparece em', 'Situação comercial', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
-                  filtered.map((record) => [
-                    record.planilha,
-                    record.aba,
-                    record.aparece.map((item) => `${item.aba} (${item.planilha})`).join(' · '),
-                    STATUS_ROTULO[record.status],
-                    record.nome,
-                    record.email,
-                    record.telefone,
-                    shortDate(record.data),
-                    record.canal,
-                    record.campanha,
-                    record.criativo,
-                    record.evento ?? '',
-                    record.situacao ?? '',
-                    record.produto ?? '',
-                    record.valor ?? '',
-                    record.pagamento ?? '',
-                  ]),
-                )
-              }
+              onClick={() => setExportOpen(true)}
             >
               <i className="fa-solid fa-download" aria-hidden="true" />
               CSV
@@ -176,5 +155,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
         </div>
       </div>
     </div>
+    {exportOpen && <ExportCsvModal filename={`registros-${kind}.csv`} records={filtered} onClose={() => setExportOpen(false)} />}
+    </>
   )
 }

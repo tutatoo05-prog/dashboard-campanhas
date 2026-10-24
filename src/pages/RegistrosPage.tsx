@@ -10,7 +10,7 @@ import { RegistrosGroupModal, type RegistroGroupKind } from '@/components/regist
 import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
 import { RegistrosMapa } from '@/components/registros/RegistrosMapa.tsx'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format.ts'
-import { exportCsv } from '@/lib/csv.ts'
+import { ExportCsvModal } from '@/components/registros/ExportCsvModal.tsx'
 import { agruparRegistros, apareceTexto, campanhaDe, STATUS_ROTULO, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import type { RegistroTab } from '@/types'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
@@ -122,6 +122,7 @@ export default function RegistrosPage() {
   const [selectedTab, setSelectedTab] = useState('')
   const [group, setGroup] = useState<{ kind: RegistroGroupKind; label: string } | null>(null)
   const [selected, setSelected] = useState<RegistroAgrupado | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [fOrigem, setFOrigem] = useState('')
   const [fCampanha, setFCampanha] = useState('')
@@ -493,30 +494,7 @@ export default function RegistrosPage() {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    exportCsv(
-                      'registros.csv',
-                      ['Planilha', 'Aba', 'Aparece em', 'Situação comercial', 'Nome', 'Email', 'Telefone', 'Data', 'Origem', 'Campanha', 'Criativo', 'Evento', 'Situação', 'Produto', 'Valor', 'Pagamento'],
-                      filtered.map((record) => [
-                        record.planilha,
-                        record.aba,
-                        apareceTexto(record),
-                        STATUS_ROTULO[record.status],
-                        record.nome,
-                        record.email,
-                        record.telefone,
-                        formatDate(record.data),
-                        record.canal,
-                        record.campanha,
-                        record.criativo,
-                        record.evento,
-                        record.situacao,
-                        record.produto,
-                        record.valor ?? '',
-                        record.pagamento,
-                      ]),
-                    )
-                  }
+                  onClick={() => setExportOpen(true)}
                   className="shrink-0 rounded-lg border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                 >
                   <i className="fa-solid fa-download mr-1.5" />
@@ -736,6 +714,7 @@ export default function RegistrosPage() {
         </>
       )}
 
+      {exportOpen && <ExportCsvModal filename="registros.csv" records={filtered} onClose={() => setExportOpen(false)} />}
       {group && !selected && (
         <RegistrosGroupModal
           kind={group.kind}
