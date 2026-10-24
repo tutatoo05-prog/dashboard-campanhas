@@ -69,16 +69,23 @@ function problemasDe(projetos: ProjetoMonitorado[]): Problema[] {
   return lista
 }
 
+/** Quando o servidor conferiu um endereço pela última vez (e não quando a tela carregou). */
+function ultimaVerificacao(dados: ResumoDoMonitor): string | null {
+  const horas = dados.projetos.flatMap((projeto) => projeto.alvos.map((alvo) => alvo.checadoEm)).filter((hora): hora is string => Boolean(hora))
+  return horas.length ? horas.reduce((a, b) => (new Date(a) > new Date(b) ? a : b)) : null
+}
+
 function statusGeral(dados: ResumoDoMonitor, problemas: Problema[]): { tom: Tom; titulo: string; detalhe: string } {
   const alvos = dados.projetos.flatMap((projeto) => projeto.alvos)
   const comDados = alvos.filter((alvo) => alvo.situacao !== 'sem-dados')
   const noAr = alvos.filter((alvo) => alvo.situacao === 'ok' || alvo.situacao === 'lento').length
   const lentos = alvos.filter((alvo) => alvo.situacao === 'lento').length
-  const resumo = `${formatNumber(noAr)} de ${formatNumber(alvos.length)} endereços no ar`
+  const aguardando = alvos.length - comDados.length
+  const resumo = `${formatNumber(noAr)} de ${formatNumber(alvos.length)} endereços no ar${aguardando ? ` · ${formatNumber(aguardando)} aguardando a 1ª verificação` : ''}`
   if (!comDados.length) return { tom: 'vazio', titulo: 'Aguardando a primeira verificação', detalhe: 'Leva até 5 minutos depois que o dash sobe.' }
   if (problemas.length) return { tom: 'fora', titulo: problemas.length === 1 ? '1 problema agora' : `${formatNumber(problemas.length)} problemas agora`, detalhe: resumo }
   if (lentos) return { tom: 'lento', titulo: 'No ar, mas com lentidão', detalhe: `${resumo} · ${formatNumber(lentos)} ${lentos === 1 ? 'lento' : 'lentos'}` }
-  return { tom: 'ok', titulo: 'Tudo funcionando', detalhe: resumo }
+  return { tom: aguardando ? 'vazio' : 'ok', titulo: aguardando ? 'No ar, falta verificar alguns' : 'Tudo funcionando', detalhe: resumo }
 }
 
 /** Resposta ao longo das últimas checagens: linha para os acertos (altura = tempo) e ponto vermelho para cada falha. */
@@ -123,7 +130,7 @@ function LinhaDoEndereco({ alvo }: { alvo: AlvoMonitorado }) {
         <Tendencia alvo={alvo} />
       </span>
       <span className={`w-16 shrink-0 text-right text-sm tabular-nums ${fora ? 'font-medium text-red-300' : alvo.situacao === 'lento' ? 'text-amber-300' : 'text-zinc-300'}`}>
-        {fora ? 'fora' : alvo.ms !== null ? `${formatNumber(alvo.ms)} ms` : '—'}
+        {fora ? 'fora' : alvo.situacao === 'sem-dados' ? <span className="text-xs font-normal text-zinc-500">aguardando</span> : alvo.ms !== null ? `${formatNumber(alvo.ms)} ms` : '—'}
       </span>
       <span className={`w-14 shrink-0 text-right text-xs tabular-nums ${TOM[tomDaDisponibilidade(alvo.disponibilidade24h)].texto}`} title="Disponibilidade nas últimas 24 horas">
         {porcento(alvo.disponibilidade24h)}
@@ -209,7 +216,7 @@ export default function MonitorPage() {
             <div>
               <p className={`text-lg font-semibold leading-tight ${TOM[geral.tom].texto}`}>{geral.titulo}</p>
               <p className="text-xs text-zinc-500">
-                {geral.detalhe} · verificado {quando(dados.geradoEm)}
+                {geral.detalhe} · última verificação {quando(ultimaVerificacao(dados))}
               </p>
             </div>
           </div>
