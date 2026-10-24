@@ -35,8 +35,10 @@ export const PROJETOS = [
     alvos: [
       { nome: 'Essentials', url: 'https://tuzinho.academy/produtos/essentials/' },
       { nome: 'Conheça o Essentials', url: 'https://tuzinho.academy/produtos/conheca-essentials/' },
-      { nome: 'Live', url: 'https://tuzinho.academy/produtos/live/' },
-      { nome: 'Área de membros', url: 'https://tuzinho.academy/produtos/membros/' },
+      // A Live da campanha do Google fica em tuzinho.app (só esse domínio foi aprovado); a de tuzinho.academy é a cópia.
+      { nome: 'Live (campanha)', url: 'https://tuzinho.app/essentials/' },
+      { nome: 'Live (tuzinho.academy)', url: 'https://tuzinho.academy/produtos/essentials/live/' },
+      { nome: 'Área de membros', url: 'https://tuzinho.academy/produtos/essentials/membros/' },
       { nome: 'Mentoria particular', url: 'https://tuzinho.academy/produtos/particular/' },
       { nome: 'Player de vídeo', url: 'https://tuzinho.academy/produtos/player/' },
     ],
