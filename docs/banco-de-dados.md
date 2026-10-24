@@ -98,6 +98,20 @@ A tela esconde os registros que batem com uma chave e são **anteriores** a `apa
 
 ---
 
+## `lead_notas`
+
+Anotação interna da equipe sobre um lead, feita na gaveta da tela **Leads**. Criada automaticamente pelo servidor.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `chave` | text | Chave primária: `e:<e-mail em minúsculas>` ou, sem e-mail, `t:<11 últimos dígitos do telefone>`. |
+| `nota` | text | Texto livre (até 2.000 caracteres). |
+| `situacao` | text | `novo`, `chamado`, `respondeu` ou `sem_interesse`. |
+| `tags` | text[] | Etiquetas (até 12). |
+| `atualizado_em` / `atualizado_por` | timestamptz / text | Última alteração e quem fez. |
+
+---
+
 ## `monitor_checagens`
 
 Histórico do Monitoramento: uma linha por endereço conferido a cada rodada (padrão: a cada 5 minutos). Mantém **14 dias**. Criada automaticamente.

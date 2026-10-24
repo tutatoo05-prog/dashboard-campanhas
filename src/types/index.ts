@@ -129,6 +129,13 @@ export interface Goal {
 }
 
 export interface Lead {
+  /** Chave da pessoa nas anotações (e:<e-mail> ou t:<telefone>). */
+  chave?: string
+  slug?: string
+  tipo?: string
+  vertente?: string
+  campaign_id?: string
+  respostas?: Record<string, unknown>
   nome?: string
   email?: string
   telefone?: string
@@ -143,6 +150,18 @@ export interface Lead {
   data_nascimento?: string | null
   created_at?: string
   [key: string]: unknown
+}
+
+export type SituacaoContato = 'novo' | 'chamado' | 'respondeu' | 'sem_interesse'
+
+/** Anotação interna da equipe sobre um lead. */
+export interface LeadNota {
+  chave: string
+  nota: string
+  situacao: SituacaoContato
+  tags: string[]
+  atualizadoEm?: string
+  atualizadoPor?: string | null
 }
 
 export interface RegistroTab {

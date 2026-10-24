@@ -160,7 +160,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       }
 
       if (req.url.startsWith('/api/leads')) {
-        await handleLeadsRequest(req, res, env)
+        await handleLeadsRequest(req, res, env, user)
         return
       }
 

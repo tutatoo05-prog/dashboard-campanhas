@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leads v2 · Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700;800&family=Pirata+One&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#f1e6cd; --paper:#14100b; --card:#1f1912; --white:#2a2217; --muted:#a99d80; --line:#8d7e5f; --shade:#050403;
+    --o:#ff8a1f; --y:#eab12a; --r:#e5483b; --t:#27a8a3; --g:#34d399; --on:#15110d;
+    --display:'Pirata One',Georgia,serif;
+  }
+  [data-theme='light'] { --ink:#15110d; --paper:#efe2c4; --card:#fcf6e6; --white:#fffaf0; --muted:#6f624b; --line:#15110d; --shade:#15110d; --g:#0f7a49; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',system-ui,sans-serif; background:var(--paper); color:var(--ink); min-height:100vh;
+    background-image:radial-gradient(rgba(241,230,205,.07) 1.2px,transparent 1.7px); background-size:15px 15px; }
+  [data-theme='light'] body { background-image:radial-gradient(rgba(21,17,13,.1) 1.2px,transparent 1.7px); }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:22px; max-width:1560px; margin:0 auto; padding:20px; align-items:start; }
+  @media (max-width:1150px){ .wrap{grid-template-columns:1fr} .legend{position:static!important;max-height:none!important} }
+  .card { position:relative; background:var(--card); border:3px solid var(--line); border-radius:18px; box-shadow:5px 5px 0 var(--shade); }
+  .label { font-size:.64rem; font-weight:800; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+  h1,h2,h3 { font-family:var(--display); font-weight:400; line-height:1; }
+  h3 { font-size:1.35rem; margin-top:4px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border:2.5px solid var(--line); border-radius:10px; font-size:.76rem; font-weight:800; background:var(--white); box-shadow:2px 2px 0 var(--shade); }
+  .btn:hover { background:var(--y); color:var(--on); }
+  .btn.pri { background:var(--o); color:var(--on); }
+  .theme { width:40px; height:40px; border-radius:50%; background:var(--y); color:var(--on); border:2.5px solid var(--line); box-shadow:2px 2px 0 var(--shade); font-size:1.1rem; }
+  .tag { display:inline-block; background:var(--ink); color:var(--card); padding:4px 12px; border-radius:6px; font-size:.66rem; font-weight:800; letter-spacing:.26em; }
+  .stack > * + * { margin-top:18px; }
+
+  .hero { padding:22px 26px; display:flex; justify-content:space-between; gap:20px; align-items:center; flex-wrap:wrap;
+    background-image:radial-gradient(rgba(255,138,31,.28) 2.2px,transparent 2.8px); background-size:16px 16px; background-position:right; }
+  .hero h2 { font-size:2.8rem; margin:8px 0 6px; }
+  .hero p { color:var(--muted); max-width:42rem; font-size:.88rem; }
+  .seg { display:inline-flex; border:2.5px solid var(--line); border-radius:12px; background:var(--white); padding:3px; gap:2px; box-shadow:2px 2px 0 var(--shade); flex-wrap:wrap; }
+  .seg button { padding:5px 11px; border-radius:8px; font-size:.74rem; font-weight:800; color:var(--muted); }
+  .seg .on { background:var(--o); color:var(--on); }
+
+  .kpis { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }
+  @media (max-width:1300px){ .kpis{grid-template-columns:repeat(3,1fr)} } @media (max-width:640px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+  .kpi { padding:12px 14px; }
+  .kpi b { display:block; font-family:var(--display); font-size:2.1rem; font-weight:400; margin-top:4px; }
+  .delta { font-size:.72rem; font-weight:800; }
+  .up { color:var(--g); } .down { color:var(--r); } .flat { color:var(--muted); }
+  .kpi small { display:block; color:var(--muted); font-size:.7rem; margin-top:2px; }
+  .kpi.hot { background:linear-gradient(135deg,rgba(255,138,31,.18),transparent); border-color:var(--o); }
+
+  .grid2 { display:grid; grid-template-columns:1.5fr 1fr; gap:18px; } .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  @media (max-width:1100px){ .grid2,.grid3{grid-template-columns:1fr} }
+  .pad { padding:16px 18px; }
+
+  /* barras */
+  .bars { display:flex; align-items:flex-end; gap:4px; height:130px; margin-top:12px; border-bottom:2px solid var(--line); }
+  .bars i { flex:1; background:var(--o); border-radius:3px 3px 0 0; min-height:4px; opacity:.9; position:relative; }
+  .bars i.w { background:var(--y); } .bars i.cv { box-shadow:inset 0 5px 0 var(--g); }
+  .axis { display:flex; justify-content:space-between; font-size:.64rem; color:var(--muted); margin-top:4px; font-weight:700; }
+  .legline { display:flex; gap:14px; font-size:.7rem; color:var(--muted); font-weight:700; margin-top:8px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; }
+
+  /* funil */
+  .funnel .step { margin-top:10px; }
+  .funnel .row { display:flex; justify-content:space-between; font-size:.78rem; font-weight:800; }
+  .track { height:20px; border:2.5px solid var(--line); border-radius:8px; background:var(--white); overflow:hidden; margin-top:4px; }
+  .track i { display:block; height:100%; background:var(--o); }
+  .track i.g { background:var(--g); } .track i.t { background:var(--t); } .track i.y { background:var(--y); }
+  .drop { font-size:.68rem; color:var(--r); font-weight:800; text-align:right; margin-top:2px; }
+
+  /* ranking */
+  .rank { margin-top:10px; } .rank li { list-style:none; display:grid; grid-template-columns:22px 1fr auto; gap:8px; align-items:center; padding:7px 0; border-bottom:1.5px dashed rgba(141,126,95,.5); font-size:.8rem; }
+  .rank li:last-child { border:0; } .rank .n { font-family:var(--display); font-size:1.2rem; color:var(--o); }
+  .rank .sub { display:block; font-size:.66rem; color:var(--muted); font-weight:700; }
+  .rate { font-weight:800; font-size:.8rem; text-align:right; } .rate small { display:block; font-size:.64rem; color:var(--muted); }
+
+  /* heatmap */
+  .heat { display:grid; grid-template-columns:30px repeat(8,1fr); gap:3px; margin-top:12px; font-size:.6rem; font-weight:800; color:var(--muted); }
+  .heat span { text-align:center; } .heat b { aspect-ratio:1.6; border-radius:3px; background:var(--o); }
+  .ddd { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border:2px solid var(--line); border-radius:8px; font-size:.7rem; font-weight:800; background:var(--white); }
+
+  /* filtros */
+  .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:12px 14px; }
+  .sel,.search { border:2.5px solid var(--line); border-radius:10px; background:var(--white); padding:7px 12px; font-size:.78rem; font-weight:700; box-shadow:2px 2px 0 var(--shade); }
+  .search { color:var(--muted); min-width:240px; flex:1; }
+  .grow { flex:1; }
+
+  /* tabela */
+  .tbl { width:100%; border-collapse:collapse; font-size:.8rem; }
+  .tbl th { text-align:left; padding:9px 12px; font-size:.62rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); border-top:2px solid var(--line); border-bottom:2px solid var(--line); background:var(--white); position:sticky; top:0; }
+  .tbl td { padding:10px 12px; border-bottom:1.5px dashed rgba(141,126,95,.45); vertical-align:middle; }
+  .tbl tr:hover td { background:rgba(255,138,31,.09); } .tbl tr.sel td { background:rgba(234,177,42,.16); }
+  .who { display:flex; gap:10px; align-items:center; }
+  .av { width:34px; height:34px; border-radius:50%; border:2.5px solid var(--line); display:grid; place-items:center; font-family:var(--display); font-size:1rem; background:var(--y); color:var(--on); flex:none; }
+  .who b { display:block; } .who small, td small { color:var(--muted); font-size:.68rem; font-weight:700; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:99px; border:2px solid; font-size:.66rem; font-weight:800; white-space:nowrap; }
+  .p-aluno { color:var(--g); border-color:var(--g); } .p-quente { color:var(--o); border-color:var(--o); } .p-lead { color:var(--muted); border-color:var(--muted); } .p-frio { color:var(--t); border-color:var(--t); }
+  .proj { font-size:.66rem; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--white); border:2px solid var(--line); }
+  .score { display:inline-flex; gap:2px; } .score i { width:7px; height:14px; border-radius:2px; background:var(--white); border:1.5px solid var(--line); } .score i.on { background:var(--o); border-color:var(--o); }
+  .act { display:flex; gap:6px; } .ic { width:28px; height:28px; border-radius:8px; border:2px solid var(--line); background:var(--white); font-size:.8rem; display:grid; place-items:center; }
+  .ic:hover { background:var(--g); color:var(--on); }
+  .pager { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; font-size:.74rem; color:var(--muted); font-weight:700; }
+
+  /* gaveta */
+  .drawer { padding:18px; border-color:var(--o); }
+  .drawer .head { display:flex; gap:12px; align-items:center; }
+  .drawer .av { width:52px; height:52px; font-size:1.6rem; }
+  .kv { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:14px; font-size:.78rem; }
+  .kv span { display:block; color:var(--muted); font-size:.62rem; letter-spacing:.16em; text-transform:uppercase; font-weight:800; }
+  .tl { margin-top:14px; border-left:3px solid var(--line); padding-left:14px; } .tl div { position:relative; font-size:.78rem; padding-bottom:12px; }
+  .tl div::before { content:''; position:absolute; left:-21px; top:3px; width:11px; height:11px; border-radius:50%; background:var(--o); border:2px solid var(--line); }
+  .tl small { display:block; color:var(--muted); font-size:.66rem; font-weight:700; }
+  .note { margin-top:10px; border:2.5px dashed var(--line); border-radius:10px; padding:10px; font-size:.78rem; color:var(--muted); min-height:54px; }
+  .drawer-grid { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:18px; align-items:start; } @media (max-width:1100px){ .drawer-grid{grid-template-columns:1fr} }
+
+  /* legenda */
+  .legend { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; padding:16px; }
+  .legend h3 { font-size:1.5rem; margin-bottom:6px; }
+  .legend ol { margin-top:10px; padding-left:0; list-style:none; counter-reset:n; }
+  .legend li { counter-increment:n; padding:8px 0 8px 32px; position:relative; font-size:.76rem; border-bottom:1.5px dashed rgba(141,126,95,.5); }
+  .legend li::before { content:counter(n); position:absolute; left:0; top:7px; width:22px; height:22px; border-radius:50%; background:var(--o); color:var(--on); font-weight:800; display:grid; place-items:center; font-size:.7rem; }
+  .legend li b { display:block; } .legend li span { color:var(--muted); }
+  .src { display:inline-block; font-size:.58rem; font-weight:800; letter-spacing:.1em; padding:1px 6px; border-radius:5px; margin-left:4px; vertical-align:middle; }
+  .s-ok { background:var(--g); color:var(--on); } .s-new { background:var(--y); color:var(--on); } .s-ext { background:var(--t); color:var(--on); }
+  .num-badge { position:absolute; top:-11px; left:-11px; width:24px; height:24px; border-radius:50%; background:var(--o); color:var(--on); border:2.5px solid var(--line); font-weight:800; font-size:.72rem; display:grid; place-items:center; z-index:2; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<main class="stack">
+
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span class="label">Mockup · Leads v2 · dados fictícios</span>
+    <button class="theme" onclick="const h=document.documentElement;h.dataset.theme=h.dataset.theme==='light'?'dark':'light'">◐</button>
+  </div>
+
+  <!-- HERO -->
+  <section class="card hero">
+    <div>
+      <span class="tag">TOPO DE FUNIL</span>
+      <h2>Leads</h2>
+      <p>Quem chegou, de onde veio, o que respondeu e se já virou aluno — com a hora certa de abordar cada um.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <div class="seg"><button>Hoje</button><button>7 dias</button><button class="on">30 dias</button><button>90 dias</button><button>Tudo</button></div>
+      <div class="seg"><button class="on">Todos os projetos</button><button>Essentials Live</button><button>Membros</button><button>Workshops</button><button>Mentoria</button></div>
+    </div>
+  </section>
+
+  <!-- KPIs -->
+  <section class="kpis">
+    <div class="card kpi"><span class="num-badge">1</span><span class="label">Leads no período</span><b>2.847</b><span class="delta up">▲ 18% <small style="display:inline">vs 30d ant.</small></span></div>
+    <div class="card kpi"><span class="label">Novos hoje</span><b>63</b><span class="delta up">▲ 12 vs ontem</span></div>
+    <div class="card kpi"><span class="label">Viraram aluno</span><b>212</b><span class="delta up">▲ 9%</span><small>R$ 41.760 em vendas</small></div>
+    <div class="card kpi"><span class="label">Conversão</span><b>7,4%</b><span class="delta down">▼ 0,6 pp</span></div>
+    <div class="card kpi"><span class="label">Tempo até comprar</span><b>3,2 d</b><span class="delta flat">mediana · 38% no mesmo dia</span></div>
+    <div class="card kpi hot"><span class="num-badge">2</span><span class="label">Leads quentes</span><b>148</b><span class="delta up">sem compra · ver lista →</span></div>
+  </section>
+
+  <!-- CAPTAÇÃO + FUNIL -->
+  <section class="grid2">
+    <div class="card pad"><span class="num-badge">3</span>
+      <span class="label">Captação</span><h3>Cadastros por dia</h3>
+      <div class="bars" id="bars"></div>
+      <div class="axis"><span>25 set</span><span>5 out</span><span>15 out</span><span>24 out</span></div>
+      <div class="legline"><span><i class="dot" style="background:var(--o)"></i>Dia útil</span><span><i class="dot" style="background:var(--y)"></i>Fim de semana</span><span><i class="dot" style="background:var(--g)"></i>Parte que comprou</span></div>
+    </div>
+    <div class="card pad funnel"><span class="num-badge">4</span>
+      <span class="label">Funil</span><h3>Do cadastro à compra</h3>
+      <div class="step"><div class="row"><span>Cadastrou</span><span>2.847</span></div><div class="track"><i style="width:100%"></i></div></div>
+      <div class="step"><div class="row"><span>Abriu e-mail</span><span>1.310 · 46%</span></div><div class="track"><i class="t" style="width:46%"></i></div></div>
+      <div class="step"><div class="row"><span>Entrou no grupo / assistiu</span><span>894 · 31%</span></div><div class="track"><i class="y" style="width:31%"></i></div></div>
+      <div class="step"><div class="row"><span>Clicou em comprar</span><span>402 · 14%</span></div><div class="track"><i style="width:14%"></i></div></div>
+      <div class="step"><div class="row"><span>Comprou</span><span>212 · 7,4%</span></div><div class="track"><i class="g" style="width:7.4%"></i></div><div class="drop">maior perda: cadastro → assistiu (−69%)</div></div>
+    </div>
+  </section>
+
+  <!-- ORIGEM / CRIATIVO / PERFIL -->
+  <section class="grid3">
+    <div class="card pad"><span class="num-badge">5</span>
+      <span class="label">Por origem</span><h3>Quem converte melhor</h3>
+      <ul class="rank">
+        <li><span class="n">1</span><div>Workshop Irezumi<span class="sub">1.020 leads · R$ 3,10 / lead</span></div><div class="rate">11,2%<small>114 vendas</small></div></li>
+        <li><span class="n">2</span><div>Essentials Live<span class="sub">980 leads · R$ 4,40 / lead</span></div><div class="rate">6,1%<small>60 vendas</small></div></li>
+        <li><span class="n">3</span><div>Essentials Membros<span class="sub">540 leads · R$ 5,90 / lead</span></div><div class="rate">4,8%<small>26 vendas</small></div></li>
+        <li><span class="n">4</span><div>Mentoria (aplicação)<span class="sub">307 leads · orgânico</span></div><div class="rate">3,9%<small>12 vendas</small></div></li>
+      </ul>
+    </div>
+    <div class="card pad"><span class="num-badge">6</span>
+      <span class="label">Anúncios</span><h3>Melhores criativos</h3>
+      <ul class="rank">
+        <li><span class="n">1</span><div>VSL-tatuador-dor-03<span class="sub">camp. Irezumi-Frio · 412 leads</span></div><div class="rate">12,6%<small>R$ 2,70/lead</small></div></li>
+        <li><span class="n">2</span><div>Reels-antes-depois<span class="sub">camp. Live-Lookalike · 301</span></div><div class="rate">8,3%<small>R$ 3,90/lead</small></div></li>
+        <li><span class="n">3</span><div>Carrossel-erros<span class="sub">camp. Membros-Interesse · 188</span></div><div class="rate">2,1%<small>R$ 7,20/lead</small></div></li>
+      </ul>
+    </div>
+    <div class="card pad"><span class="num-badge">7</span>
+      <span class="label">Perfil</span><h3>Quando e onde cadastram</h3>
+      <div class="heat" id="heat"></div>
+      <div class="ddd"><span class="chip">SP 31%</span><span class="chip">RJ 14%</span><span class="chip">MG 11%</span><span class="chip">PR 7%</span><span class="chip">RS 6%</span><span class="chip">+ 19 UFs</span></div>
+      <div class="ddd"><span class="chip">Idade média 29</span><span class="chip">68% celular</span><span class="chip">Instagram 74%</span></div>
+    </div>
+  </section>
+
+  <!-- FILTROS -->
+  <section class="card filters"><span class="num-badge">8</span>
+    <input class="search" placeholder="Buscar nome, e-mail, telefone, campanha, criativo…" />
+    <div class="seg"><button class="on">Todos 2.847</button><button>🔥 Quentes 148</button><button>Novos 63</button><button>Alunos 212</button><button>Frios 1.940</button></div>
+    <select class="sel"><option>Projeto: todos</option></select>
+    <select class="sel"><option>Campanha: todas</option></select>
+    <select class="sel"><option>Ordenar: mais recentes</option></select>
+    <button class="btn">⚙ Colunas</button>
+    <button class="btn">⬇ CSV</button>
+  </section>
+
+  <!-- TABELA + GAVETA -->
+  <section class="drawer-grid">
+    <div class="card" style="overflow:hidden"><span class="num-badge">9</span>
+      <table class="tbl">
+        <thead><tr><th></th><th>Pessoa</th><th>Projeto</th><th>Origem / criativo</th><th>Cadastro</th><th>Interesse</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="pager"><span>Mostrando 1–25 de 2.847</span><span><button class="btn">← Anterior</button> <button class="btn pri">Próxima →</button></span></div>
+    </div>
+
+    <aside class="card drawer"><span class="num-badge">10</span>
+      <div class="head"><div class="av">M</div><div><h3 style="font-size:1.7rem">Marcos Teixeira</h3><span class="pill p-quente">🔥 Quente · score 82</span></div></div>
+      <div class="kv">
+        <div><span>E-mail</span>marcos.t@gmail.com</div><div><span>WhatsApp</span>(11) 98888-7777 · SP</div>
+        <div><span>Projeto</span>Workshop Irezumi 1</div><div><span>Cadastro</span>hoje, 21:14 · ig / paid</div>
+        <div><span>Campanha</span>Irezumi-Frio</div><div><span>Criativo</span>VSL-tatuador-dor-03</div>
+        <div><span>Idade</span>31 anos</div><div><span>Página</span>/workirezumi</div>
+      </div>
+      <p class="label" style="margin-top:16px">Respostas do formulário</p>
+      <div class="kv" style="margin-top:6px"><div><span>Tempo de tatuagem</span>1 a 3 anos</div><div><span>Maior dificuldade</span>Fechar clientes</div></div>
+      <p class="label" style="margin-top:16px">Linha do tempo</p>
+      <div class="tl">
+        <div>Cadastrou no workshop<small>hoje 21:14</small></div>
+        <div>Abriu e-mail “Seu acesso chegou”<small>hoje 21:16</small></div>
+        <div>Entrou no grupo do WhatsApp<small>hoje 21:30</small></div>
+        <div>Clicou em “Quero a vaga” (checkout)<small>hoje 22:02 · não finalizou</small></div>
+      </div>
+      <p class="label">Anotação interna</p>
+      <div class="note">Pediu desconto no direct. Retornar amanhã de manhã…</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri">💬 Chamar no WhatsApp</button><button class="btn">✉ Enviar e-mail</button><button class="btn">Ver em Registros</button></div>
+    </aside>
+  </section>
+</main>
+
+<!-- LEGENDA -->
+<aside class="card legend">
+  <h3>O que mudou</h3>
+  <span class="src s-ok">JÁ NO BANCO</span> <span class="src s-new">CRIAR COLUNA/TABELA</span> <span class="src s-ext">CRUZAR COM OUTRA FONTE</span>
+  <ol>
+    <li><b>Período + projeto no topo</b><span>Todos os números reagem aos filtros. Delta vs período anterior.<span class="src s-ok">created_at, slug</span></span></li>
+    <li><b>Leads quentes</b><span>Cadastrou, mas não comprou, e teve sinal (clicou no checkout, respondeu form completo, cadastro recente). Lista pronta para abordar.<span class="src s-new">score</span><span class="src s-ext">eventos</span></span></li>
+    <li><b>Cadastros por dia</b><span>Com fim de semana destacado e a fatia que comprou.<span class="src s-ok">created_at + compras</span></span></li>
+    <li><b>Funil real</b><span>Cadastro → e-mail aberto → grupo/assistiu → checkout → compra, com a maior perda marcada.<span class="src s-ext">e-mails, VSL, Hotmart</span></span></li>
+    <li><b>Origem com custo</b><span>Leads, conversão e custo por lead.<span class="src s-ok">origem</span><span class="src s-ext">gasto Meta</span></span></li>
+    <li><b>Ranking de criativos</b><span>Qual anúncio traz lead que compra, não só lead barato.<span class="src s-ok">criativo, ad_id, campanha</span></span></li>
+    <li><b>Perfil</b><span>Horário/dia de maior cadastro (heatmap), estado pelo DDD, idade, dispositivo.<span class="src s-ok">hora, DDD, nascimento</span><span class="src s-new">device</span></span></li>
+    <li><b>Filtros e visões rápidas</b><span>Quentes, novos, alunos, frios + projeto, campanha, ordenação, colunas escolhidas (como já é no CSV de Registros).<span class="src s-ok">já temos</span></span></li>
+    <li><b>Tabela mais útil</b><span>Avatar, projeto em selo, criativo, data relativa (“há 2 h”), interesse, atalhos de WhatsApp/e-mail por linha. Valor e produto quando é aluno.<span class="src s-ok">leads</span><span class="src s-ext">compras</span></span></li>
+    <li><b>Gaveta da pessoa</b><span>Em vez de modal: dados, respostas do formulário, linha do tempo, anotação interna e ações. Evolui o PessoaModal atual.<span class="src s-ok">respostas</span><span class="src s-new">notas, tags</span></span></li>
+  </ol>
+  <p class="label" style="margin-top:16px">Mais ideias (fora do mockup)</p>
+  <ol style="counter-reset:m 10">
+    <li style="counter-increment:m"><b>Duplicados</b><span>Mesmo e-mail/telefone em vários projetos: “inscrito em 3”.</span></li>
+    <li><b>Responsável / status de contato</b><span>Novo → chamado → respondeu → sem interesse.</span></li>
+    <li><b>Alerta de lead quente</b><span>Aviso no Telegram quando alguém clicar no checkout e não comprar.</span></li>
+    <li><b>Segmentos salvos</b><span>“Irezumi, quente, SP” → exportar ou disparar e-mail.</span></li>
+    <li><b>Qualidade do lead</b><span>E-mail inválido, telefone sem WhatsApp, descartável.</span></li>
+    <li><b>Reembolso / LTV</b><span>Valor total gasto por pessoa, já aluno de outro projeto.</span></li>
+  </ol>
+</aside>
+</div>
+
+<script>
+  // barras
+  const v=[38,45,52,61,40,33,29,48,57,66,72,55,41,36,49,63,80,94,71,52,44,58,67,75,88,92,60,47,63,70];
+  document.getElementById('bars').innerHTML=v.map((n,i)=>{const w=(i%7===5||i%7===6);return `<i class="${w?'w':''} ${n>60?'cv':''}" style="height:${n}%"></i>`}).join('');
+  // heatmap dia x faixa
+  const days=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'], slots=['0h','3h','6h','9h','12h','15h','18h','21h'];
+  const m=[[.1,.05,.1,.4,.5,.5,.7,.9],[.1,.05,.1,.4,.5,.6,.8,1],[.1,.05,.1,.4,.5,.5,.7,.9],[.1,.05,.1,.4,.5,.5,.6,.8],[.1,.05,.1,.3,.4,.4,.5,.6],[.2,.05,.1,.2,.4,.5,.5,.5],[.2,.1,.1,.3,.4,.5,.6,.7]];
+  let h='<span></span>'+slots.map(s=>`<span>${s}</span>`).join('');
+  m.forEach((r,i)=>{h+=`<span style="text-align:left">${days[i]}</span>`+r.map(x=>`<b style="opacity:${.12+x*.88}"></b>`).join('')});
+  document.getElementById('heat').innerHTML=h;
+  // linhas
+  const rows=[
+    ['Marcos Teixeira','marcos.t@gmail.com','Irezumi','VSL-tatuador-dor-03','Irezumi-Frio','há 2 h',4,'quente','sel'],
+    ['Juliana Prado','(21) 97777-1234','Live','Reels-antes-depois','Live-Lookalike','há 3 h',3,'lead',''],
+    ['Rafael Gomes','rafa.gomes@hotmail.com','Membros','Carrossel-erros','Membros-Interesse','há 5 h',1,'frio',''],
+    ['Bianca Alves','bianca@studio.com','Irezumi','VSL-tatuador-dor-03','Irezumi-Frio','ontem',5,'quente',''],
+    ['Diego Martins','(41) 99999-0001','Mentoria','orgânico · bio','—','ontem',2,'lead',''],
+    ['Camila Duarte','camila.d@gmail.com','Live','Reels-antes-depois','Live-Lookalike','há 2 d',5,'aluno',''],
+  ];
+  const lbl={quente:'🔥 Quente',lead:'Lead',frio:'Frio',aluno:'✔ Aluno'};
+  document.getElementById('rows').innerHTML=rows.map(r=>`<tr class="${r[8]}">
+    <td><input type="checkbox"></td>
+    <td><div class="who"><div class="av">${r[0][0]}</div><div><b>${r[0]}</b><small>${r[1]}</small></div></div></td>
+    <td><span class="proj">${r[2]}</span></td>
+    <td>${r[3]}<br><small>${r[4]}</small></td>
+    <td>${r[5]}</td>
+    <td><span class="score">${[1,2,3,4,5].map(i=>`<i class="${i<=r[6]?'on':''}"></i>`).join('')}</span></td>
+    <td><span class="pill p-${r[7]}">${lbl[r[7]]}</span>${r[7]==='aluno'?'<br><small>R$ 197 · Live</small>':''}</td>
+    <td><div class="act"><button class="ic" title="WhatsApp">💬</button><button class="ic" title="E-mail">✉</button><button class="ic" title="Copiar">⧉</button></div></td>
+  </tr>`).join('');
+</script>
+</body>
+</html>

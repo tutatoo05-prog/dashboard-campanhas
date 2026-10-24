@@ -360,7 +360,9 @@ Estas rotas **exigem login** (cookie de sessão) e não são usadas por sites ex
 | `GET` / `POST /api/registros/importacao` | admin | Mostra / executa a importação única do histórico das planilhas. |
 | `GET /api/monitor` | admin | Resumo do monitoramento (endereços, cadastros, erros do formulário). |
 | `POST /api/monitor/verificar` | admin | Confere todos os endereços agora. |
-| `GET /api/leads` | login | Lista de leads (tela Leads). |
+| `GET /api/leads` | login | Lista de leads (tela Leads), com projeto, UTMs, criativo e respostas do formulário. |
+| `GET /api/leads/notas` | login | Anotações internas da equipe (situação do contato, etiquetas, nota). |
+| `PUT /api/leads/notas` | admin | Salva a anotação de uma pessoa: `{ chave, nota, situacao, tags }` (`chave` = `e:<e-mail>` ou `t:<11 últimos dígitos>`). |
 | `GET /api/saude` | pública | Diagnóstico rápido (banco, DNS, memória). |
 
 Rotas públicas de integração:
