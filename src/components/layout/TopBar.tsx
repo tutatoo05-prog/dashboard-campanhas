@@ -14,6 +14,7 @@ const TITLES: Record<string, string> = {
   '/acessos': 'Acessos',
   '/usuarios': 'Usuários',
   '/seguranca': 'Segurança',
+  '/monitoramento': 'Monitoramento',
 }
 
 export default function TopBar() {

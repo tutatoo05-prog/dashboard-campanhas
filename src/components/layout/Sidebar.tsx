@@ -37,6 +37,10 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/purchases', label: 'Compras', sticker: 'coin' },
     ],
   },
+  {
+    title: 'Operação',
+    items: [{ to: '/monitoramento', label: 'Monitoramento', sticker: 'lighthouse', adminOnly: true }],
+  },
 ]
 
 export default function Sidebar() {

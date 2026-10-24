@@ -12,6 +12,8 @@ import { handleHotmartEventsRequest } from './hotmartEvents.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleVideosRequest } from './videosHandler.js'
 import { handlePlayerConfigRequest } from './playerConfig.js'
+import { handleCapturaRequest } from './capturaHandler.js'
+import { handleMonitorRequest } from './monitor/handler.js'
 import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
@@ -45,6 +47,12 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // devolve opções de exibição. Fica antes da autenticação.
     if (req.url.startsWith('/api/player-config')) {
       await handlePlayerConfigRequest(req, res, env)
+      return
+    }
+
+    // Cadastro dos formulários do site: público de propósito (as páginas de captura não têm login).
+    if (req.url.startsWith('/api/captura')) {
+      await handleCapturaRequest(req, res, env)
       return
     }
 
@@ -87,6 +95,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/seguranca') ||
       req.url.startsWith('/api/fichas') ||
       req.url.startsWith('/api/live') ||
+      req.url.startsWith('/api/monitor') ||
       req.url.startsWith('/api/videos') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
@@ -116,6 +125,17 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/meta/campaigns/')) {
         await handleMetaWriteRequest(req, res, env, user)
+        return
+      }
+
+      if (req.url.startsWith('/api/monitor')) {
+        if (!isAdmin(user)) {
+          res.statusCode = 403
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Apenas administradores podem fazer isso.', code: 'FORBIDDEN' }))
+          return
+        }
+        await handleMonitorRequest(req, res, env)
         return
       }
 

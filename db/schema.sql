@@ -410,3 +410,20 @@ alter table users add column if not exists recusado_em timestamptz;
 -- Data de nascimento do lead (campo novo dos formularios do site; chega em respostas.data_nascimento).
 -- Tipo date: sem hora, sem fuso. Fica null enquanto o formulario nao perguntar ou a pessoa nao responder.
 alter table leads add column if not exists data_nascimento date;
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Monitoramento dos sites (server/monitor): uma linha por endereço conferido a cada rodada; guarda 14 dias.
+-- O servidor cria sozinho ao subir (create table if not exists); o bloco está aqui só como registro.
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists monitor_checagens (
+  id bigserial primary key,
+  projeto text not null,
+  alvo text not null,
+  url text not null,
+  ok boolean not null,
+  status integer,
+  ms integer,
+  erro text,
+  checado_em timestamptz not null default now()
+);
+create index if not exists monitor_checagens_alvo_idx on monitor_checagens (projeto, alvo, checado_em desc);

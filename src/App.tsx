@@ -23,6 +23,7 @@ const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
 const VideosPage = lazy(() => import('@/pages/VideosPage.tsx'))
 const AccountPage = lazy(() => import('@/pages/AccountPage.tsx'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage.tsx'))
+const MonitorPage = lazy(() => import('@/pages/MonitorPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -179,6 +180,14 @@ function AppRoutes() {
           element={
             <RequireAdmin>
               <AcessosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="monitoramento"
+          element={
+            <RequireAdmin>
+              <MonitorPage />
             </RequireAdmin>
           }
         />

@@ -24,6 +24,7 @@ const PAGES = [
   { to: '/registros', label: 'Registros', hint: 'Tabela de registros', icon: 'fa-table-list' },
   { to: '/purchases', label: 'Compras', hint: 'Vendas aprovadas', icon: 'fa-bag-shopping' },
   { to: '/acessos', label: 'Acessos', hint: 'Liberação de curso e alunos', icon: 'fa-key' },
+  { to: '/monitoramento', label: 'Monitoramento', hint: 'Sites no ar e cadastros chegando', icon: 'fa-heart-pulse' },
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
   { to: '/videos', label: 'Vídeos', hint: 'Quem assiste à VSL e até onde', icon: 'fa-circle-play' },
   { to: '/config/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },

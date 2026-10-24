@@ -13,6 +13,7 @@ const THEMES: Record<string, PageTheme> = {
   '/leads': { hero: 'cobra', stickers: ['rose', 'heart', 'dagger', 'bottle', 'swallow', 'eye', 'star', 'moon'] },
   '/registros': { hero: 'scroll', stickers: ['machine', 'bottle', 'anchor', 'rose', 'eye', 'dagger', 'star', 'swallow'] },
   '/purchases': { hero: 'skull', stickers: ['coin', 'dice', 'crown', 'heart', 'bolt', 'rose', 'star', 'dagger'] },
+  '/monitoramento': { hero: 'lighthouse', stickers: ['lighthouse', 'eye', 'bolt', 'anchor', 'wave', 'star', 'moon', 'heart'] },
   '/live': { hero: 'lighthouse', stickers: ['wave', 'anchor', 'moon', 'bolt', 'eye', 'swallow', 'star', 'heart'] },
   '/videos': { hero: 'eye', stickers: ['eye', 'bolt', 'moon', 'star', 'wave', 'dagger', 'heart', 'anchor'] },
   '/config/seguranca': { hero: 'cobra', stickers: ['eye', 'dagger', 'skull', 'bolt', 'anchor', 'machine', 'star', 'moon'] },

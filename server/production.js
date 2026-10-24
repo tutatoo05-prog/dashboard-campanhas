@@ -13,6 +13,7 @@ import { startLeadsSyncScheduler } from './leadsSyncScheduler.js'
 import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
 import { startVigia } from './vigia.js'
+import { startMonitor } from './monitor/monitor.js'
 import { startConciliacao } from './conciliacaoHotmart.js'
 import { startFilaEmails } from './emails/fila.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
@@ -160,6 +161,7 @@ server.listen(port, '0.0.0.0', () => {
   startAcessoScheduler(env)
   startPlanilhasScheduler(env)
   startVigia(env)
+  startMonitor(env)
   startConciliacao(env)
   startFilaEmails(env)
   startBackupScheduler(env)
