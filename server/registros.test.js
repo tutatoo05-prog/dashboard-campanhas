@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { comprasComoLeads, montarRegistros, registrosDosLeads } from './registrosHandler.js'
+import { comprasComoLeads, comprasComoVendas, montarRegistros, registrosDosLeads } from './registrosHandler.js'
 
 const lead = (extras = {}) => ({
   nome: 'Ana',
@@ -104,6 +104,7 @@ test('montarRegistros põe as compras live em Essentials · Live sem repetir que
     {
       esquema: async () => {},
       consultar: async (sql) => {
+        if (/from purchases/.test(sql) && /curso/.test(sql)) return { rows: [] }
         if (/from purchases/.test(sql)) {
           return { rows: [compra(), compra({ nome: 'Ana Live', email: 'ana@x.com', telefone: '5511900000001', created_at: new Date('2026-10-05T10:00:00Z') })] }
         }
@@ -126,6 +127,65 @@ test('se a leitura das compras falhar, os leads continuam aparecendo', async () 
       esquema: async () => {},
       consultar: async (sql) => {
         if (/from purchases/.test(sql)) throw new Error('sem a coluna src')
+        return { rows: [lead()] }
+      },
+      hotmart: async () => ({ tabs: [], records: [] }),
+      apagados: async (d) => d,
+    },
+  )
+  assert.equal(r.records.length, 1)
+})
+
+const venda = (extras = {}) => ({ nome: 'Leandro', email: 'leandro@x.com', telefone: '5511933334444', curso: 'Essentials', valor: '1497.00', campanha: 'essentials_live', created_at: new Date('2026-09-24T14:00:00Z'), ...extras })
+const vendaHotmart = (extras = {}) => ({ aba: 'Vendas aprovadas', email: 'outro@x.com', telefone: '', data: '2026-10-09T10:00:00Z', ...extras })
+
+test('compra antiga (sem evento da Hotmart) vira Venda aprovada, com produto e valor', () => {
+  const [registro] = comprasComoVendas([venda()], [])
+  assert.deepEqual([registro.planilha, registro.aba, registro.tipo], ['Hotmart', 'Vendas aprovadas', 'evento'])
+  assert.deepEqual([registro.produto, registro.valor, registro.canal, registro.campanha], ['Essentials', 1497, 'Compra (dash)', 'essentials_live'])
+  assert.equal(registro.data, '2026-09-24T14:00:00.000Z')
+})
+
+test('compra que já tem a venda da Hotmart (mesma pessoa, até 2 dias) não entra de novo', () => {
+  const hotmart = [vendaHotmart({ email: 'leandro@x.com', data: '2026-09-25T10:00:00Z' })]
+  assert.equal(comprasComoVendas([venda()], hotmart).length, 0)
+  const porTelefone = [vendaHotmart({ email: 'outro@x.com', telefone: '+55 11 93333-4444', data: '2026-09-24T20:00:00Z' })]
+  assert.equal(comprasComoVendas([venda()], porTelefone).length, 0)
+})
+
+test('mesma pessoa com uma compra muito depois da venda registrada conta como outra compra', () => {
+  const hotmart = [vendaHotmart({ email: 'leandro@x.com', data: '2026-10-20T10:00:00Z' })]
+  assert.equal(comprasComoVendas([venda()], hotmart).length, 1)
+})
+
+test('montarRegistros inclui as compras antigas em Hotmart · Vendas aprovadas e soma na contagem da aba', async () => {
+  const r = await montarRegistros(
+    {},
+    {
+      esquema: async () => {},
+      consultar: async (sql) => {
+        if (/from purchases/.test(sql) && /curso/.test(sql)) return { rows: [venda(), venda({ nome: 'Messias', email: 'm@x.com', telefone: '5511955556666' })] }
+        if (/from purchases/.test(sql)) return { rows: [] }
+        return { rows: [] }
+      },
+      hotmart: async () => ({
+        tabs: [{ planilha: 'Hotmart', aba: 'Vendas aprovadas', tipo: 'evento', url: '', count: 1, error: null }],
+        records: [{ planilha: 'Hotmart', aba: 'Vendas aprovadas', tipo: 'evento', nome: 'Ana', email: 'ana@x.com', telefone: '', data: '2026-10-09T10:00:00Z', canal: '', campanha: '', criativo: '' }],
+      }),
+      apagados: async (d) => d,
+    },
+  )
+  assert.equal(r.tabs.find((t) => t.aba === 'Vendas aprovadas').count, 3)
+  assert.equal(r.records.filter((x) => x.aba === 'Vendas aprovadas').length, 3)
+})
+
+test('se a leitura das compras como vendas falhar, o resto continua', async () => {
+  const r = await montarRegistros(
+    {},
+    {
+      esquema: async () => {},
+      consultar: async (sql) => {
+        if (/from purchases/.test(sql)) throw new Error('sem tabela')
         return { rows: [lead()] }
       },
       hotmart: async () => ({ tabs: [], records: [] }),

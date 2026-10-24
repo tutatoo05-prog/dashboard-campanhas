@@ -107,6 +107,49 @@ export function comprasComoLeads(compras) {
   return linhas
 }
 
+const DOIS_DIAS_MS = 2 * 24 * 3600 * 1000
+const chavesDaPessoa = (email, telefone) => {
+  const e = String(email ?? '').trim().toLowerCase()
+  const t = ultimos11(telefone)
+  return [e && `e:${e}`, t.length >= 8 && `t:${t}`].filter(Boolean)
+}
+
+/**
+ * Compras do dash (tabela purchases) como "Vendas aprovadas". Os eventos da Hotmart só existem desde que o tracking
+ * começou (08/10); quem comprou antes está só nas compras e ficava sem o selo "Comprou" e sem histórico de compra.
+ * Só entra a compra que NÃO tem uma venda da Hotmart da mesma pessoa em até 2 dias (para não contar a mesma venda duas vezes).
+ */
+export function comprasComoVendas(compras, vendasDaHotmart) {
+  const vendas = new Map() // chave da pessoa -> horários das vendas já registradas
+  for (const venda of vendasDaHotmart) {
+    const quando = new Date(venda.data).getTime()
+    for (const chave of chavesDaPessoa(venda.email, venda.telefone)) vendas.set(chave, [...(vendas.get(chave) ?? []), quando])
+  }
+  const registros = []
+  for (const compra of compras) {
+    const quando = new Date(compra.created_at).getTime()
+    const chaves = chavesDaPessoa(compra.email, compra.telefone)
+    if (!chaves.length) continue
+    if (chaves.some((chave) => (vendas.get(chave) ?? []).some((outra) => Math.abs(outra - quando) <= DOIS_DIAS_MS))) continue
+    registros.push(
+      registroDeEvento(GRUPO_HOTMART, 'Vendas aprovadas', 'evento', {
+        nome: compra.nome ?? '',
+        email: cleanEmail(String(compra.email ?? '')),
+        telefone: compra.telefone ?? '',
+        data: new Date(compra.created_at).toISOString(),
+        canal: 'Compra (dash)',
+        campanha: compra.campanha ?? '',
+        categoria: 'venda',
+        situacao: '',
+        produto: compra.curso ?? '',
+        valor: compra.valor === null || compra.valor === undefined ? null : Number(compra.valor),
+        pagamento: '',
+      }),
+    )
+  }
+  return registros
+}
+
 /** Eventos da Hotmart do banco (webhook direto) + histórico já guardado. Se não der para ler, segue só com os leads. */
 export async function eventosDaHotmart(env) {
   let eventos
@@ -155,7 +198,23 @@ export async function montarRegistros(
   const juntos = [...rows, ...compras].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
   const leads = registrosDosLeads(juntos)
   const eventos = await hotmart(env)
-  const dados = { tabs: [...leads.tabs, ...eventos.tabs], records: [...leads.records, ...eventos.records] }
+
+  // Compras sem venda da Hotmart correspondente (anteriores ao tracking) entram como "Vendas aprovadas".
+  let vendasExtras = []
+  try {
+    const compras = (await consultar(
+      `select nome, email, telefone, curso, valor, campanha, created_at from purchases where coalesce(status, 'ativo') <> 'cancelado' order by created_at`,
+    )).rows
+    vendasExtras = comprasComoVendas(compras, eventos.records.filter((registro) => registro.aba === 'Vendas aprovadas'))
+  } catch (erro) {
+    console.error('Erro ao juntar as compras como vendas nos registros:', erro.message || erro)
+  }
+  const tabsDeEventos = vendasExtras.length
+    ? eventos.tabs.some((aba) => aba.aba === 'Vendas aprovadas')
+      ? eventos.tabs.map((aba) => (aba.aba === 'Vendas aprovadas' ? { ...aba, count: (aba.count ?? 0) + vendasExtras.length } : aba))
+      : [...eventos.tabs, { planilha: GRUPO_HOTMART, aba: 'Vendas aprovadas', tipo: 'evento', url: '', count: vendasExtras.length, error: null }]
+    : eventos.tabs
+  const dados = { tabs: [...leads.tabs, ...tabsDeEventos], records: [...leads.records, ...eventos.records, ...vendasExtras] }
   return apagados(dados, env)
 }
 
