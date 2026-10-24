@@ -123,6 +123,11 @@ export default function RegistrosPage() {
   const [group, setGroup] = useState<{ kind: RegistroGroupKind; label: string } | null>(null)
   const [selected, setSelected] = useState<RegistroAgrupado | null>(null)
   const [search, setSearch] = useState('')
+  const [fOrigem, setFOrigem] = useState('')
+  const [fCampanha, setFCampanha] = useState('')
+  const [fSituacao, setFSituacao] = useState('')
+  const [fPeriodo, setFPeriodo] = useState<'' | 'hoje' | '7d' | '30d'>('')
+  const [soNovos, setSoNovos] = useState(false)
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -182,7 +187,7 @@ export default function RegistrosPage() {
 
   // Uma linha por PESSOA: quem está em várias abas/planilhas (lead, Pix gerado, venda...) vira um registro só, com linha do tempo.
   const people = useMemo(() => agruparRegistros(records), [records])
-  const agora = Date.now()
+  const agora = useMemo(() => Date.now(), [registrosQuery.dataUpdatedAt])
   const novos10h = people.filter((pessoa) => ehNovo(pessoa, agora)).length
 
   // Com uma aba escolhida, ficam as pessoas que aparecem nela (cada uma com a história completa).
@@ -197,23 +202,27 @@ export default function RegistrosPage() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
+    const dias = fPeriodo === 'hoje' ? 1 : fPeriodo === '7d' ? 7 : fPeriodo === '30d' ? 30 : 0
+    const desde = dias ? Date.now() - dias * 86_400_000 : 0
     return grouped
-      .filter(
-        (record) =>
-          !term ||
-          [record.nome, record.email, record.telefone, record.campanha, record.criativo]
-            .filter(Boolean)
-            .some((value) => value.toLowerCase().includes(term)),
-      )
+      .filter((record) => {
+        if (term && !record.nome.toLowerCase().includes(term) && ![record.email, record.telefone, record.campanha, record.criativo].some((value) => value?.toLowerCase().includes(term))) return false
+        if (fOrigem && (record.canal || 'Sem rastreamento') !== fOrigem) return false
+        if (fCampanha && campanhaDe(record) !== fCampanha) return false
+        if (fSituacao && record.status !== fSituacao) return false
+        if (desde && !(record.data && new Date(record.data).getTime() >= desde)) return false
+        if (soNovos && !ehNovo(record, agora)) return false
+        return true
+      })
       .sort((a, b) => (b.data || '').localeCompare(a.data || ''))
-  }, [grouped, search])
+  }, [grouped, search, fOrigem, fCampanha, fSituacao, fPeriodo, soNovos, agora])
 
   const totalRecords = records.length
   const rowsInScope = useMemo(() => grouped.reduce((soma, person) => soma + person.historico.length, 0), [grouped])
   const totalUnique = people.length
   const failedTabs = tabs.filter((tab) => tab.error)
   const selectedInfo = tabs.find((tab) => tabKey(tab) === selectedTab)
-  const filtersActive = Boolean(selectedTab || search)
+  const filtersActive = Boolean(selectedTab || search || fOrigem || fCampanha || fSituacao || fPeriodo || soNovos)
 
   const groupMerged = useMemo(() => {
     if (!group) return []
@@ -228,6 +237,11 @@ export default function RegistrosPage() {
   function clearFilters() {
     setSelectedTab('')
     setSearch('')
+    setFOrigem('')
+    setFCampanha('')
+    setFSituacao('')
+    setFPeriodo('')
+    setSoNovos(false)
     setVisible(PAGE_SIZE)
   }
 
@@ -511,8 +525,117 @@ export default function RegistrosPage() {
               </div>
             </div>
 
+            <div className="registros-filtros" role="group" aria-label="Filtrar a lista">
+              <label className="registros-filtro">
+                <span>Projeto</span>
+                <select
+                  className={`filter-select ${selectedTab ? 'registros-filtro-ativo' : ''}`}
+                  value={selectedTab}
+                  onChange={(event) => {
+                    setSelectedTab(event.target.value)
+                    setVisible(PAGE_SIZE)
+                  }}
+                >
+                  <option value="">Todos</option>
+                  {tabs
+                    .filter((tab) => tab.count)
+                    .map((tab) => (
+                      <option key={tabKey(tab)} value={tabKey(tab)}>
+                        {tab.planilha} · {tab.aba} ({formatNumber(tab.count ?? 0)})
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="registros-filtro">
+                <span>Origem</span>
+                <select
+                  className={`filter-select ${fOrigem ? 'registros-filtro-ativo' : ''}`}
+                  value={fOrigem}
+                  onChange={(event) => {
+                    setFOrigem(event.target.value)
+                    setVisible(PAGE_SIZE)
+                  }}
+                >
+                  <option value="">Todas</option>
+                  {byCanal.map((linha) => (
+                    <option key={linha.label} value={linha.label}>
+                      {linha.label} ({formatNumber(linha.total)})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="registros-filtro">
+                <span>Campanha</span>
+                <select
+                  className={`filter-select ${fCampanha ? 'registros-filtro-ativo' : ''}`}
+                  value={fCampanha}
+                  onChange={(event) => {
+                    setFCampanha(event.target.value)
+                    setVisible(PAGE_SIZE)
+                  }}
+                >
+                  <option value="">Todas</option>
+                  {byCampanha.slice(0, 80).map((linha) => (
+                    <option key={linha.label} value={linha.label}>
+                      {linha.label} ({formatNumber(linha.total)})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="registros-filtro">
+                <span>Situação</span>
+                <select
+                  className={`filter-select ${fSituacao ? 'registros-filtro-ativo' : ''}`}
+                  value={fSituacao}
+                  onChange={(event) => {
+                    setFSituacao(event.target.value)
+                    setVisible(PAGE_SIZE)
+                  }}
+                >
+                  <option value="">Todas</option>
+                  {(Object.keys(STATUS_ROTULO) as (keyof typeof STATUS_ROTULO)[]).map((chave) => (
+                    <option key={chave} value={chave}>
+                      {STATUS_ROTULO[chave]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="registros-filtro">
+                <span>Período</span>
+                <select
+                  className={`filter-select ${fPeriodo ? 'registros-filtro-ativo' : ''}`}
+                  value={fPeriodo}
+                  onChange={(event) => {
+                    setFPeriodo(event.target.value as typeof fPeriodo)
+                    setVisible(PAGE_SIZE)
+                  }}
+                >
+                  <option value="">Todo o período</option>
+                  <option value="hoje">Últimas 24 horas</option>
+                  <option value="7d">Últimos 7 dias</option>
+                  <option value="30d">Últimos 30 dias</option>
+                </select>
+              </label>
+              <label className={`registros-filtro-novos ${soNovos ? 'registros-filtro-ativo' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={soNovos}
+                  onChange={(event) => {
+                    setSoNovos(event.target.checked)
+                    setVisible(PAGE_SIZE)
+                  }}
+                />
+                Só novos (10 h)
+              </label>
+              {filtersActive && (
+                <button type="button" onClick={clearFilters} className="registros-filtro-limpar">
+                  <i className="fa-solid fa-xmark" /> Limpar filtros
+                </button>
+              )}
+            </div>
+
             <div className="overflow-auto md:max-h-[560px]">
-              <table className="data-table data-table-brief data-table-fit">
+              <table className="data-table data-table-brief data-table-fit registros-tabela">
                 <colgroup>
                   <col style={{ width: '17%' }} />
                   <col style={{ width: '20%' }} />
@@ -522,7 +645,7 @@ export default function RegistrosPage() {
                   <col style={{ width: '17%' }} />
                   <col style={{ width: '9%' }} />
                 </colgroup>
-                <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur">
+                <thead>
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>
                     <th className="font-medium">Contato</th>

@@ -615,3 +615,14 @@ kbd { background: var(--paper); border: 2px solid var(--line); color: var(--ink)
 @media (prefers-reduced-motion: reduce) {
   .tl-item { animation: none; }
 }
+
+/* Registros: cabeçalho da tabela com fundo sólido (o translúcido deixava o texto das linhas aparecer por baixo) e barra de filtros. */
+.registros-tabela thead th { position: sticky; top: 0; z-index: 4; background: var(--card); box-shadow: 0 2px 0 var(--line); }
+.registros-filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.6rem 0.75rem; padding: 0 1rem 0.9rem; }
+.registros-filtro { display: grid; gap: 0.2rem; min-width: 0; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.registros-filtro .filter-select { max-width: 15rem; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.registros-filtro-ativo { border-color: var(--y, #ffbd2e) !important; box-shadow: 0 0 0 2px var(--y, #ffbd2e); }
+.registros-filtro-novos { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.25rem; padding: 0 0.7rem; border: 2px solid var(--line); border-radius: 10px; font-size: 0.78rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+.registros-filtro-limpar { min-height: 2.25rem; padding: 0 0.7rem; border: 0; background: none; font-size: 0.78rem; font-weight: 700; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.registros-filtro-limpar:hover { color: var(--ink); }
+@media (max-width: 640px) { .registros-filtro { flex: 1 1 8rem; } .registros-filtro .filter-select { max-width: none; width: 100%; } }
