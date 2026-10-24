@@ -7,6 +7,7 @@ import { csvToObjects, fetchSheetCsv, normalizeKey } from './sheetsCsv.js'
 import { CATEGORY_LABELS, TRACKING_SHEET_ID, eventsFromCsv, loadExtraBuyers, loadHotmartEvents } from './hotmartEvents.js'
 import { comCache } from './cacheCurto.js'
 import { CHAVE_REGISTROS, gravarCopia, lerCopia } from './planilhasCopia.js'
+import { query } from './db.js'
 
 const SHEETS = [
   {
@@ -181,6 +182,107 @@ export async function comEventosHotmart(dados, env) {
   }
 }
 
+/**
+ * Em que planilha/aba cada formulário aparece na tela. Formulário que não está aqui cai em "Formulários do dash",
+ * numa aba com o nome da origem (assim um site novo já aparece sem precisar mexer neste arquivo).
+ */
+const ABA_DO_FORMULARIO = {
+  workshop_irezumi_1: { planilha: 'Workshop Irezumi - 1ª edição', aba: 'leads' },
+  lancamento_interessados: { planilha: 'Dados Academy', aba: 'interessados - lp' },
+  cobertura_cicatrizacao_09_09: { planilha: 'Dashboard campanhas', aba: 'Work Cobertura' },
+}
+const PLANILHA_DO_DASH = 'Formulários do dash'
+
+const digitosDoContato = (telefone) => String(telefone ?? '').replace(/\D/g, '').slice(-11)
+
+function rotuloDaOrigem(origem) {
+  const texto = String(origem || 'site').replace(/_/g, ' ').trim()
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+/**
+ * Junta nos registros os leads que entraram direto no banco do dash (endpoint /api/captura, ou recuperados do n8n):
+ * a planilha do Google não recebe mais esses cadastros, então sem isto eles sumiriam desta tela.
+ * Quem já está na aba (mesmo e-mail ou telefone) não entra de novo. `consultar` é injetável para os testes.
+ */
+export async function comLeadsDoBanco(dados, env, consultar = (texto, params) => query(env, texto, params)) {
+  if (!env || !dados?.records) return dados
+  let linhas
+  try {
+    linhas = (
+      await consultar(
+        `select nome, email, telefone, origem, campanha, midia, veio_de, criativo, created_at
+           from leads
+          where fonte_id like 'captura:%' or fonte_id like 'recuperado:%'
+          order by created_at`,
+      )
+    ).rows
+  } catch (erro) {
+    console.error('Erro ao juntar os leads do banco nos registros:', erro.message || erro)
+    return dados
+  }
+  if (!linhas.length) return dados
+
+  const conhecidos = new Map()
+  const chaveDaAba = (planilha, aba) => `${planilha}||${aba}`
+  for (const registro of dados.records) {
+    const chave = chaveDaAba(registro.planilha, registro.aba)
+    if (!conhecidos.has(chave)) conhecidos.set(chave, new Set())
+    const aba = conhecidos.get(chave)
+    const email = cleanEmail(registro.email ?? '')
+    if (email) aba.add(`e:${email}`)
+    const tel = digitosDoContato(registro.telefone)
+    if (tel.length >= 8) aba.add(`t:${tel}`)
+  }
+
+  const novos = []
+  const adicionadosPorAba = new Map()
+  for (const lead of linhas) {
+    const destino = ABA_DO_FORMULARIO[lead.origem] ?? { planilha: PLANILHA_DO_DASH, aba: rotuloDaOrigem(lead.origem) }
+    const chave = chaveDaAba(destino.planilha, destino.aba)
+    if (!conhecidos.has(chave)) conhecidos.set(chave, new Set())
+    const aba = conhecidos.get(chave)
+    const email = cleanEmail(lead.email ?? '')
+    const tel = digitosDoContato(lead.telefone)
+    if ((email && aba.has(`e:${email}`)) || (tel.length >= 8 && aba.has(`t:${tel}`))) continue
+    if (email) aba.add(`e:${email}`)
+    if (tel.length >= 8) aba.add(`t:${tel}`)
+
+    const campanha = resolveCampaign(lead.campanha)
+    novos.push({
+      planilha: destino.planilha,
+      aba: destino.aba,
+      tipo: 'lead',
+      nome: lead.nome ?? '',
+      email,
+      telefone: lead.telefone ?? '',
+      data: new Date(lead.created_at).toISOString(),
+      canal: resolveChannel(lead.veio_de ?? '', lead.midia ?? '', campanha),
+      campanha,
+      criativo: lead.criativo ?? '',
+    })
+    adicionadosPorAba.set(chave, (adicionadosPorAba.get(chave) ?? 0) + 1)
+  }
+  if (!novos.length) return dados
+
+  const tabs = dados.tabs.map((aba) => {
+    const extra = adicionadosPorAba.get(chaveDaAba(aba.planilha, aba.aba))
+    return extra ? { ...aba, count: (aba.count ?? 0) + extra, error: null } : aba
+  })
+  for (const [chave, quantidade] of adicionadosPorAba) {
+    const [planilha, aba] = chave.split('||')
+    if (!tabs.some((item) => item.planilha === planilha && item.aba === aba)) {
+      tabs.push({ planilha, aba, tipo: 'lead', url: '', count: quantidade, error: null })
+    }
+  }
+  return { ...dados, tabs, records: [...dados.records, ...novos] }
+}
+
+/** Eventos da Hotmart e leads do banco, na ordem em que entram na resposta. */
+async function comDadosDoBanco(dados, env) {
+  return comLeadsDoBanco(await comEventosHotmart(dados, env), env)
+}
+
 function toRecords(sheet, tab, csvText) {
   // Eventos da Hotmart: já vêm normalizados (origem, valor em reais, situação do Pix/boleto e do carrinho).
   if (tab.source === 'hotmart') {
@@ -284,7 +386,7 @@ export async function handleRegistrosRequest(req, res, env = null) {
     // Caminho normal: lê a cópia no banco, em milésimos.
     const copia = env ? await comCache('planilhas|registros', 300_000, () => lerCopia(env, CHAVE_REGISTROS)) : null
     if (copia?.dados?.records) {
-      return sendJson(res, 200, { success: true, fetchedAt: copia.atualizadoEm, ...(await comEventosHotmart(copia.dados, env)) })
+      return sendJson(res, 200, { success: true, fetchedAt: copia.atualizadoEm, ...(await comDadosDoBanco(copia.dados, env)) })
     }
 
     // Sem cópia ainda (primeira vez, ou migração pendente): lê o Google ao vivo e guarda para a próxima.
@@ -295,7 +397,7 @@ export async function handleRegistrosRequest(req, res, env = null) {
     return sendJson(res, 200, {
       success: true,
       fetchedAt: new Date(cache.at).toISOString(),
-      ...(await comEventosHotmart(cache.data, env)),
+      ...(await comDadosDoBanco(cache.data, env)),
     })
   } catch (error) {
     console.error('Erro ao buscar registros:', error)

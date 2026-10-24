@@ -169,9 +169,15 @@ export function RegistrosMapa({ sheets, selectedTab, tabKey, onSelect, totalReco
                           </span>
                         </span>
                       </button>
-                      <a href={aba.url} target="_blank" rel="noreferrer" title="Abrir a aba no Google Sheets" className="mapa-externo">
-                        <i className="fa-solid fa-arrow-up-right-from-square" />
-                      </a>
+                      {aba.url ? (
+                        <a href={aba.url} target="_blank" rel="noreferrer" title="Abrir a aba no Google Sheets" className="mapa-externo">
+                          <i className="fa-solid fa-arrow-up-right-from-square" />
+                        </a>
+                      ) : (
+                        <span className="mapa-externo" title="Formulário gravado direto no banco do dash (sem planilha)" aria-hidden="true">
+                          <i className="fa-solid fa-database" />
+                        </span>
+                      )}
                     </div>
                   )
                 })}

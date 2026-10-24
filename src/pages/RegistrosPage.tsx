@@ -14,6 +14,25 @@ import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 
 const PAGE_SIZE = 200
 
+/** Quem se cadastrou há menos de 10 horas ganha o selo "Novo". */
+const JANELA_NOVO_MS = 10 * 60 * 60 * 1000
+
+function ehNovo(pessoa: { primeiraEm: string }, agora: number): boolean {
+  const quando = pessoa.primeiraEm ? new Date(pessoa.primeiraEm).getTime() : NaN
+  return Number.isFinite(quando) && agora - quando >= 0 && agora - quando < JANELA_NOVO_MS
+}
+
+function SeloNovo() {
+  return (
+    <span
+      title="Cadastrou há menos de 10 horas"
+      className="ml-1.5 inline-block rounded-full bg-emerald-400 px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wide text-zinc-950"
+    >
+      Novo
+    </span>
+  )
+}
+
 interface CountRow {
   label: string
   total: number
@@ -129,6 +148,8 @@ export default function RegistrosPage() {
 
   // Uma linha por PESSOA: quem está em várias abas/planilhas (lead, Pix gerado, venda...) vira um registro só, com linha do tempo.
   const people = useMemo(() => agruparRegistros(records), [records])
+  const agora = Date.now()
+  const novos10h = people.filter((pessoa) => ehNovo(pessoa, agora)).length
 
   // Com uma aba escolhida, ficam as pessoas que aparecem nela (cada uma com a história completa).
   const grouped = useMemo(
@@ -254,6 +275,10 @@ export default function RegistrosPage() {
             <div className="kpi-card">
               <p className="section-label">Pessoas (sem repetir)</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(totalUnique)}</p>
+            </div>
+            <div className="kpi-card">
+              <p className="section-label">Novos (10 h)</p>
+              <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(novos10h)}</p>
             </div>
             <div className="kpi-card">
               <p className="section-label">Planilhas</p>
@@ -449,6 +474,7 @@ export default function RegistrosPage() {
                     >
                       <td className="cell-name text-zinc-200" title={record.nome} data-label="Nome" data-sensivel>
                         {record.nome || '—'}
+                        {ehNovo(record, agora) && <SeloNovo />}
                       </td>
                       <td
                         className="cell-more text-zinc-400"
