@@ -24,6 +24,8 @@ export function reiniciarEsquema() {
 }
 
 async function executar(consultar) {
+  // Coluna da data de nascimento (migração antiga de db/schema.sql): a produção ainda não a tinha e o cadastro novo grava nela.
+  await consultar('alter table leads add column if not exists data_nascimento date')
   await consultar('alter table leads add column if not exists tipo text')
   await consultar('alter table leads add column if not exists vertente text')
   await consultar('alter table leads add column if not exists slug text')
