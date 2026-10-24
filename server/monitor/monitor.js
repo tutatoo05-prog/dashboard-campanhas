@@ -150,14 +150,14 @@ export async function montarResumo(env, { projetos = PROJETOS, consultar = (text
     })
 
     let leads = null
-    if (projeto.origensDeLeads.length) {
+    if (projeto.slugsDeLeads.length) {
       const r = (
         await consultar(
           `select count(*) filter (where created_at > now() - interval '24 hours')::int h24,
                   count(*) filter (where created_at > now() - interval '7 days')::int d7,
                   count(*)::int total, max(created_at) ultimo
-             from leads where origem = any($1)`,
-          [projeto.origensDeLeads],
+             from leads where slug = any($1)`,
+          [projeto.slugsDeLeads],
         )
       ).rows[0]
       leads = { ultimas24h: r.h24, ultimos7dias: r.d7, total: r.total, ultimoEm: r.ultimo }

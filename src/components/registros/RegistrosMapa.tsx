@@ -68,7 +68,7 @@ export function RegistrosMapa({ sheets, selectedTab, tabKey, onSelect, totalReco
     <div className="mapa">
       <div className="mapa-topo">
         <div>
-          <p className="section-label">Por planilha e aba</p>
+          <p className="section-label">Por tipo e projeto</p>
           <h3 className="section-title mt-1 mb-1">Quantos registros em cada lugar</h3>
           <p className="mapa-dica">
             <i className="fa-solid fa-hand-pointer" /> Toque numa aba para filtrar tudo abaixo. Toque de novo para desfazer.
@@ -81,7 +81,7 @@ export function RegistrosMapa({ sheets, selectedTab, tabKey, onSelect, totalReco
       </div>
 
       <div className="mapa-faixa-wrap">
-        <div className="mapa-faixa" role="group" aria-label="Proporção de registros por planilha">
+        <div className="mapa-faixa" role="group" aria-label="Proporção de registros por tipo">
           {planilhas.map((planilha, indice) => (
             <button
               key={planilha.nome}
@@ -117,7 +117,7 @@ export function RegistrosMapa({ sheets, selectedTab, tabKey, onSelect, totalReco
               <i className="fa-solid fa-arrow-down-wide-short" /> Maiores primeiro
             </button>
             <button type="button" onClick={() => setOrdem('original')} className={ordem === 'original' ? 'mapa-ordem-ativa' : ''}>
-              <i className="fa-solid fa-list" /> Ordem das planilhas
+              <i className="fa-solid fa-list" /> Ordem dos tipos
             </button>
           </span>
         </div>

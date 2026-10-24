@@ -14,6 +14,8 @@ interface RegistroModalProps {
   onClose: () => void
   /** Texto do botão de baixo (ex.: "Voltar à lista" quando o registro foi aberto de dentro de uma lista). */
   closeLabel?: string
+  /** Se vier, mostra o botão "Apagar registro" (só para admin). */
+  onApagar?: () => void | Promise<void>
 }
 
 function digitsKey(value: unknown): string {
@@ -185,7 +187,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 /** Janela com tudo de um registro das planilhas (abre ao clicar numa pessoa da lista). */
-export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar' }: RegistroModalProps) {
+export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar', onApagar }: RegistroModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const whatsapp = whatsappLink(record.telefone)
 
@@ -290,7 +292,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
         </section>
 
         <section className="sale-section">
-          <p className="sale-section-title">Linha do tempo · tudo o que as planilhas têm desta pessoa</p>
+          <p className="sale-section-title">Linha do tempo · tudo o que o dash tem desta pessoa</p>
           <div className="tl-resumo">
             <span><b>{record.historico.length}</b> {record.historico.length === 1 ? 'passagem' : 'passagens'}</span>
             <span><b>{record.aparece.length}</b> {record.aparece.length === 1 ? 'aba' : 'abas'}</span>
@@ -299,7 +301,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
             {record.ultimaEm && <span>último <b>{formatMoment(record.ultimaEm)}</b></span>}
           </div>
           {record.historico.length === 0 && emailsEnviados.length === 0 ? (
-            <p className="sale-note">Ainda não achei esta pessoa nas planilhas nem nos eventos da Hotmart.</p>
+            <p className="sale-note">Ainda não achei esta pessoa nos cadastros nem nos eventos da Hotmart.</p>
           ) : (
             <LinhaDoTempo passagens={record.historico} emails={emailsEnviados} />
           )}
@@ -329,6 +331,12 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
         </section>
 
         <div className="dialog-actions">
+          {onApagar && (
+            <button type="button" className="btn-danger" onClick={() => void onApagar()}>
+              <i className="fa-solid fa-trash mr-1.5" aria-hidden="true" />
+              Apagar registro
+            </button>
+          )}
           <button type="button" className="btn-gold" onClick={onClose}>
             {closeLabel}
           </button>

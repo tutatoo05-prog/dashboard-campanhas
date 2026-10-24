@@ -41,7 +41,7 @@ export function PessoaModal({ nome, email, telefone, onClose, closeLabel }: Pess
     return (
       <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
         <div className="dialog sale-dialog" role="dialog" aria-modal="true">
-          <p className="sale-note">{falhou ? 'Não consegui ler as planilhas agora. Tente de novo em instantes.' : 'Procurando esta pessoa nas planilhas...'}</p>
+          <p className="sale-note">{falhou ? 'Não consegui ler os registros agora. Tente de novo em instantes.' : 'Procurando esta pessoa nos registros...'}</p>
           <div className="dialog-actions">
             <button type="button" className="btn-gold" onClick={onClose}>
               Fechar

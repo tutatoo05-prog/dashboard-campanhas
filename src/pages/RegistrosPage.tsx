@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHero } from '@/components/flash/PageHero.tsx'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchRegistros } from '@/services/registrosService.ts'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apagarRegistro, executarImportacao, fetchImportacao, fetchRegistros } from '@/services/registrosService.ts'
+import { confirmar } from '@/components/ui/ConfirmDialog.tsx'
+import { useAuthStore } from '@/store/authStore.ts'
+import { isAdmin } from '@/lib/roles.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
 import { RegistrosGroupModal, type RegistroGroupKind } from '@/components/registros/RegistrosGroupModal.tsx'
 import { RegistroModal } from '@/components/registros/RegistroModal.tsx'
@@ -115,6 +118,7 @@ function BarList({
 
 export default function RegistrosPage() {
   const queryClient = useQueryClient()
+  const admin = isAdmin(useAuthStore((state) => state.user))
   const [selectedTab, setSelectedTab] = useState('')
   const [group, setGroup] = useState<{ kind: RegistroGroupKind; label: string } | null>(null)
   const [selected, setSelected] = useState<RegistroAgrupado | null>(null)
@@ -126,6 +130,16 @@ export default function RegistrosPage() {
     queryKey: ['registros'],
     queryFn: () => fetchRegistros(),
     retry: false,
+  })
+
+  // Importação única do histórico das planilhas do Google para o banco (só admin; some depois de feita).
+  const importacaoQuery = useQuery({ queryKey: ['registros-importacao'], queryFn: fetchImportacao, retry: false, enabled: admin })
+  const importacao = useMutation({
+    mutationFn: executarImportacao,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['registros-importacao'] })
+      await queryClient.invalidateQueries({ queryKey: ['registros'] })
+    },
   })
 
   const purchasesQuery = useQuery({
@@ -145,6 +159,26 @@ export default function RegistrosPage() {
     }
     return [...map.entries()]
   }, [tabs])
+
+  async function apagarPessoaSelecionada(pessoa: RegistroAgrupado) {
+    const ok = await confirmar({
+      titulo: `Apagar ${pessoa.nome || 'este registro'}?`,
+      texto:
+        'A pessoa some de todas as abas desta tela. Os cadastros que entraram direto no dash são apagados do banco. O que veio do site só fica escondido, e as vendas da Hotmart dela também somem daqui. Se a pessoa se cadastrar de novo depois, o novo cadastro aparece.',
+      confirmar: 'Apagar',
+      perigo: true,
+    })
+    if (!ok) return
+    const contatos = [pessoa, ...pessoa.historico].map((item) => ({ email: item.email, telefone: item.telefone }))
+    try {
+      await apagarRegistro(contatos)
+      setSelected(null)
+      setGroup(null)
+      await queryClient.invalidateQueries({ queryKey: ['registros'] })
+    } catch (erro) {
+      await confirmar({ titulo: 'Não consegui apagar', texto: erro instanceof Error ? erro.message : 'Tente de novo.', confirmar: 'Ok', cancelar: 'Fechar' })
+    }
+  }
 
   // Uma linha por PESSOA: quem está em várias abas/planilhas (lead, Pix gerado, venda...) vira um registro só, com linha do tempo.
   const people = useMemo(() => agruparRegistros(records), [records])
@@ -230,8 +264,8 @@ export default function RegistrosPage() {
             <p className="section-label">Base completa</p>
             <Typewriter as="h2" className="section-title mt-1" text="Registros" />
             <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-              Tudo o que está nas planilhas do Google, lido ao vivo: quantos registros existem no
-              total, em cada planilha e em cada aba, de onde cada lead veio e de qual campanha.
+              Todos os cadastros do dash, vindos do banco e separados por tipo (Essentials, Workshops, Mentoria) e por projeto:
+              quantos são, de onde cada lead veio e de qual campanha.
             </p>
           </div>
           <button
@@ -246,7 +280,7 @@ export default function RegistrosPage() {
         </div>
         {registrosQuery.data?.fetchedAt && (
           <p className="mt-3 text-[11px] text-zinc-600">
-            Lido do Google Sheets em {formatDate(registrosQuery.data.fetchedAt)}
+            Atualizado em {formatDate(registrosQuery.data.fetchedAt)}
           </p>
         )}
       </PageHero>
@@ -261,15 +295,49 @@ export default function RegistrosPage() {
 
       {isLoading && !error && (
         <section className="surface-card p-8 text-center text-sm text-zinc-500">
-          Lendo as planilhas...
+          Lendo os registros...
         </section>
       )}
 
       {!isLoading && !error && (
         <>
+          {admin && importacaoQuery.data && !importacaoQuery.data.feita && !importacaoQuery.data.semCopia && importacaoQuery.data.pendentes > 0 && (
+            <section className="surface-card border-amber-500/40 p-4 text-sm">
+              <p className="section-label">Histórico das planilhas</p>
+              <h3 className="section-title mt-1">{formatNumber(importacaoQuery.data.pendentes)} cadastros ainda só estão nas planilhas do Google</h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                Importe uma vez para o banco: quem já está no projeto (mesmo e-mail ou telefone) não entra de novo. Depois disso as planilhas deixam de ser
+                lidas e tudo passa a vir só do banco.
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-400">
+                {(importacaoQuery.data.detalhe ?? []).map((item) => (
+                  <li key={item.slug}>
+                    {item.grupo} · {item.nome}: <b className="text-zinc-200">{formatNumber(item.total)}</b>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                disabled={importacao.isPending}
+                onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: 'Importar o histórico das planilhas?',
+                    texto: `Vão entrar ${formatNumber(importacaoQuery.data?.pendentes ?? 0)} cadastros no banco, sem repetir quem já está. Isso só acrescenta, não apaga nada.`,
+                    confirmar: 'Importar',
+                  })
+                  if (ok) importacao.mutate()
+                }}
+                className="mt-3 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-zinc-50 hover:bg-amber-400/10 disabled:opacity-50"
+              >
+                {importacao.isPending ? 'Importando…' : 'Importar histórico'}
+              </button>
+              {importacao.isError && <p className="mt-2 text-xs text-red-300">{(importacao.error as Error).message}</p>}
+            </section>
+          )}
+
           <section className="kpi-scroll">
             <div className="kpi-card">
-              <p className="section-label">Linhas nas planilhas</p>
+              <p className="section-label">Cadastros no banco</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(totalRecords)}</p>
             </div>
             <div className="kpi-card">
@@ -281,11 +349,11 @@ export default function RegistrosPage() {
               <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(novos10h)}</p>
             </div>
             <div className="kpi-card">
-              <p className="section-label">Planilhas</p>
+              <p className="section-label">Tipos</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(sheets.length)}</p>
             </div>
             <div className="kpi-card">
-              <p className="section-label">Abas</p>
+              <p className="section-label">Projetos</p>
               <p className="mt-0.5 text-lg font-semibold text-zinc-50">{formatNumber(tabs.length)}</p>
             </div>
           </section>
@@ -293,7 +361,7 @@ export default function RegistrosPage() {
           {totalRecords > totalUnique && (
             <p className="-mt-3 text-xs leading-relaxed text-zinc-500">
               <i className="fa-solid fa-circle-info mr-1.5 text-amber-200/70" />
-              <b className="text-zinc-400">Linhas nas planilhas</b> soma todas as abas. <b className="text-zinc-400">Pessoas</b>{' '}
+              <b className="text-zinc-400">Cadastros no banco</b> soma todos os projetos. <b className="text-zinc-400">Pessoas</b>{' '}
               conta cada pessoa uma vez só, ligando por e-mail e telefone: quem aparece como lead repetido, gerou Pix e
               comprou é uma pessoa, com a linha do tempo no detalhe.
             </p>
@@ -387,7 +455,7 @@ export default function RegistrosPage() {
               )}
                 </h3>
                 <p className="mt-1 text-xs text-zinc-600">
-                  {formatNumber(rowsInScope)} linhas nas planilhas viram {formatNumber(grouped.length)} pessoas · a etiqueta mostra em quantas abas cada uma aparece.
+                  {formatNumber(rowsInScope)} cadastros viram {formatNumber(grouped.length)} pessoas · a etiqueta mostra em quantas abas cada uma aparece.
                 </p>
                 {filtersActive && (
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
@@ -458,7 +526,7 @@ export default function RegistrosPage() {
                   <tr className="border-y border-zinc-800/60 text-xs text-zinc-500">
                     <th className="font-medium">Nome</th>
                     <th className="font-medium">Contato</th>
-                    <th className="font-medium">Planilha · Aba</th>
+                    <th className="font-medium">Tipo · Projeto</th>
                     <th className="font-medium">Origem</th>
                     <th className="font-medium">Campanha</th>
                     <th className="font-medium">Situação</th>
@@ -482,13 +550,13 @@ export default function RegistrosPage() {
                        data-label="Contato">
                         {record.email || record.telefone || '—'}
                       </td>
-                      <td className="cell-more text-xs text-zinc-400" data-label="Planilha · Aba">
+                      <td className="cell-more text-xs text-zinc-400" data-label="Tipo · Projeto">
                         <span className="flex items-center gap-1.5">
                           <span className="text-zinc-300">{record.aba}</span>
                           {record.aparece.length > 1 && (
                             <span
                               className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-200"
-                              title={`Aparece em ${record.aparece.length} planilhas: ${apareceTexto(record)}`}
+                              title={`Aparece em ${record.aparece.length} projetos: ${apareceTexto(record)}`}
                             >
                               {record.aparece.length}
                             </span>
@@ -562,6 +630,7 @@ export default function RegistrosPage() {
           purchases={purchasesQuery.isError ? [] : purchasesQuery.data}
           closeLabel={group ? 'Voltar à lista' : 'Fechar'}
           onClose={() => setSelected(null)}
+          onApagar={admin ? () => apagarPessoaSelecionada(selected) : undefined}
         />
       )}
     </div>

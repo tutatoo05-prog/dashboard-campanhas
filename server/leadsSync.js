@@ -1,5 +1,7 @@
 import pg from 'pg'
 import { query } from './db.js'
+import { classificar } from './projetos/catalogo.js'
+import { garantirEsquemaDeLeads } from './projetos/esquema.js'
 
 const BATCH = 200
 const NUMERIC_ID = /^\d{8,}$/
@@ -37,13 +39,18 @@ function toDashLead(row) {
   const respostas = row.respostas ?? {}
   // Nos anúncios novos o utm_content é o ID do anúncio (utm_id = campanha, utm_term = conjunto).
   const contentIsId = NUMERIC_ID.test(text(utm.utm_content))
+  const origem = String(row.produto ?? '').replace(/-/g, '_')
+  const projeto = classificar(origem)
   return {
     fonte_id: String(row.id),
     nome: row.nome ?? '',
     email: row.email ?? '',
     telefone: row.whatsapp ?? '',
     // produto do site vira a "origem" da tela Leads (essentials, workshop_irezumi_1...)
-    origem: String(row.produto ?? '').replace(/-/g, '_'),
+    origem,
+    slug: projeto.slug,
+    tipo: projeto.tipo,
+    vertente: projeto.vertente,
     campanha: text(utm.utm_campaign),
     // ID da campanha da Meta (utm_id={{campaign.id}} no anúncio). Sem ele, o servidor resolve pelo nome.
     campaign_id: NUMERIC_ID.test(text(utm.utm_id)) ? text(utm.utm_id) : null,
@@ -66,14 +73,17 @@ async function upsertBatch(env, leads) {
   // nunca perde nem troca o que já tinha.
   const result = await query(
     env,
-    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at, data_nascimento)
+    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at, data_nascimento, slug, tipo, vertente)
      select * from unnest(
        $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[],
-       $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::timestamptz[], $15::date[]
+       $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::timestamptz[], $15::date[], $16::text[], $17::text[], $18::text[]
      )
      on conflict (fonte_id) do update set
        campaign_id = coalesce(leads.campaign_id, excluded.campaign_id),
        data_nascimento = coalesce(leads.data_nascimento, excluded.data_nascimento),
+       slug = coalesce(leads.slug, excluded.slug),
+       tipo = coalesce(leads.tipo, excluded.tipo),
+       vertente = coalesce(leads.vertente, excluded.vertente),
        ad_id = case when leads.ad_id = '' then excluded.ad_id else leads.ad_id end,
        criativo = case when leads.criativo = '' then excluded.criativo else leads.criativo end
      where (leads.campaign_id is null and excluded.campaign_id is not null)
@@ -84,7 +94,7 @@ async function upsertBatch(env, leads) {
     [
       col('fonte_id'), col('nome'), col('email'), col('telefone'), col('origem'),
       col('campanha'), col('campaign_id'), col('midia'), col('veio_de'), col('criativo'), col('ad_id'),
-      col('landing_url'), col('data'), col('created_at'), col('data_nascimento'),
+      col('landing_url'), col('data'), col('created_at'), col('data_nascimento'), col('slug'), col('tipo'), col('vertente'),
     ],
   )
   const inserted = result.rows.filter((row) => row.novo).length
@@ -103,6 +113,7 @@ async function upsertBatch(env, leads) {
 export async function syncLeadsFromEssentials(env, { dry = false } = {}) {
   const sourceUrl = env.ESSENTIALS_DATABASE_URL
   if (!sourceUrl) throw new Error('ESSENTIALS_DATABASE_URL não configurada.')
+  await garantirEsquemaDeLeads(env)
 
   const source = new pg.Client({
     connectionString: sourceUrl,

@@ -2,17 +2,15 @@ import { randomUUID } from 'node:crypto'
 import { readRequestBody } from './readBody.js'
 import { query } from './db.js'
 import { getClientIp } from './security.js'
+import { classificar, normalizar } from './projetos/catalogo.js'
+import { parseNascimento } from './leadsSync.js'
+import { garantirEsquemaDeLeads } from './projetos/esquema.js'
 
 // Recebe o cadastro dos formulários do site (PÚBLICO, sem login) e grava direto na tabela leads do dash.
 // Substitui o fluxo do n8n (webhook -> Google Sheets -> Supabase): aqui o banco é o primeiro e único passo
 // obrigatório, então a planilha do Google (cheia, sem permissão, fora do ar) não consegue mais derrubar o cadastro.
 
 const ORIGENS_PADRAO = ['https://tuzinho.academy', 'https://www.tuzinho.academy', 'https://tuzinho.app', 'https://www.tuzinho.app']
-
-/** evento que a página manda (data-evento) -> origem mostrada na tela Leads. Evento novo vira o próprio nome com "_". */
-const EVENTO_PARA_ORIGEM = {
-  'irezumi-oriental': 'workshop_irezumi_1',
-}
 
 const NUMERIC_ID = /^\d{8,}$/
 const JANELA_MS = 10 * 60 * 1000
@@ -51,19 +49,45 @@ function dentroDoLimite(ip, agora = Date.now()) {
 const texto = (valor, max = 500) => String(valor ?? '').trim().slice(0, max)
 const soDigitos = (valor) => String(valor ?? '').replace(/\D/g, '')
 
-export function origemDoEvento(evento) {
-  const limpo = texto(evento, 80).toLowerCase()
-  if (!limpo) return 'site'
-  return EVENTO_PARA_ORIGEM[limpo] ?? limpo.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+export class CapturaInvalida extends Error {}
+
+/**
+ * Slug do projeto. Páginas novas mandam `slug` (ex.: workirezumi). Os formulários do Essentials mandam `product` +
+ * `variante` ("live" e "membros" são as vertentes); a mentoria manda só `product`. `evento` é o nome antigo.
+ */
+export function slugDoCorpo(corpo) {
+  if (texto(corpo?.slug)) return corpo.slug
+  const produto = normalizar(corpo?.product ?? corpo?.produto)
+  if (produto === 'essentials') {
+    const variante = normalizar(corpo?.variante)
+    if (variante === 'live') return 'essentials-live'
+    if (variante === 'membros') return 'essentials-membros'
+    return 'essentials'
+  }
+  return texto(corpo?.product ?? corpo?.produto) || corpo?.evento
 }
 
-export class CapturaInvalida extends Error {}
+const FORA_DAS_RESPOSTAS = new Set([
+  'nome', 'name', 'email', 'telefone', 'phone', 'whatsapp', 'utm', 'atribuicao', 'website', 'user_agent', 'landing_url',
+  'source_url', 'slug', 'evento', 'product', 'produto', 'tipo', 'data_nascimento', 'submitted_at', 'visitor_id',
+])
+
+/** O que o formulário perguntou além do contato (ex.: respostas da aplicação da mentoria), guardado como veio. */
+function respostasDoCorpo(corpo) {
+  const saida = {}
+  for (const [chave, valor] of Object.entries(corpo ?? {})) {
+    if (FORA_DAS_RESPOSTAS.has(chave) || valor === null || valor === undefined || valor === '') continue
+    if (typeof valor === 'object' && !Array.isArray(valor)) continue
+    saida[chave] = Array.isArray(valor) ? valor.map((item) => texto(item, 200)).slice(0, 20) : typeof valor === 'string' ? texto(valor, 1000) : valor
+  }
+  return JSON.stringify(saida).length > 8000 ? {} : saida
+}
 
 /** Valida e normaliza o corpo do formulário. Devolve a linha pronta para a tabela leads. */
 export function montarLead(corpo, agora = new Date()) {
   const nome = texto(corpo?.nome ?? corpo?.name, 120)
   const email = texto(corpo?.email, 160).toLowerCase()
-  const telefone = soDigitos(corpo?.telefone ?? corpo?.phone)
+  const telefone = soDigitos(corpo?.telefone ?? corpo?.phone ?? corpo?.whatsapp)
 
   if (nome.length < 2) throw new CapturaInvalida('Informe o nome.')
   if (telefone.length < 10 || telefone.length > 15) throw new CapturaInvalida('Informe um WhatsApp válido.')
@@ -73,11 +97,15 @@ export function montarLead(corpo, agora = new Date()) {
   // senão o que está na URL (alguns navegadores embutidos tiram os campos mas mantêm o link).
   let daUrl = new URLSearchParams()
   try {
-    daUrl = new URL(texto(corpo?.landing_url, 2000)).searchParams
+    daUrl = new URL(texto(corpo?.landing_url || corpo?.source_url, 2000)).searchParams
   } catch {
     /* sem URL válida: só os campos soltos */
   }
-  const utm = (chave) => texto(corpo?.[chave] || daUrl.get(chave), 200)
+  // Solto no corpo, dentro de `atribuicao` (atribuição salva por 30 dias) ou de `utm` (Essentials/mentoria), ou na URL.
+  const utm = (chave) => texto(corpo?.[chave] || corpo?.atribuicao?.[chave] || corpo?.utm?.[chave] || daUrl.get(chave), 200)
+
+  // O slug da página (ex.: workirezumi) manda; "evento" é o nome antigo, aceito para páginas que ainda não foram atualizadas.
+  const projeto = classificar(slugDoCorpo(corpo))
 
   const conteudo = utm('utm_content')
   const conteudoEId = NUMERIC_ID.test(conteudo)
@@ -88,14 +116,19 @@ export function montarLead(corpo, agora = new Date()) {
     nome,
     email,
     telefone,
-    origem: origemDoEvento(corpo?.evento),
+    origem: projeto.origem,
+    slug: projeto.slug,
+    tipo: projeto.tipo,
+    vertente: projeto.vertente,
     campanha: utm('utm_campaign'),
     campaign_id: NUMERIC_ID.test(idCampanha) ? idCampanha : null,
     midia: utm('utm_medium'),
     veio_de: utm('utm_source'),
     criativo: texto(corpo?.criativo, 200) || (conteudoEId ? '' : conteudo),
     ad_id: texto(corpo?.ad_id, 40) || (conteudoEId ? conteudo : ''),
-    landing_url: texto(corpo?.landing_url, 2000),
+    landing_url: texto(corpo?.landing_url || corpo?.source_url, 2000),
+    data_nascimento: parseNascimento({ data_nascimento: corpo?.data_nascimento }, agora),
+    respostas: respostasDoCorpo(corpo),
     data: agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
     created_at: agora.toISOString(),
   }
@@ -109,20 +142,21 @@ export async function registrarLead(env, lead, consultar = query) {
   const existente = await consultar(
     env,
     `select 1 from leads
-      where origem = $1
-        and (regexp_replace(telefone, '\\D', '', 'g') = $2 or ($3 <> '' and lower(email) = $3))
+      where slug = $1
+        and (right(regexp_replace(telefone, '\\D', '', 'g'), 11) = right($2, 11) or ($3 <> '' and lower(email) = $3))
       limit 1`,
-    [lead.origem, lead.telefone, lead.email],
+    [lead.slug, lead.telefone, lead.email],
   )
   if (existente.rowCount) return { status: 'duplicado' }
 
   await consultar(
     env,
-    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+    `insert into leads (fonte_id, nome, email, telefone, origem, campanha, campaign_id, midia, veio_de, criativo, ad_id, landing_url, data, created_at, slug, tipo, vertente, data_nascimento, respostas)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19::jsonb)`,
     [
       lead.fonte_id, lead.nome, lead.email, lead.telefone, lead.origem, lead.campanha, lead.campaign_id, lead.midia,
-      lead.veio_de, lead.criativo, lead.ad_id, lead.landing_url, lead.data, lead.created_at,
+      lead.veio_de, lead.criativo, lead.ad_id, lead.landing_url, lead.data, lead.created_at, lead.slug, lead.tipo, lead.vertente,
+      lead.data_nascimento, JSON.stringify(lead.respostas ?? {}),
     ],
   )
   return { status: 'ok' }
@@ -141,7 +175,7 @@ function responder(res, status, payload, cors) {
 }
 
 /** POST /api/captura — PÚBLICO. Só aceita chamadas vindas dos sites da Tuzinho. */
-export async function handleCapturaRequest(req, res, env, { consultar = query } = {}) {
+export async function handleCapturaRequest(req, res, env, { consultar = query, esquema = garantirEsquemaDeLeads } = {}) {
   const origem = req.headers.origin
   const permitidas = origensPermitidas(env)
   const cors = {
@@ -159,7 +193,8 @@ export async function handleCapturaRequest(req, res, env, { consultar = query } 
   }
 
   const { pathname } = new URL(req.url, 'http://localhost')
-  if (pathname !== '/api/captura') return responder(res, 404, { status: 'error', message: 'Rota não encontrada.' }, cors)
+  const ehExiste = pathname === '/api/captura/existe'
+  if (pathname !== '/api/captura' && !ehExiste) return responder(res, 404, { status: 'error', message: 'Rota não encontrada.' }, cors)
   if (req.method !== 'POST') return responder(res, 405, { status: 'error', message: 'Método não permitido.' }, cors)
 
   // Quem não vem de um site nosso (curl, robô) não passa. Navegador sempre manda o Origin num POST entre sites.
@@ -177,6 +212,28 @@ export async function handleCapturaRequest(req, res, env, { consultar = query } 
     return responder(res, 400, { status: 'error', message: 'Corpo inválido.' }, cors)
   }
 
+  // "Esta pessoa já se cadastrou neste projeto?" (a aplicação da mentoria confere antes de enviar).
+  if (ehExiste) {
+    try {
+      await esquema(env)
+      const projeto = classificar(slugDoCorpo(corpo))
+      const email = texto(corpo?.email, 160).toLowerCase()
+      const tel = soDigitos(corpo?.whatsapp ?? corpo?.telefone)
+      const achou = await consultar(
+        env,
+        `select 1 from leads where slug = $1 and (($2 <> '' and lower(email) = $2) or (length($3) >= 10 and right(regexp_replace(telefone, '\\D', '', 'g'), 11) = right($3, 11))) limit 1`,
+        [projeto.slug, email, tel],
+      )
+      return responder(res, 200, { exists: Boolean(achou.rowCount) }, cors)
+    } catch (erro) {
+      console.error('[captura] falha ao conferir cadastro:', erro?.message || erro)
+      return responder(res, 503, { status: 'error', message: 'Não foi possível conferir agora.' }, cors)
+    }
+  }
+
+  // Só cadastros: eventos de navegação/A-B (tipo diferente de "lead") não são leads e não entram aqui.
+  if (corpo?.tipo && corpo.tipo !== 'lead') return responder(res, 200, { status: 'ignorado' }, cors)
+
   // Campo-isca "website": humano não vê. Preenchido = robô; finge sucesso e não grava.
   if (texto(corpo?.website)) return responder(res, 200, { status: 'ok' }, cors)
 
@@ -192,15 +249,16 @@ export async function handleCapturaRequest(req, res, env, { consultar = query } 
   // Uma segunda tentativa cobre queda passageira de conexão do pooler do banco.
   for (let tentativa = 1; tentativa <= 2; tentativa += 1) {
     try {
+      await esquema(env)
       const resultado = await registrarLead(env, lead, consultar)
       if (resultado.status === 'ok') {
         contadores.gravados += 1
         contadores.ultimoGravadoEm = new Date().toISOString()
-        console.log(`[captura] ${lead.origem} ${lead.telefone.slice(0, 4)}… gravado`)
+        console.log(`[captura] ${lead.slug} ${lead.telefone.slice(0, 4)}… gravado`)
       } else {
         contadores.duplicados += 1
       }
-      return responder(res, 200, { status: resultado.status }, cors)
+      return responder(res, 200, { status: resultado.status, ok: true, duplicate: resultado.status === 'duplicado' }, cors)
     } catch (erro) {
       console.error(`[captura] falha ao gravar (tentativa ${tentativa}):`, erro?.message || erro)
       contadores.ultimoErro = String(erro?.message || erro).slice(0, 200)

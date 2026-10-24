@@ -11,7 +11,7 @@ interface RegistrosGroupModalProps {
   label: string
   /** Texto pequeno que diz o escopo (ex.: "Aba Essentials" ou "Todas as abas"). */
   scope: string
-  /** Só os registros deste grupo, com quem aparece em várias planilhas já junto. */
+  /** Só os registros deste grupo, com quem aparece em vários projetos já junto. */
   records: RegistroAgrupado[]
   onClose: () => void
   onOpenRecord: (record: RegistroAgrupado) => void
@@ -84,7 +84,7 @@ export function RegistrosGroupModal({ kind, label, scope, records, onClose, onOp
             <p className="sale-sub">
               {formatNumber(records.length)} {records.length === 1 ? 'pessoa' : 'pessoas'}
               {' · '}
-              {formatNumber(linhasNasPlanilhas)} {linhasNasPlanilhas === 1 ? 'linha' : 'linhas'} nas planilhas
+              {formatNumber(linhasNasPlanilhas)} {linhasNasPlanilhas === 1 ? 'cadastro' : 'cadastros'}
               {' · '}
               {scope}
             </p>

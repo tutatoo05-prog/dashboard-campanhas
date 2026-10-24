@@ -1,7 +1,8 @@
 import { limparCache } from './cacheCurto.js'
 import { lerEventosAoVivo, loadExtraBuyers } from './hotmartEvents.js'
-import { CHAVE_EVENTOS_HOTMART, CHAVE_REGISTROS, gravarCopia, registrarErroCopia } from './planilhasCopia.js'
-import { carregarRegistrosAoVivo } from './registrosHandler.js'
+import { CHAVE_EVENTOS_HOTMART, CHAVE_REGISTROS, gravarCopia, lerCopia, registrarErroCopia } from './planilhasCopia.js'
+import { carregarRegistrosAoVivo } from './registrosPlanilhas.js'
+import { CHAVE_IMPORTACAO } from './importarPlanilhas.js'
 
 const MINUTOS_PADRAO = 5
 
@@ -56,10 +57,11 @@ export function startPlanilhasScheduler(env) {
     rodando = true
     try {
       await loadExtraBuyers(env, { force: true }).catch(() => [])
-      for (const [rotulo, tarefa] of [
-        ['eventos da Hotmart', sincronizarEventosHotmart],
-        ['registros', sincronizarRegistros],
-      ]) {
+      // Depois que o histórico foi importado para o banco, as planilhas de leads não são mais lidas (só os eventos da Hotmart).
+      const jaImportou = Boolean(await lerCopia(env, CHAVE_IMPORTACAO))
+      const tarefas = [['eventos da Hotmart', sincronizarEventosHotmart]]
+      if (!jaImportou) tarefas.push(['registros', sincronizarRegistros])
+      for (const [rotulo, tarefa] of tarefas) {
         try {
           await tarefa(env)
         } catch (erro) {

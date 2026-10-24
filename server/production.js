@@ -14,6 +14,7 @@ import { startAcessoScheduler } from './acesso/scheduler.js'
 import { startPlanilhasScheduler } from './planilhasSync.js'
 import { startVigia } from './vigia.js'
 import { startMonitor } from './monitor/monitor.js'
+import { garantirEsquemaDeLeads } from './projetos/esquema.js'
 import { startConciliacao } from './conciliacaoHotmart.js'
 import { startFilaEmails } from './emails/fila.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
@@ -162,6 +163,7 @@ server.listen(port, '0.0.0.0', () => {
   startPlanilhasScheduler(env)
   startVigia(env)
   startMonitor(env)
+  if (env.DATABASE_URL) void garantirEsquemaDeLeads(env).catch((erro) => console.error('[leads] não consegui preparar o esquema (tipo/slug):', erro.message || erro))
   startConciliacao(env)
   startFilaEmails(env)
   startBackupScheduler(env)

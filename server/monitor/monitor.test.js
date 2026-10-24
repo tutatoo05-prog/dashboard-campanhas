@@ -92,7 +92,7 @@ test('rodarChecagens confere todos os alvos e grava uma linha por alvo', async (
 })
 
 test('montarResumo calcula situação, disponibilidade e cadastros', async () => {
-  const projeto = { id: 'p', nome: 'P', descricao: '', pasta: '', origensDeLeads: ['x'], alvos: [{ nome: 'Home', url: 'u' }, { nome: 'Lenta', url: 'u2' }] }
+  const projeto = { id: 'p', nome: 'P', descricao: '', pasta: '', slugsDeLeads: ['x'], alvos: [{ nome: 'Home', url: 'u' }, { nome: 'Lenta', url: 'u2' }] }
   const hora = (n) => new Date(Date.UTC(2026, 9, 24, n)).toISOString()
   const consultar = async (texto) => {
     if (/from monitor_checagens/.test(texto)) {

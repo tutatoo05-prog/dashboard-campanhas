@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { CapturaInvalida, handleCapturaRequest, limparLimite, montarLead, origemDoEvento, registrarLead } from './capturaHandler.js'
+import { CapturaInvalida, handleCapturaRequest, limparLimite, montarLead, registrarLead } from './capturaHandler.js'
 
 const URL_ANUNCIO =
   'https://tuzinho.academy/lancamento/?fbclid=abc&utm_medium=paid&utm_source=ig&utm_id=120252783384070136&utm_content=120252783384080136&utm_term=120252783384090136&utm_campaign=120252783384070136'
@@ -37,7 +37,7 @@ function chamar(env, { metodo = 'POST', origem = 'https://tuzinho.academy', corp
   const pronto = new Promise((resolver) => {
     res.terminou = resolver
   })
-  handleCapturaRequest(req, res, env, { consultar })
+  handleCapturaRequest(req, res, env, { consultar, esquema: async () => {} })
   setImmediate(() => {
     if (corpo !== undefined) req.emit('data', typeof corpo === 'string' ? corpo : JSON.stringify(corpo))
     req.emit('end')
@@ -45,10 +45,14 @@ function chamar(env, { metodo = 'POST', origem = 'https://tuzinho.academy', corp
   return pronto.then(() => ({ status: res.statusCode, headers: res.headers, json: res.body ? JSON.parse(res.body) : null }))
 }
 
-test('o evento da página vira a origem da tela Leads', () => {
-  assert.equal(origemDoEvento('irezumi-oriental'), 'workshop_irezumi_1')
-  assert.equal(origemDoEvento('Cobertura Cicatrização 09-09'), 'cobertura_cicatriza_o_09_09')
-  assert.equal(origemDoEvento(''), 'site')
+test('o slug da página define tipo, vertente e projeto; o evento antigo ainda funciona', () => {
+  const porSlug = montarLead(corpoValido({ slug: 'workleao2', evento: undefined }))
+  assert.deepEqual([porSlug.slug, porSlug.tipo, porSlug.origem], ['workleao2', 'workshop', 'workshop_leao_2'])
+  const porEvento = montarLead(corpoValido({ slug: undefined, evento: 'irezumi-oriental' }))
+  assert.deepEqual([porEvento.slug, porEvento.origem], ['workirezumi', 'workshop_irezumi_1'])
+  const live = montarLead(corpoValido({ slug: 'essentials-live' }))
+  assert.deepEqual([live.tipo, live.vertente], ['essentials', 'live'])
+  assert.equal(montarLead(corpoValido({ slug: 'workirezumi', evento: 'outra-coisa' })).slug, 'workirezumi')
 })
 
 test('montarLead normaliza e lê as UTMs que vêm só no link da página', () => {
@@ -56,6 +60,7 @@ test('montarLead normaliza e lê as UTMs que vêm só no link da página', () =>
   assert.equal(lead.nome, 'Paulo Henrique')
   assert.equal(lead.email, 'paulo@gmail.com')
   assert.equal(lead.origem, 'workshop_irezumi_1')
+  assert.deepEqual([lead.slug, lead.tipo], ['workirezumi', 'workshop'])
   assert.equal(lead.campanha, '120252783384070136')
   assert.equal(lead.campaign_id, '120252783384070136')
   assert.equal(lead.ad_id, '120252783384080136')
