@@ -402,6 +402,10 @@ export const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 export interface PerfilLeads {
   /** [dia da semana (Seg..Dom)][faixa de 3 h] já em escala 0..1. */
   calor: number[][]
+  /** Mesma grade do `calor`, mas com a quantidade bruta de cadastros. */
+  contagem: number[][]
+  /** Total de cadastros com data (base do % de cada faixa). */
+  totalComData: number
   melhorMomento: string
   estados: { uf: string; pct: number }[]
   semEstado: number
@@ -443,6 +447,8 @@ export function perfil(ricos: LeadRico[], agora = Date.now()): PerfilLeads {
 
   return {
     calor: contagem.map((linha) => linha.map((n) => n / maximo)),
+    contagem,
+    totalComData: contagem.flat().reduce((a, b) => a + b, 0),
     melhorMomento: melhor.n ? `${DIAS_SEMANA[melhor.dia]}, ${FAIXAS_HORA[melhor.faixa]}–${(melhor.faixa + 1) * 3}h` : '',
     estados: [...estados.entries()]
       .sort((a, b) => b[1] - a[1])

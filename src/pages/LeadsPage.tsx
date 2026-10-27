@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
@@ -74,6 +75,49 @@ function Delta({ valor, sufixo = '%' }: { valor: number | null; sufixo?: string 
   )
 }
 
+/** Card que acompanha o mouse nos gráficos. */
+interface DadosCard {
+  titulo: string
+  sub?: string
+  linhas: { k: string; v: string; cor?: string }[]
+  nota?: string
+}
+interface CardAberto extends DadosCard {
+  x: number
+  y: number
+}
+
+function CardFlutuante({ card }: { card: CardAberto | null }) {
+  if (!card) return null
+  const viradoParaEsquerda = card.x > window.innerWidth - 260
+  const viradoParaCima = card.y > window.innerHeight - 220
+  return createPortal(
+    <div
+      className="lv-tip"
+      role="tooltip"
+      style={{
+        left: card.x,
+        top: card.y,
+        transform: `translate(${viradoParaEsquerda ? 'calc(-100% - 16px)' : '16px'}, ${viradoParaCima ? 'calc(-100% - 12px)' : '12px'})`,
+      }}
+    >
+      <b>{card.titulo}</b>
+      {card.sub && <small>{card.sub}</small>}
+      {card.linhas.map((l) => (
+        <div key={l.k} className="lv-tip-row">
+          <span>
+            {l.cor && <i className="lv-dot" style={{ background: l.cor }} />}
+            {l.k}
+          </span>
+          <b>{l.v}</b>
+        </div>
+      ))}
+      {card.nota && <em>{card.nota}</em>}
+    </div>,
+    document.body,
+  )
+}
+
 function formatDias(dias: number | null): string {
   if (dias === null) return '—'
   if (dias < 1) return `${Math.max(1, Math.round(dias * 24))} h`
@@ -94,6 +138,14 @@ export default function LeadsPage() {
   const [abertoIndice, setAbertoIndice] = useState<number | null>(null)
   const [historico, setHistorico] = useState<LeadRico | null>(null)
   const [copiado, setCopiado] = useState('')
+  const [card, setCard] = useState<CardAberto | null>(null)
+
+  /** Props de hover que mostram o card ao lado do mouse. */
+  const dica = (dados: DadosCard) => ({
+    onMouseEnter: (e: MouseEvent) => setCard({ ...dados, x: e.clientX, y: e.clientY }),
+    onMouseMove: (e: MouseEvent) => setCard((atual) => (atual ? { ...atual, x: e.clientX, y: e.clientY } : { ...dados, x: e.clientX, y: e.clientY })),
+    onMouseLeave: () => setCard(null),
+  })
 
   const leadsQuery = useQuery({ queryKey: ['leads'], queryFn: fetchLeads, retry: false })
   const purchasesQuery = useQuery({ queryKey: ['purchases'], queryFn: fetchPurchases, retry: false })
@@ -130,6 +182,7 @@ export default function LeadsPage() {
   const diasGrafico = periodo === 'hoje' ? 14 : periodo === '7d' ? 7 : periodo === '30d' ? 30 : 90
   const serie = useMemo(() => serieDiaria(base, diasGrafico), [base, diasGrafico])
   const maxSerie = Math.max(1, ...serie.map((d) => d.total))
+  const mediaSerie = serie.reduce((s, d) => s + d.total, 0) / Math.max(1, serie.length)
 
   const passosFunil = useMemo(() => funil(doPeriodo), [doPeriodo])
   const origens = useMemo(() => rankingOrigens(doPeriodo), [doPeriodo])
@@ -333,14 +386,27 @@ export default function LeadsPage() {
               <p className="section-label">Captação</p>
               <h3 className="section-title mt-1">Cadastros por dia</h3>
               <div className="lv-bars">
-                {serie.map((d) => (
-                  <i
-                    key={d.inicio}
-                    className={`${d.fimDeSemana ? 'fds' : ''} ${d.comprou > 0 ? 'cv' : ''}`}
-                    style={{ height: `${(d.total / maxSerie) * 100}%` }}
-                    title={`${new Date(d.inicio).toLocaleDateString('pt-BR')}: ${d.total} leads${d.comprou ? `, ${d.comprou} compraram` : ''}`}
-                  />
-                ))}
+                {serie.map((d) => {
+                  const diff = mediaSerie > 0 ? ((d.total - mediaSerie) / mediaSerie) * 100 : 0
+                  return (
+                    <span
+                      key={d.inicio}
+                      className="col"
+                      {...dica({
+                        titulo: new Date(d.inicio).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }),
+                        sub: d.fimDeSemana ? 'Fim de semana' : 'Dia útil',
+                        linhas: [
+                          { k: 'Cadastros', v: formatNumber(d.total), cor: d.fimDeSemana ? 'var(--y)' : 'var(--o)' },
+                          { k: 'Compraram', v: formatNumber(d.comprou), cor: 'var(--good)' },
+                          { k: 'Conversão no dia', v: d.total ? formatPercent((d.comprou / d.total) * 100) : '—' },
+                          { k: 'vs média do período', v: `${diff > 0.5 ? '▲' : diff < -0.5 ? '▼' : '='} ${Math.abs(diff).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%` },
+                        ],
+                      })}
+                    >
+                      <i className={`${d.fimDeSemana ? 'fds' : ''} ${d.comprou > 0 ? 'cv' : ''}`} style={{ height: `${(d.total / maxSerie) * 100}%` }} />
+                    </span>
+                  )
+                })}
               </div>
               <div className="lv-axis">
                 <span>{new Date(serie[0].inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
@@ -367,7 +433,23 @@ export default function LeadsPage() {
               <p className="section-label">Funil</p>
               <h3 className="section-title mt-1">Do cadastro à compra</h3>
               {passosFunil.passos.map((passo, i) => (
-                <div className="lv-step" key={passo.rotulo}>
+                <div
+                  className="lv-step"
+                  key={passo.rotulo}
+                  {...dica({
+                    titulo: passo.rotulo,
+                    sub: i === 0 ? 'Ponto de partida do funil' : `${formatPercent(passo.pct)} de quem cadastrou`,
+                    linhas: [
+                      { k: 'Pessoas', v: formatNumber(passo.total) },
+                      ...(i > 0
+                        ? [
+                            { k: 'Do passo anterior', v: passosFunil.passos[i - 1].total ? formatPercent((passo.total / passosFunil.passos[i - 1].total) * 100) : '—' },
+                            { k: 'Ficaram pelo caminho', v: formatNumber(passosFunil.passos[i - 1].total - passo.total) },
+                          ]
+                        : []),
+                    ],
+                  })}
+                >
                   <div className="lv-step-row">
                     <span>{passo.rotulo}</span>
                     <span>
@@ -391,7 +473,18 @@ export default function LeadsPage() {
               <h3 className="section-title mt-1">Volume e conversão</h3>
               <ul className="lv-rank">
                 {origens.slice(0, 6).map((o, i) => (
-                  <li key={o.chave}>
+                  <li
+                    key={o.chave}
+                    {...dica({
+                      titulo: o.rotulo,
+                      sub: `${resumo.total ? formatPercent((o.total / resumo.total) * 100) : '0%'} dos leads do período`,
+                      linhas: [
+                        { k: 'Leads', v: formatNumber(o.total) },
+                        { k: 'Compraram', v: formatNumber(o.comprou), cor: 'var(--good)' },
+                        { k: 'Conversão', v: formatPercent(o.taxa) },
+                      ],
+                    })}
+                  >
                     <span className="n">{i + 1}</span>
                     <div>
                       <span className="nome">{o.rotulo}</span>
@@ -412,13 +505,24 @@ export default function LeadsPage() {
               <h3 className="section-title mt-1">Melhores criativos</h3>
               <ul className="lv-rank">
                 {criativos.map((c, i) => (
-                  <li key={c.chave}>
+                  <li
+                    key={c.chave}
+                    {...dica({
+                      titulo: c.rotulo,
+                      sub: c.detalhe || 'sem campanha',
+                      linhas: [
+                        { k: 'Leads', v: formatNumber(c.total) },
+                        { k: 'Compraram', v: formatNumber(c.comprou), cor: 'var(--good)' },
+                        { k: 'Conversão', v: formatPercent(c.taxa) },
+                      ],
+                    })}
+                  >
                     <span className="n">{i + 1}</span>
                     <div>
-                      <span className="nome" title={c.rotulo}>
+                      <span className="nome">
                         {c.rotulo}
                       </span>
-                      <span className="sub" title={c.detalhe}>
+                      <span className="sub">
                         {c.detalhe || 'sem campanha'} · {formatNumber(c.total)} leads
                       </span>
                     </div>
@@ -443,13 +547,24 @@ export default function LeadsPage() {
                   </span>
                 ))}
                 {perfilLeads.calor.map((linha, dia) => (
-                  <HeatRow key={DIAS_SEMANA[dia]} rotulo={DIAS_SEMANA[dia]} valores={linha} />
+                  <HeatRow key={DIAS_SEMANA[dia]} dia={dia} valores={linha} contagem={perfilLeads.contagem[dia]} total={perfilLeads.totalComData} dica={dica} />
                 ))}
               </div>
               {perfilLeads.melhorMomento && <p className="lv-sub" style={{ marginTop: '0.5rem' }}>Pico: {perfilLeads.melhorMomento}</p>}
               <div className="lv-chips">
                 {perfilLeads.estados.slice(0, 5).map((e) => (
-                  <span key={e.uf} className="lv-chip">
+                  <span
+                    key={e.uf}
+                    className="lv-chip"
+                    {...dica({
+                      titulo: e.uf,
+                      sub: 'Estado pelo DDD do telefone',
+                      linhas: [
+                        { k: 'Cadastros', v: formatNumber(Math.round((e.pct / 100) * (resumo.total - perfilLeads.semEstado))) },
+                        { k: '% dos leads com estado', v: formatPercent(e.pct) },
+                      ],
+                    })}
+                  >
                     {e.uf} {Math.round(e.pct)}%
                   </span>
                 ))}
@@ -628,6 +743,7 @@ export default function LeadsPage() {
         </>
       )}
 
+      <CardFlutuante card={card} />
       {aberto && (
         <LeadDrawer
           rico={aberto}
@@ -644,12 +760,38 @@ export default function LeadsPage() {
   )
 }
 
-function HeatRow({ rotulo, valores }: { rotulo: string; valores: number[] }) {
+const DIAS_COMPLETOS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+
+function HeatRow({
+  dia,
+  valores,
+  contagem,
+  total,
+  dica,
+}: {
+  dia: number
+  valores: number[]
+  contagem: number[]
+  total: number
+  dica: (dados: DadosCard) => object
+}) {
   return (
     <>
-      <span>{rotulo}</span>
+      <span>{DIAS_SEMANA[dia]}</span>
       {valores.map((v, i) => (
-        <b key={i} title={`${rotulo}, ${FAIXAS_HORA[i]}`} style={{ opacity: 0.1 + v * 0.9 }} />
+        <b
+          key={i}
+          {...dica({
+            titulo: `${DIAS_COMPLETOS[dia]}, ${FAIXAS_HORA[i]} às ${(i + 1) * 3}h`,
+            sub: 'Horário de Brasília',
+            linhas: [
+              { k: 'Cadastros', v: formatNumber(contagem[i]) },
+              { k: '% do total', v: total ? formatPercent((contagem[i] / total) * 100) : '—' },
+            ],
+            nota: v >= 1 ? 'Pico de cadastros' : undefined,
+          })}
+          style={{ opacity: 0.1 + v * 0.9 }}
+        />
       ))}
     </>
   )

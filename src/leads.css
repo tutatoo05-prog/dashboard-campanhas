@@ -26,7 +26,10 @@
 
 /* gráfico de barras */
 .lv-bars { display: flex; align-items: flex-end; gap: 3px; height: 130px; margin-top: 0.8rem; border-bottom: 2px solid var(--line); }
-.lv-bars i { flex: 1; min-height: 3px; border-radius: 3px 3px 0 0; background: var(--o); }
+.lv-bars .col { flex: 1; height: 100%; display: flex; align-items: flex-end; cursor: pointer; border-radius: 3px 3px 0 0; transition: background 0.12s; }
+.lv-bars .col:hover { background: color-mix(in srgb, var(--o) 16%, transparent); }
+.lv-bars .col:hover i { filter: brightness(1.2); transform: scaleX(1.12); }
+.lv-bars i { width: 100%; min-height: 3px; border-radius: 3px 3px 0 0; background: var(--o); transition: filter 0.12s, transform 0.12s; }
 .lv-bars i.fds { background: var(--y); }
 .lv-bars i.cv { box-shadow: inset 0 5px 0 var(--good); }
 .lv-axis { display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.64rem; font-weight: 700; color: var(--muted); }
@@ -34,7 +37,9 @@
 .lv-dot { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
 
 /* funil */
-.lv-step { margin-top: 0.7rem; }
+.lv-step { margin-top: 0.7rem; cursor: pointer; }
+.lv-step:hover .lv-track { border-color: var(--o); }
+.lv-step:hover .lv-track i { filter: brightness(1.15); }
 .lv-step-row { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 800; color: var(--ink); }
 .lv-track { height: 20px; margin-top: 4px; border: 2.5px solid var(--line); border-radius: 8px; background: var(--white); overflow: hidden; }
 .lv-track i { display: block; height: 100%; background: var(--o); }
@@ -46,6 +51,8 @@
 .lv-rank { margin-top: 0.6rem; padding: 0; list-style: none; }
 .lv-rank li { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; padding: 0.45rem 0; border-bottom: 1.5px dashed color-mix(in srgb, var(--line) 50%, transparent); font-size: 0.8rem; color: var(--ink); }
 .lv-rank li:last-child { border: 0; }
+.lv-rank li { cursor: pointer; border-radius: 8px; transition: background 0.12s; }
+.lv-rank li:hover { background: color-mix(in srgb, var(--o) 12%, transparent); }
 .lv-rank .n { font-family: var(--font-display); font-size: 1.2rem; color: var(--o); }
 .lv-rank .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .lv-rank .sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.66rem; font-weight: 700; color: var(--muted); }
@@ -54,9 +61,19 @@
 
 /* perfil */
 .lv-heat { display: grid; grid-template-columns: 2rem repeat(8, minmax(0, 1fr)); gap: 3px; margin-top: 0.8rem; font-size: 0.6rem; font-weight: 800; color: var(--muted); }
-.lv-heat b { aspect-ratio: 1.6; border-radius: 3px; background: var(--o); }
+.lv-heat b { aspect-ratio: 1.6; border-radius: 3px; background: var(--o); cursor: pointer; transition: transform 0.12s, outline-color 0.12s; outline: 2px solid transparent; }
+.lv-heat b:hover { transform: scale(1.12); outline-color: var(--ink); position: relative; z-index: 1; }
+.lv-chip:hover { border-color: var(--o); }
+
+/* card que acompanha o mouse */
+.lv-tip { position: fixed; z-index: 1000; min-width: 12rem; max-width: 17rem; padding: 0.65rem 0.8rem; border: 3px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); color: var(--ink); pointer-events: none; font-size: 0.74rem; }
+.lv-tip > b { display: block; font-size: 0.82rem; font-weight: 800; text-transform: capitalize; }
+.lv-tip > small { display: block; margin-bottom: 0.4rem; font-size: 0.66rem; font-weight: 700; color: var(--muted); }
+.lv-tip-row { display: flex; justify-content: space-between; gap: 1rem; padding: 2px 0; font-weight: 700; color: var(--muted); }
+.lv-tip-row b { color: var(--ink); font-weight: 800; }
+.lv-tip em { display: block; margin-top: 0.4rem; font-style: normal; font-size: 0.66rem; font-weight: 800; color: var(--o); }
 .lv-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
-.lv-chip { display: inline-flex; align-items: center; padding: 2px 9px; border: 2px solid var(--line); border-radius: 8px; background: var(--white); font-size: 0.7rem; font-weight: 800; color: var(--ink); }
+.lv-chip { cursor: pointer; display: inline-flex; align-items: center; padding: 2px 9px; border: 2px solid var(--line); border-radius: 8px; background: var(--white); font-size: 0.7rem; font-weight: 800; color: var(--ink); }
 
 /* filtros */
 .lv-filters { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; padding: 0.8rem 1rem; }
