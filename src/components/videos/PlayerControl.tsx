@@ -144,6 +144,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
   const [destaque, setDestaque] = useState<'cta' | 'fim' | null>(null)
   const [aberto, setAberto] = useState<Painel | null>(null)
   const [copied, setCopied] = useState(false)
+  const [previaKey, setPreviaKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // o formulário nasce do que está salvo; depois disso só o próprio usuário mexe nele
@@ -196,7 +197,10 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
 
   // a proporção segue o vídeo que está escolhido (não o lugar), para a prévia nunca ficar com barras pretas
   const vslEscolhida = VSLS_PRONTAS.find((v) => v.hd === form.arquivos.hd && v.leve === form.arquivos.leve)
-  const vertical = (vslEscolhida?.ratio ?? ratio) === '9 / 16'
+  // o player só carrega o arquivo do que está SALVO (a prévia ao vivo não troca o vídeo), então o quadro segue o salvo
+  const vslSalva = VSLS_PRONTAS.find((v) => v.hd === estado.config.arquivos.hd && v.leve === estado.config.arquivos.leve)
+  const vertical = (vslSalva?.ratio ?? ratio) === '9 / 16'
+  const videoMudou = form.arquivos.hd !== estado.config.arquivos.hd || form.arquivos.leve !== estado.config.arquivos.leve
   const alterado = JSON.stringify(form) !== JSON.stringify(estado.config)
   const maxSegundo = Math.max(60, duracao)
 
@@ -225,6 +229,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
       const novo: PlayerConfigState = await savePlayerConfig(video, form)
       queryClient.setQueryData(['player-config', video], novo)
       setForm(structuredClone(novo.config))
+      setPreviaKey((k) => k + 1) // recarrega a prévia: só assim ela passa a tocar o arquivo salvo
       setMessage({ kind: 'ok', text: 'Salvo. Vale para quem abrir a página a partir de agora; quem já está assistindo termina com a versão antiga.' })
     } catch (erro) {
       setMessage({ kind: 'erro', text: (erro as Error).message })
@@ -271,6 +276,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
             style={vertical ? { aspectRatio: '9 / 16', maxWidth: 340, marginInline: 'auto' } : { paddingTop: '56.25%' }}
           >
             <iframe
+              key={previaKey}
               ref={iframeRef}
               src={`${PLAYER_URL}?v=${video}&manual=1`}
               title="Prévia do player"
@@ -341,7 +347,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
           <Cartao id="pc-video" titulo="Qual VSL toca aqui" destaque={false} visivel={aberto === 'video'}>
             <b className="block text-sm text-zinc-100">Qual VSL toca neste lugar</b>
             <p className="mb-2 text-xs text-zinc-500">
-              Vale para todas as páginas que usam o player “{video}”. Troca o arquivo HD e o leve juntos; a prévia ao lado já mostra o resultado. Só vale depois de salvar.
+              Vale para todas as páginas que usam o player “{video}”. Troca o arquivo HD e o leve juntos; o vídeo só muda na prévia e nas páginas depois de salvar.
             </p>
             <div className="pc-campos">
               {VSLS_PRONTAS.map((v) => (
@@ -355,7 +361,12 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
                   {v.nome}
                 </button>
               ))}
-              {!vslEscolhida && <p className="text-xs text-amber-300">Arquivos personalizados ({form.arquivos.hd}). Edite em “Avançado”.</p>}
+              {videoMudou && (
+                <p className="text-xs text-amber-300">
+                  Vídeo trocado, mas ainda não salvo: a prévia continua com o vídeo anterior. Clique em <b>Salvar</b> e ela recarrega com o novo.
+                </p>
+              )}
+              {!vslEscolhida &&<p className="text-xs text-amber-300">Arquivos personalizados ({form.arquivos.hd}). Edite em “Avançado”.</p>}
             </div>
           </Cartao>
 
