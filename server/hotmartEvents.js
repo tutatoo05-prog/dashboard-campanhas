@@ -157,7 +157,17 @@ function cancelSituation(evento) {
   return 'cancelada'
 }
 
-export function withSituations(events, now = Date.now(), otherBuyers = extraBuyers) {
+/**
+ * A Hotmart avisa duas vezes a mesma compra: PURCHASE_APPROVED (pagou) e, dias depois, PURCHASE_COMPLETE
+ * (acabou a garantia). O segundo não é uma compra nova: sai quando a mesma transação já tem o aprovado.
+ */
+export function semCompletaRepetida(events) {
+  const aprovadas = new Set(events.filter((event) => event.transacao && /aprovad/i.test(event.evento)).map((event) => event.transacao))
+  return events.filter((event) => !(event.transacao && /complet/i.test(event.evento) && event.categoria === 'venda' && aprovadas.has(event.transacao)))
+}
+
+export function withSituations(rawEvents, now = Date.now(), otherBuyers = extraBuyers) {
+  const events = semCompletaRepetida(rawEvents)
   const byTransaction = new Map()
   for (const event of events) {
     if (!event.transacao) continue

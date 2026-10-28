@@ -205,3 +205,14 @@ test('evento novo do webhook entra nas situações: Pix do banco pago por venda 
   ]
   assert.equal(withSituations(eventos, AGORA, [])[0].situacao, 'pago')
 })
+
+test('compra_completa da mesma transação não vira segunda compra; sozinha continua valendo', async () => {
+  const { semCompletaRepetida } = await import('./hotmartEvents.js')
+  const base = { categoria: 'venda', email: 'a@x.com', data: '2026-10-20T10:00:00.000Z' }
+  const lista = semCompletaRepetida([
+    { ...base, id: '1', evento: 'compra_aprovada', transacao: 'HP1' },
+    { ...base, id: '2', evento: 'compra_completa', transacao: 'HP1' },
+    { ...base, id: '3', evento: 'compra_completa', transacao: 'HP2' },
+  ])
+  assert.deepEqual(lista.map((e) => e.id), ['1', '3'])
+})
