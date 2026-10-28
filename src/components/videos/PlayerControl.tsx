@@ -49,8 +49,10 @@ const VSLS_PRONTAS = [
 ]
 
 function iframeCode(video: string, vertical = false): string {
+  // padding-top em % conta sobre a largura do PAI: no vertical usamos aspect-ratio (com max-width no mesmo elemento)
+  const caixa = vertical ? 'position:relative;max-width:340px;margin:0 auto;aspect-ratio:9/16;background:#000' : 'position:relative;padding-top:56.25%;background:#000'
   return [
-    `<div style="position:relative;${vertical ? 'max-width:340px;margin:0 auto;padding-top:177.78%' : 'padding-top:56.25%'};background:#000">`,
+    `<div style="${caixa}">`,
     `  <iframe src="${PLAYER_URL}?v=${video}"`,
     '    title="Vídeo" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen',
     '    style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>',
@@ -266,7 +268,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
         <div className="pc-previa">
           <div
             className="relative overflow-hidden rounded-xl bg-black"
-            style={{ paddingTop: vertical ? '177.78%' : '56.25%', ...(vertical ? { maxWidth: 340, marginInline: 'auto' } : {}) }}
+            style={vertical ? { aspectRatio: '9 / 16', maxWidth: 340, marginInline: 'auto' } : { paddingTop: '56.25%' }}
           >
             <iframe
               ref={iframeRef}
