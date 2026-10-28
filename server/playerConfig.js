@@ -5,7 +5,11 @@ import { comCache, limparCache } from './cacheCurto.js'
 // comportar; se o dash não responder em ~1,5 s ele usa o padrão embutido, então a venda nunca depende do dash.
 // Tabela: video_config (db/schema.sql). Sem a tabela, tudo segue com o PADRAO e o painel avisa para rodar o SQL.
 
-/** Mantenha igual ao VSL_PADRAO de shared/data/vsl.js do projeto produtos. */
+/**
+ * Padrão da `vsl` (VSL antiga, horizontal). Mantenha igual ao VSL_PADRAO de shared/data/vsl.js do projeto produtos.
+ * Os arquivos de cada vídeo vêm de `VSLS` no mesmo shared/data/vsl.js: ao criar um id novo lá, acrescente-o em
+ * PADROES_POR_VIDEO abaixo com os mesmos arquivos.
+ */
 export const PADRAO = {
   arquivos: { hd: 'vsl-v1-720.mp4', leve: 'vsl-v1-480.mp4' },
   permitirAvancar: true,
@@ -19,7 +23,17 @@ export const PADRAO = {
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
 }
 
-const FORMAS = ['suave', 'reto', 'pilula']
+/** O que muda por vídeo em relação ao PADRAO. Ids sem entrada (inclusive `vsl`) usam o PADRAO como está. */
+const PADROES_POR_VIDEO = {
+  'vsl-vertical': { arquivos: { hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4' } },
+}
+
+/** Configuração padrão do vídeo: o PADRAO com os arquivos dele, quando forem diferentes. */
+export function padraoDe(video) {
+  return { ...PADRAO, ...(PADROES_POR_VIDEO[video] ?? {}) }
+}
+
+const FORMAS =['suave', 'reto', 'pilula']
 const POSICOES = ['centro', 'esquerda', 'direita']
 const VERTICAIS = ['baixo', 'topo']
 const TAMANHOS = ['p', 'm', 'g']
@@ -130,9 +144,9 @@ export function videoValido(video) {
 export async function lerConfig(env, video) {
   try {
     const { rows } = await query(env, 'select config, atualizado_em, atualizado_por from video_config where video = $1', [video])
-    if (!rows[0]) return { config: PADRAO, salvo: false, precisaMigracao: false }
+    if (!rows[0]) return { config: padraoDe(video), salvo: false, precisaMigracao: false }
     // passa de novo pelo validador: um registro antigo ou mexido à mão nunca chega torto ao player
-    let config = PADRAO
+    let config = padraoDe(video)
     try {
       config = sanitizarConfig(rows[0].config)
     } catch (erro) {
@@ -140,7 +154,7 @@ export async function lerConfig(env, video) {
     }
     return { config, salvo: true, precisaMigracao: false, atualizadoEm: new Date(rows[0].atualizado_em).toISOString(), atualizadoPor: rows[0].atualizado_por ?? null }
   } catch (erro) {
-    if (erro?.code === '42P01') return { config: PADRAO, salvo: false, precisaMigracao: true }
+    if (erro?.code === '42P01') return { config: padraoDe(video), salvo: false, precisaMigracao: true }
     throw erro
   }
 }

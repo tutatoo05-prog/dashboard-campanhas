@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ConfigInvalida, PADRAO, handlePlayerConfigRequest, sanitizarConfig, videoValido } from './playerConfig.js'
+import pg from 'pg'
+import { ConfigInvalida, PADRAO, handlePlayerConfigRequest, padraoDe, sanitizarConfig, videoValido } from './playerConfig.js'
 
 test('o padrão passa pela própria validação sem mudar', () => {
   assert.deepEqual(sanitizarConfig(PADRAO), PADRAO)
@@ -141,4 +142,29 @@ test('botão de compra: altura em cima/embaixo, valor estranho e registro antigo
   assert.equal(sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, vertical: 'topo' } }).cta.vertical, 'topo')
   assert.equal(sanitizarConfig({ ...PADRAO, cta: { ...PADRAO.cta, vertical: 'meio' } }).cta.vertical, 'baixo')
   assert.equal(sanitizarConfig({ arquivos: PADRAO.arquivos, cta: { ativo: true, texto: 'Comprar' }, fim: PADRAO.fim }).cta.vertical, 'baixo')
+})
+
+test('padraoDe: vídeo sem entrada (inclusive vsl) usa o PADRAO; vsl-vertical troca só os arquivos', () => {
+  assert.deepEqual(padraoDe('qualquer-id'), PADRAO)
+  assert.deepEqual(padraoDe('vsl'), PADRAO)
+  assert.deepEqual(padraoDe('vsl-vertical').arquivos, { hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4' })
+  assert.deepEqual({ ...padraoDe('vsl-vertical'), arquivos: PADRAO.arquivos }, PADRAO)
+})
+
+test('rota pública: sem linha salva, cada vídeo recebe os arquivos do seu padrão', async () => {
+  // banco simulado: nenhuma linha em video_config (o pool só abre conexão quando consulta, e aqui consulta é trocada)
+  const original = pg.Pool.prototype.query
+  pg.Pool.prototype.query = async () => ({ rows: [] })
+  try {
+    const env = { DATABASE_URL: 'postgres://localhost/teste' }
+    const antiga = await chamar('GET', '/api/player-config?v=vsl', env)
+    assert.equal(antiga.status, 200)
+    assert.equal(antiga.corpo.arquivos.hd, 'vsl-v1-720.mp4')
+    const vertical = await chamar('GET', '/api/player-config?v=vsl-vertical', env)
+    assert.equal(vertical.status, 200)
+    assert.equal(vertical.corpo.arquivos.hd, 'vsl-v2-720.mp4')
+    assert.equal(vertical.corpo.arquivos.leve, 'vsl-v2-480.mp4')
+  } finally {
+    pg.Pool.prototype.query = original
+  }
 })

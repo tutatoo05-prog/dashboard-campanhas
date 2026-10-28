@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PageHero } from '@/components/flash/PageHero.tsx'
@@ -29,8 +30,11 @@ const TOOLTIP_STYLE = {
   fontSize: 12,
 }
 
-/** Só a VSL é monitorada aqui (os depoimentos não usam o player hospedado). */
-const VIDEO = 'vsl'
+/** VSLs monitoradas aqui (os depoimentos não usam o player hospedado). `id` é o ?v= do player e o campo `video` dos eventos. */
+const VIDEOS = [
+  { id: 'vsl', nome: 'Essentials · horizontal 16:9', ratio: '16 / 9' },
+  { id: 'vsl-vertical', nome: 'Live e Membros · vertical 9:16', ratio: '9 / 16' },
+]
 
 const DEVICE_LABELS: Record<string, string> = { mobile: 'Celular', desktop: 'Computador', tablet: 'Tablet', outro: 'Outro' }
 
@@ -189,6 +193,10 @@ function Content({ data }: { data: VideoMetrics }) {
 
 export default function VideosPage() {
   const [dias, setDias] = useState(30)
+  // a escolha vive só na URL (?video=): nada guardado no navegador
+  const [params, setParams] = useSearchParams()
+  const escolhido = VIDEOS.find((v) => v.id === params.get('video')) ?? VIDEOS[0]
+  const VIDEO = escolhido.id
 
   const query = useQuery({
     queryKey: ['videos', VIDEO, dias],
@@ -209,6 +217,19 @@ export default function VideosPage() {
       </PageHero>
 
       <section className="surface-card filter-bar filter-grid" data-tour="Filtros do vídeo" data-tour-text="Escolha o período. Os números contam pessoas, não cliques: quem pausa e retoma conta uma vez só.">
+        <div className="seg" role="group" aria-label="Vídeo">
+          {VIDEOS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`seg-btn ${VIDEO === option.id ? 'seg-btn-active' : ''}`}
+              onClick={() => setParams(option.id === VIDEOS[0].id ? {} : { video: option.id }, { replace: true })}
+              aria-pressed={VIDEO === option.id}
+            >
+              {option.nome}
+            </button>
+          ))}
+        </div>
         <div className="seg" role="group" aria-label="Período">
           {PERIODS.map((option) => (
             <button
@@ -249,7 +270,7 @@ export default function VideosPage() {
 
       {data && !error && <Content data={data} />}
 
-      <PlayerControl video={VIDEO} />
+      <PlayerControl key={VIDEO} video={VIDEO} ratio={escolhido.ratio} />
 
       {data && !error && (
         <p className="text-xs text-zinc-500">

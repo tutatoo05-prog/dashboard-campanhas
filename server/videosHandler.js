@@ -2,7 +2,7 @@ import { comCache } from './cacheCurto.js'
 import { TRACKING_SHEET_ID, loadExtraBuyers } from './hotmartEvents.js'
 import { csvToObjects, fetchSheetQueryCsv } from './sheetsCsv.js'
 import { calcularMetricasVideo } from './videosMetrics.js'
-import { PADRAO, ConfigInvalida, gravarConfig, lerConfig, sanitizarConfig, videoValido } from './playerConfig.js'
+import { padraoDe, ConfigInvalida, gravarConfig, lerConfig, sanitizarConfig, videoValido } from './playerConfig.js'
 import { readRequestBody } from './readBody.js'
 
 // Só as linhas de vídeo e de visita da aba "Eventos (todos)" (coluna B = evento): o Google filtra do lado dele,
@@ -35,7 +35,7 @@ async function handleConfigRequest(req, res, env, user, url) {
 
   try {
     if (req.method === 'GET') {
-      return sendJson(res, 200, { success: true, video, padrao: PADRAO, ...(await lerConfig(env, video)) })
+      return sendJson(res, 200, { success: true, video, padrao: padraoDe(video), ...(await lerConfig(env, video)) })
     }
     if (req.method === 'PUT') {
       let corpo
@@ -50,7 +50,7 @@ async function handleConfigRequest(req, res, env, user, url) {
         return sendJson(res, 409, { error: 'Falta criar a tabela video_config no banco (veja db/schema.sql).', code: 'MIGRACAO' })
       }
       await gravarConfig(env, video, config, user?.email)
-      return sendJson(res, 200, { success: true, video, padrao: PADRAO, ...(await lerConfig(env, video)) })
+      return sendJson(res, 200, { success: true, video, padrao: padraoDe(video), ...(await lerConfig(env, video)) })
     }
     return sendJson(res, 405, { error: 'Método não permitido.' })
   } catch (error) {

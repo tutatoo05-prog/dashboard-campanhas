@@ -41,9 +41,9 @@ const ITENS: { id: Painel; icone: string; nome: string; titulo: string }[] = [
   { id: 'avancado', icone: 'fa-code', nome: 'Avançado', titulo: 'Arquivos do vídeo e código para colar' },
 ]
 
-function iframeCode(video: string): string {
+function iframeCode(video: string, vertical = false): string {
   return [
-    '<div style="position:relative;padding-top:56.25%;background:#000">',
+    `<div style="position:relative;${vertical ? 'max-width:340px;margin:0 auto;padding-top:177.78%' : 'padding-top:56.25%'};background:#000">`,
     `  <iframe src="${PLAYER_URL}?v=${video}"`,
     '    title="Vídeo" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen',
     '    style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>',
@@ -122,7 +122,8 @@ function Cartao({ id, titulo, destaque, visivel, children }: { id: string; titul
   )
 }
 
-export function PlayerControl({ video }: { video: string }) {
+export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; ratio?: string }) {
+  const vertical = ratio === '9 / 16'
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['player-config', video], queryFn: () => fetchPlayerConfig(video), retry: false })
   const estado = query.data
@@ -223,7 +224,7 @@ export function PlayerControl({ video }: { video: string }) {
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(iframeCode(video))
+      await navigator.clipboard.writeText(iframeCode(video, vertical))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -254,7 +255,10 @@ export function PlayerControl({ video }: { video: string }) {
       <div className={`pc-palco ${aberto ? 'pc-palco-aberto' : ''}`}>
         {/* ───── prévia ao vivo no centro: sempre à vista ───── */}
         <div className="pc-previa">
-          <div className="relative overflow-hidden rounded-xl bg-black" style={{ paddingTop: '56.25%' }}>
+          <div
+            className="relative overflow-hidden rounded-xl bg-black"
+            style={{ paddingTop: vertical ? '177.78%' : '56.25%', ...(vertical ? { maxWidth: 340, marginInline: 'auto' } : {}) }}
+          >
             <iframe
               ref={iframeRef}
               src={`${PLAYER_URL}?v=${video}&manual=1`}
@@ -528,7 +532,7 @@ export function PlayerControl({ video }: { video: string }) {
                     {copied ? 'Copiado!' : 'Copiar código'}
                   </button>
                 </div>
-                <textarea readOnly rows={5} className="filter-select w-full font-mono text-xs" value={iframeCode(video)} onFocus={(e) => e.currentTarget.select()} />
+                <textarea readOnly rows={5} className="filter-select w-full font-mono text-xs" value={iframeCode(video, vertical)} onFocus={(e) => e.currentTarget.select()} />
                 <p className="mt-1 text-xs text-zinc-500">
                   Essentials, Membros e Live já usam o player. Em uma página nova, esse código mostra o vídeo com as opções acima; para
                   também medir o vídeo e abrir o checkout, a página precisa da ponte <code>vsl-embed.js</code> do projeto produtos.

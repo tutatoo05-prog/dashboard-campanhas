@@ -400,6 +400,16 @@ create table if not exists video_config (
   atualizado_por text
 );
 
+-- OPCIONAL (segunda VSL, id vsl-vertical, vertical 9:16, 23 min): copia a config atual da `vsl` trocando só os arquivos
+-- e DESLIGANDO a barra falsa (calibrada para a VSL antiga de ~15 min). Sem linha `vsl`, não faz nada e vale o padrão do
+-- código (server/playerConfig.js, padraoDe). Descomente e rode no SQL Editor do Supabase (schema dash) se quiser.
+-- insert into video_config (video, config, atualizado_por)
+-- select 'vsl-vertical',
+--        jsonb_set(jsonb_set(config, '{arquivos}', '{"hd":"vsl-v2-720.mp4","leve":"vsl-v2-480.mp4"}'::jsonb), '{barraFalsa,ativo}', 'false'::jsonb),
+--        'semente'
+-- from video_config where video = 'vsl'
+-- on conflict (video) do nothing;
+
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Cadastros recusados: o fluxo de aprovação do n8n (Telegram/WhatsApp) grava recusado_em. Nulo = não recusado.
 -- ativo = false e recusado_em nulo = pendente; ativo = false e recusado_em preenchido = recusado.
