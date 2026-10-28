@@ -56,6 +56,19 @@ function countBy(records: RegistroAgrupado[], pick: (record: RegistroAgrupado) =
     .sort((a, b) => b.total - a.total)
 }
 
+function formatDateShort(value: string): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
+  })
+}
+
 function formatDate(value: string): string {
   if (!value) return '—'
   const date = new Date(value)
@@ -686,7 +699,7 @@ export default function RegistrosPage() {
                           '—'
                         )}
                       </td>
-                      <td className="cell-more whitespace-nowrap text-zinc-500" data-label="Última passagem">{formatDate(record.data)}</td>
+                      <td className="cell-more whitespace-nowrap text-zinc-500" data-label="Última passagem">{formatDateShort(record.data)}</td>
                     </tr>
                   ))}
                   {!filtered.length && (
