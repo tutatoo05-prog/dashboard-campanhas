@@ -29,16 +29,23 @@ const PALETA = [
   { nome: 'Branco', cor: '#ffffff' },
 ]
 
-type Painel = 'cta' | 'fim' | 'estilo' | 'ritmo' | 'comportamento' | 'avancado'
+type Painel = 'video' | 'cta' | 'fim' | 'estilo' | 'ritmo' | 'comportamento' | 'avancado'
 
 /** Cada item vira um botão ao lado do vídeo; clicar abre as opções dele num painel (o vídeo continua à vista). */
 const ITENS: { id: Painel; icone: string; nome: string; titulo: string }[] = [
+  { id: 'video', icone: 'fa-film', nome: 'Vídeo', titulo: 'Qual VSL toca aqui' },
   { id: 'cta', icone: 'fa-cart-shopping', nome: 'Compra', titulo: 'Botão de compra' },
   { id: 'fim', icone: 'fa-flag-checkered', nome: 'Fim', titulo: 'Tela final' },
   { id: 'estilo', icone: 'fa-palette', nome: 'Cores', titulo: 'Cores e estilo' },
   { id: 'ritmo', icone: 'fa-gauge-high', nome: 'Barra', titulo: 'Ritmo da barra de progresso' },
   { id: 'comportamento', icone: 'fa-sliders', nome: 'Regras', titulo: 'Comportamento' },
   { id: 'avancado', icone: 'fa-code', nome: 'Avançado', titulo: 'Arquivos do vídeo e código para colar' },
+]
+
+/** VSLs prontas (arquivos na pasta de vídeos do servidor). Escolher uma troca HD e leve juntos. */
+const VSLS_PRONTAS = [
+  { id: 'v1', nome: 'VSL antiga · horizontal 16:9', hd: 'vsl-v1-720.mp4', leve: 'vsl-v1-480.mp4', ratio: '16 / 9' },
+  { id: 'v2', nome: 'VSL nova · vertical 9:16 (23 min)', hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4', ratio: '9 / 16' },
 ]
 
 function iframeCode(video: string, vertical = false): string {
@@ -123,7 +130,6 @@ function Cartao({ id, titulo, destaque, visivel, children }: { id: string; titul
 }
 
 export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; ratio?: string }) {
-  const vertical = ratio === '9 / 16'
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['player-config', video], queryFn: () => fetchPlayerConfig(video), retry: false })
   const estado = query.data
@@ -186,6 +192,9 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
   }
   if (!estado || !form) return null
 
+  // a proporção segue o vídeo que está escolhido (não o lugar), para a prévia nunca ficar com barras pretas
+  const vslEscolhida = VSLS_PRONTAS.find((v) => v.hd === form.arquivos.hd && v.leve === form.arquivos.leve)
+  const vertical = (vslEscolhida?.ratio ?? ratio) === '9 / 16'
   const alterado = JSON.stringify(form) !== JSON.stringify(estado.config)
   const maxSegundo = Math.max(60, duracao)
 
@@ -327,6 +336,27 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
             </button>
           </div>
           <div className="pc-cartoes">
+          <Cartao id="pc-video" titulo="Qual VSL toca aqui" destaque={false} visivel={aberto === 'video'}>
+            <b className="block text-sm text-zinc-100">Qual VSL toca neste lugar</b>
+            <p className="mb-2 text-xs text-zinc-500">
+              Vale para todas as páginas que usam o player “{video}”. Troca o arquivo HD e o leve juntos; a prévia ao lado já mostra o resultado. Só vale depois de salvar.
+            </p>
+            <div className="pc-campos">
+              {VSLS_PRONTAS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className={`chip-btn ${vslEscolhida?.id === v.id ? 'seg-btn-active' : ''}`}
+                  aria-pressed={vslEscolhida?.id === v.id}
+                  onClick={() => mudar((c) => ({ ...c, arquivos: { hd: v.hd, leve: v.leve } }))}
+                >
+                  {v.nome}
+                </button>
+              ))}
+              {!vslEscolhida && <p className="text-xs text-amber-300">Arquivos personalizados ({form.arquivos.hd}). Edite em “Avançado”.</p>}
+            </div>
+          </Cartao>
+
           <Cartao id="pc-cta" titulo="Botão de compra" destaque={destaque === 'cta'} visivel={aberto === 'cta'}>
             <Interruptor
               ligado={form.cta.ativo}
