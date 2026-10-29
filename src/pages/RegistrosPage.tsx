@@ -211,6 +211,24 @@ export default function RegistrosPage() {
   )
   const scoped = grouped
 
+  // Inscritos novos do recorte filtrado: hoje, ontem (dias de Brasília), últimas 24 h e últimos 7 dias.
+  const novosPorJanela = useMemo(() => {
+    const diaSP = (ms: number) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const hoje = diaSP(agora)
+    const ontem = diaSP(agora - 86_400_000)
+    const resultado = { hoje: 0, ontem: 0, h24: 0, d7: 0 }
+    for (const pessoa of grouped) {
+      const quando = pessoa.primeiraEm ? new Date(pessoa.primeiraEm).getTime() : NaN
+      if (!Number.isFinite(quando) || quando > agora) continue
+      const dia = diaSP(quando)
+      if (dia === hoje) resultado.hoje++
+      else if (dia === ontem) resultado.ontem++
+      if (agora - quando < 86_400_000) resultado.h24++
+      if (agora - quando < 7 * 86_400_000) resultado.d7++
+    }
+    return resultado
+  }, [grouped, agora])
+
   const byCanal = useMemo(() => countBy(grouped, (person) => person.canal || 'Sem rastreamento'), [grouped])
   const byCampanha = useMemo(() => countBy(grouped, campanhaDe), [grouped])
 
@@ -422,6 +440,22 @@ export default function RegistrosPage() {
                 </button>
               </span>
             </div>
+          )}
+
+          {selectedInfo && (
+            <section className="kpi-scroll -mt-3" aria-label="Inscritos novos do filtro">
+              {[
+                { rotulo: 'Novos hoje', valor: novosPorJanela.hoje },
+                { rotulo: 'Ontem', valor: novosPorJanela.ontem },
+                { rotulo: 'Últimas 24 h', valor: novosPorJanela.h24 },
+                { rotulo: 'Últimos 7 dias', valor: novosPorJanela.d7 },
+              ].map((item) => (
+                <div key={item.rotulo} className="kpi-card">
+                  <p className="section-label">{item.rotulo}</p>
+                  <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(item.valor)}</p>
+                </div>
+              ))}
+            </section>
           )}
 
           <div id="registros-filtrados" className="grid scroll-mt-36 gap-4 lg:grid-cols-2">
