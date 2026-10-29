@@ -39,6 +39,24 @@ test('Pix gerado e boleto gerado têm sequências diferentes e guardam o código
   assert.equal(boleto[0].dados.linkPagamento, 'https://boleto')
 })
 
+test('cada oferta volta para o próprio checkout; oferta desconhecida fica sem link e usa o padrão', () => {
+  const comOferta = (event, oferta) =>
+    normalizarEvento({
+      id: 'e2',
+      event,
+      data: {
+        product: { name: 'Essentials' },
+        buyer: { name: 'Ana Souza', email: 'ana@exemplo.com' },
+        ...(event === 'PURCHASE_OUT_OF_SHOPPING_CART' ? { offer: { code: oferta } } : {}),
+        purchase: { transaction: 'HP2', payment: { type: 'PIX' }, ...(event === 'PURCHASE_OUT_OF_SHOPPING_CART' ? {} : { offer: { code: oferta } }) },
+      },
+    })
+  const link = (event, oferta) => agendamentosDoEvento(comOferta(event, oferta), {}, AGORA).agendar[0].dados.linkCheckout
+  assert.equal(link('PURCHASE_OUT_OF_SHOPPING_CART', 'scq7pq9v'), 'https://pay.hotmart.com/N108253747X?off=scq7pq9v')
+  assert.equal(link('PURCHASE_BILLET_PRINTED', '0gapxraj'), 'https://pay.hotmart.com/N108253747X?off=0gapxraj')
+  assert.equal(link('PURCHASE_EXPIRED', 'outra'), undefined)
+})
+
 test('compra aprovada cancela as sequências de venda e, se liberou, agenda o onboarding', () => {
   const nova = agendamentosDoEvento(venda({ event: 'PURCHASE_APPROVED' }), { tipo: 'liberar' }, AGORA)
   assert.equal(nova.cancelar, 'ana@exemplo.com')

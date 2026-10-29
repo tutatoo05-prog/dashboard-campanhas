@@ -60,6 +60,8 @@ export function normalizarEvento(payload) {
     produto: texto(produto.name),
     produtoItem: texto(produto.content?.products?.[0]?.name),
     plano: texto(assinatura.plan?.name),
+    // Código da oferta (checkout): em compra vem em purchase.offer, no carrinho abandonado em data.offer.
+    oferta: texto(compra.offer?.code ?? data.offer?.code),
     pagamentoTipo: texto(compra.payment?.type).toUpperCase(),
     // Só vêm quando o evento é de boleto/Pix gerado; usados nos lembretes de pagamento.
     pixCodigo: texto(compra.payment?.pix_code),

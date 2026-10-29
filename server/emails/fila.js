@@ -1,7 +1,7 @@
 import { query } from '../db.js'
 import { avisarProblema, enviarEmail } from '../acesso/integracoes.js'
 import { emailValido, nomeDoCurso } from '../acesso/regras.js'
-import { CURSOS_COM_SEQUENCIA, EMAILS, LINK_CHECKOUT_PADRAO, montarEmail } from './conteudo.js'
+import { CURSOS_COM_SEQUENCIA, EMAILS, LINK_CHECKOUT_PADRAO, linkCheckoutDaOferta, montarEmail } from './conteudo.js'
 
 /**
  * Fila de e-mails de sequência (carrinho, Pix/boleto, expirada, onboarding), com a conta grátis da Brevo em mente
@@ -40,6 +40,7 @@ export function agendamentosDoEvento(venda, plano, agora = new Date()) {
   if (!email) return vazio
   const curso = nomeDoCurso(venda)
   const base = { email, nome: venda.nome }
+  const linkCheckout = linkCheckoutDaOferta(venda.oferta)
   const item = (passo, ref, dados = {}) => ({
     ...base,
     cenario: EMAILS[passo].cenario,
@@ -47,7 +48,7 @@ export function agendamentosDoEvento(venda, plano, agora = new Date()) {
     chave: `${email}|${passo}|${ref}`,
     prioridade: EMAILS[passo].prioridade,
     enviarEm: new Date(agora.getTime() + EMAILS[passo].atrasoMs),
-    dados: { curso, ...dados },
+    dados: { curso, ...(linkCheckout ? { linkCheckout } : {}), ...dados },
   })
 
   switch (venda.evento) {
@@ -196,7 +197,7 @@ export async function enviarDaFila(env, { fila = criarFila(env), enviar = enviar
       continue
     }
     try {
-      const dados = { ...item.dados, nome: item.nome, linkCheckout: env.EMAIL_LINK_CHECKOUT || LINK_CHECKOUT_PADRAO }
+      const dados = { ...item.dados, nome: item.nome, linkCheckout: item.dados?.linkCheckout || env.EMAIL_LINK_CHECKOUT || LINK_CHECKOUT_PADRAO }
       const { assunto, html } = montar(item.passo, dados)
       if (modo === 'teste') {
         await fila.marcar(item.id, { estado: 'simulado', enviado_em: agora() })

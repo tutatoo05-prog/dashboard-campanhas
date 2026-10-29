@@ -14,6 +14,7 @@ import {
   telefoneWhatsapp,
   whatsappBrasileiroValido,
 } from './regras.js'
+import { LINK_CHECKOUT_PADRAO, linkCheckoutDaOferta } from '../emails/conteudo.js'
 import * as integracoesPadrao from './integracoes.js'
 import { v2Configurado } from './telwayV2.js'
 
@@ -205,7 +206,8 @@ O acesso foi revogado na plataforma e a compra marcada como cancelada no dash.
       if (!ROTULOS_COM_ABANDONO.has(plano.curso)) return { pulado: `curso sem e-mail de apoio: "${plano.curso}"` }
       const modelo = await integ.carregarTemplate('abandono')
       const nome = primeiroNome(venda.primeiroNome || venda.nome) || 'amigo(a)'
-      const html = integ.renderizar(modelo, { nome, curso: plano.curso })
+      const linkCheckout = linkCheckoutDaOferta(venda.oferta) || env.EMAIL_LINK_CHECKOUT || LINK_CHECKOUT_PADRAO
+      const html = integ.renderizar(modelo, { nome, curso: plano.curso, linkCheckout })
       const resultado = await integ.enviarEmail(env, { para: venda.email, nomePara: nome, assunto: `${plano.curso} está te esperando 🚀`, html })
       await repo.marcarAbandonoEnviado({ email: venda.email, tipo: plano.abandono, enviadoEm: agora() })
       return resultado

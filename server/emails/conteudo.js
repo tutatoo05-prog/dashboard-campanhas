@@ -13,6 +13,17 @@ export const LINK_LOGIN = 'https://tuzinho.academy/login'
 export const LINK_SUPORTE = 'https://tuzinho.academy/ajuda/'
 export const LINK_CHECKOUT_PADRAO = 'https://pay.hotmart.com/C105186161Q?checkoutMode=10'
 
+/** Checkout de cada oferta do novo Essentials (código da oferta na Hotmart → link): cada pessoa volta para o preço que viu. */
+export const CHECKOUTS_POR_OFERTA = {
+  scq7pq9v: 'https://pay.hotmart.com/N108253747X?off=scq7pq9v', // R$ 2.999
+  '0gapxraj': 'https://pay.hotmart.com/N108253747X?off=0gapxraj', // R$ 1.497
+}
+
+/** Link da oferta que a pessoa viu, ou '' se a oferta é desconhecida (aí vale o link padrão). */
+export function linkCheckoutDaOferta(oferta) {
+  return CHECKOUTS_POR_OFERTA[String(oferta ?? '').trim().toLowerCase()] ?? ''
+}
+
 /** Cursos que recebem as sequências de venda (os que têm o checkout do link padrão). */
 export const CURSOS_COM_SEQUENCIA = new Set(['Essentials', 'Mentoria Essentials'])
 
