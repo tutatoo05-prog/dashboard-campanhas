@@ -493,9 +493,9 @@ export default function RegistrosPage() {
                 { rotulo: 'Últimas 24 h', valor: novosPorJanela.h24 },
                 { rotulo: 'Últimos 7 dias', valor: novosPorJanela.d7 },
               ].map((item) => (
-                <div key={item.rotulo} className="kpi-card !w-auto !min-w-0">
+                <div key={item.rotulo} className="kpi-card novos-card">
                   <p className="section-label">{item.rotulo}</p>
-                  <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(item.valor)}</p>
+                  <p className="novos-card-valor">{formatNumber(item.valor)}</p>
                 </div>
               ))}
             </section>
