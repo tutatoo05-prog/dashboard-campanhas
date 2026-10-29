@@ -34,7 +34,6 @@ export const PROJETOS = [
     slugsDeLeads: ['essentials', 'essentials-live', 'essentials-membros', 'mentoria-particular'],
     alvos: [
       { nome: 'Essentials', url: 'https://tuzinho.academy/produtos/essentials/' },
-      { nome: 'Conheça o Essentials', url: 'https://tuzinho.academy/produtos/conheca-essentials/' },
       // A Live da campanha do Google fica em tuzinho.app (só esse domínio foi aprovado); a de tuzinho.academy é a cópia.
       { nome: 'Live (campanha)', url: 'https://tuzinho.app/essentials/' },
       { nome: 'Live (tuzinho.academy)', url: 'https://tuzinho.academy/produtos/essentials/live/' },
