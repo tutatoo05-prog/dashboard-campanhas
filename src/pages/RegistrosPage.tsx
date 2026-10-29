@@ -442,22 +442,6 @@ export default function RegistrosPage() {
             </div>
           )}
 
-          {selectedInfo && (
-            <section className="kpi-scroll -mt-3" aria-label="Inscritos novos do filtro">
-              {[
-                { rotulo: 'Novos hoje', valor: novosPorJanela.hoje },
-                { rotulo: 'Ontem', valor: novosPorJanela.ontem },
-                { rotulo: 'Últimas 24 h', valor: novosPorJanela.h24 },
-                { rotulo: 'Últimos 7 dias', valor: novosPorJanela.d7 },
-              ].map((item) => (
-                <div key={item.rotulo} className="kpi-card">
-                  <p className="section-label">{item.rotulo}</p>
-                  <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(item.valor)}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
           <div id="registros-filtrados" className="grid scroll-mt-36 gap-4 lg:grid-cols-2">
             <section key={`origem-${selectedTab}`} className={`surface-card p-4 ${selectedTab ? 'filtro-flash' : ''}`}>
               <p className="section-label">Origem do lead</p>
@@ -500,6 +484,22 @@ export default function RegistrosPage() {
               </div>
             </section>
           </div>
+
+          {selectedInfo && (
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Inscritos novos do filtro">
+              {[
+                { rotulo: 'Novos hoje', valor: novosPorJanela.hoje },
+                { rotulo: 'Ontem', valor: novosPorJanela.ontem },
+                { rotulo: 'Últimas 24 h', valor: novosPorJanela.h24 },
+                { rotulo: 'Últimos 7 dias', valor: novosPorJanela.d7 },
+              ].map((item) => (
+                <div key={item.rotulo} className="kpi-card !w-auto !min-w-0">
+                  <p className="section-label">{item.rotulo}</p>
+                  <p className="mt-0.5 text-lg font-semibold text-emerald-300">{formatNumber(item.valor)}</p>
+                </div>
+              ))}
+            </section>
+          )}
 
           <section id="lista-registros" key={`lista-${selectedTab}`} className={`surface-card scroll-mt-32 overflow-hidden ${selectedTab ? 'filtro-flash' : ''}`}>
             <div className="flex flex-wrap items-center justify-between gap-3 p-4">
