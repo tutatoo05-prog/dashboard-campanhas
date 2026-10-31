@@ -34,7 +34,7 @@ export function modoAcesso(env) {
 /** Falha que não adianta tentar de novo (ex.: e-mail do comprador inválido): vira "atenção" e avisa a equipe. */
 export class ErroPermanente extends Error {}
 
-const ASSUNTO_BOAS_VINDAS = '🎨 Tudo certo! Você agora é um aluno da Tuzinho Academy'
+export const ASSUNTO_BOAS_VINDAS ='🎨 Tudo certo! Você agora é um aluno da Tuzinho Academy'
 const PASSOS_CRITICOS = new Set(['liberar', 'revogar_acesso'])
 const ALERTA_NA_TENTATIVA = 3
 
@@ -42,6 +42,11 @@ const dataBr = (data) => new Date(data).toLocaleDateString('pt-BR', { timeZone: 
 
 export function textoAcessoAluno(nome, curso) {
   return `✅ Tudo certo, ${nome}! Seu acesso no ${curso} foi confirmado. Você receberá informações de acesso no mesmo e-mail que finalizou sua compra. \n\nAproveite para assistir agora e dominar novas técnicas.\n\n`
+}
+
+/** Acesso criado na mão (compra sem CPF): o aluno recebe o login e a senha provisória direto no WhatsApp. */
+export function textoAcessoManual(nome, curso, email, senha) {
+  return `✅ Olá, ${nome}! Seu acesso ao ${curso} foi liberado.\n\nEntre na plataforma com:\n📧 Login: ${email}\n🔑 Senha: ${senha}\n\nAproveite para assistir agora e dominar novas técnicas.\n\n`
 }
 
 export function textoNovaVenda(nome, curso) {

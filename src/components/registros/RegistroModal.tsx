@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import type { Purchase } from '@/types'
@@ -221,7 +222,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
     }
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       className="dialog-backdrop"
       onMouseDown={(event) => {
@@ -342,6 +343,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

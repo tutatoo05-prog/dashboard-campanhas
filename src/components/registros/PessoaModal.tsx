@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchRegistros } from '@/services/registrosService.ts'
 import { fetchPurchases } from '@/services/purchaseService.ts'
@@ -38,7 +39,7 @@ export function PessoaModal({ nome, email, telefone, onClose, closeLabel }: Pess
 
   if (!pessoa) {
     const falhou = registrosQuery.isError
-    return (
+    return createPortal(
       <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
         <div className="dialog sale-dialog" role="dialog" aria-modal="true">
           <p className="sale-note">{falhou ? 'Não consegui ler os registros agora. Tente de novo em instantes.' : 'Procurando esta pessoa nos registros...'}</p>
@@ -48,7 +49,8 @@ export function PessoaModal({ nome, email, telefone, onClose, closeLabel }: Pess
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body,
     )
   }
 

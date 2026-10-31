@@ -1,7 +1,9 @@
 import { query } from '../db.js'
 import { readRequestBody } from '../readBody.js'
 import { isAdmin } from '../roles.js'
-import { modoAcesso } from './motor.js'
+import { ASSUNTO_BOAS_VINDAS, modoAcesso, textoAcessoManual } from './motor.js'
+import { carregarTemplate, enviarEmail, enviarWhatsapp, renderizar } from './integracoes.js'
+import { nomeDoCurso, telefoneWhatsapp, whatsappBrasileiroValido } from './regras.js'
 import { normalizarEvento } from './hotmart.js'
 import { rodarAgora } from './scheduler.js'
 import { configuracaoFaltando, verificarConexoes } from './verificacao.js'
@@ -54,6 +56,7 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/emails/pessoa?email=      (e-mails de uma pessoa, para a linha do tempo dela)
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
+ *   POST /api/acessos/eventos/:id/avisar-manual  { senha }  (acesso criado na mão: manda e-mail e WhatsApp com a senha)
  *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
  *   POST /api/acessos/lista/:id/reativacao-feita (marca "já reativei na plataforma")
  */
@@ -164,7 +167,43 @@ export async function handleAcessosRequest(req, res, env, user) {
       return sendJson(res, 200, { ok: true })
     }
 
-    const reativacaoFeita = /^\/api\/acessos\/lista\/(\d+)\/reativacao-feita$/.exec(caminho)
+    // Compra sem CPF: o acesso foi criado na mão na plataforma, aqui só mandamos o e-mail e o WhatsApp com a senha provisória.
+    const avisarManual = /^\/api\/acessos\/eventos\/(\d+)\/avisar-manual$/.exec(caminho)
+    if (req.method === 'POST' && avisarManual) {
+      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
+      const corpo = JSON.parse((await readRequestBody(req)) || '{}')
+      const senha = String(corpo.senha ?? '').trim()
+      if (!senha) return sendJson(res, 400, { error: 'Informe a senha provisória.' })
+      const { rows } = await query(env, 'select payload from hotmart_eventos where id = $1', [Number(avisarManual[1])])
+      if (!rows[0]) return sendJson(res, 404, { error: 'Evento não encontrado.' })
+      const venda = normalizarEvento(rows[0].payload)
+      const telefone = telefoneWhatsapp(venda.telefoneBruto, venda.pais)
+      const curso = nomeDoCurso(venda)
+      const nome = venda.primeiroNome || venda.nome
+
+      const resultado = {}
+      try {
+        const modelo = await carregarTemplate('boas-vindas')
+        const html = renderizar(modelo, { nome: venda.nome, email: venda.email, documento: senha })
+        await enviarEmail(env, { para: venda.email, nomePara: venda.nome, assunto: ASSUNTO_BOAS_VINDAS, html })
+        resultado.email = { ok: true }
+      } catch (erro) {
+        resultado.email = { ok: false, erro: erro.message }
+      }
+      if (!whatsappBrasileiroValido(telefone)) {
+        resultado.whatsapp = { ok: false, erro: 'Telefone sem WhatsApp brasileiro completo.' }
+      } else {
+        try {
+          await enviarWhatsapp(env, { conta: 'aluno', numero: telefone, texto: textoAcessoManual(nome, curso, venda.email, senha) })
+          resultado.whatsapp = { ok: true }
+        } catch (erro) {
+          resultado.whatsapp = { ok: false, erro: erro.message }
+        }
+      }
+      return sendJson(res, 200, resultado)
+    }
+
+    const reativacaoFeita =/^\/api\/acessos\/lista\/(\d+)\/reativacao-feita$/.exec(caminho)
     if (req.method === 'POST' && reativacaoFeita) {
       if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
       const { rowCount } = await query(
