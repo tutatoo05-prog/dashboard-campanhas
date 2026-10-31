@@ -13,6 +13,7 @@ import {
   telefoneWhatsapp,
   validarCpf,
   whatsappBrasileiroValido,
+  whatsappValido,
 } from './regras.js'
 import { bloquearAtrasados, criarMotor, processarEvento, processarFila } from './motor.js'
 import { escaparHtml, renderizar, carregarTemplate } from './integracoes.js'
@@ -62,11 +63,17 @@ test('telefone: 55 só para o Brasil, estrangeiro fica como veio', () => {
     ['351961593443', 'PT', '351961593443'],
     ['11987654321', '', '5511987654321'],
     ['351961593443', '', '351961593443'],
+    ['912345678', 'PT', '351912345678'],
+    ['0912345678', 'PT', '351912345678'],
+    ['2025550123', 'US', '12025550123'],
     ['', 'BR', ''],
   ]
   for (const [bruto, pais, esperado] of casos) assert.equal(telefoneWhatsapp(bruto, pais), esperado, `${bruto}/${pais}`)
   assert.equal(whatsappBrasileiroValido('5511987654321'), true)
   assert.equal(whatsappBrasileiroValido('351961593443'), false)
+  assert.equal(whatsappValido('351961593443'), true)
+  assert.equal(whatsappValido('5511987654321'), true)
+  assert.equal(whatsappValido('5511'), false)
 })
 
 test('prazo: a plataforma recebe sempre 365 dias; o Pix parcelado só é marcado à parte', () => {
@@ -412,7 +419,7 @@ test('motor: e-mail do comprador inválido vira atenção, sem insistir', async 
   assert.equal(nomesChamados(repo.chamadas).filter((n) => n === 'liberarCurso').length, 1)
 })
 
-test('motor: telefone estrangeiro libera mas não manda WhatsApp ao aluno', async () => {
+test('motor: telefone estrangeiro libera e manda WhatsApp ao aluno', async () => {
   relogio.agora = new Date('2026-10-16T15:00:00Z')
   const { repo, integ, eventos } = criarFalsos()
   const motor = criarMotor(ENV, { repo, integ, agora })
@@ -420,7 +427,7 @@ test('motor: telefone estrangeiro libera mas não manda WhatsApp ao aluno', asyn
 
   await processarFila(motor)
   assert.equal(eventos.get(1).estado, 'ok')
-  assert.equal(nomesChamados(repo.chamadas).filter((n) => n === 'enviarWhatsapp').length, 0)
+  assert.equal(nomesChamados(repo.chamadas).filter((n) => n === 'enviarWhatsapp').length, 1)
   const liberar = repo.chamadas.find(([nome]) => nome === 'liberarCurso')[1]
   assert.equal(liberar.telefone, '351961593443')
 })

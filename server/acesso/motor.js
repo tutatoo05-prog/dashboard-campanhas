@@ -12,7 +12,7 @@ import {
   nomeDoCurso,
   rotuloCurso,
   telefoneWhatsapp,
-  whatsappBrasileiroValido,
+  whatsappValido,
 } from './regras.js'
 import { LINK_CHECKOUT_PADRAO, linkCheckoutDaOferta } from '../emails/conteudo.js'
 import * as integracoesPadrao from './integracoes.js'
@@ -167,7 +167,7 @@ O acesso foi revogado na plataforma e a compra marcada como cancelada no dash.
     },
 
     async whatsapp_aluno() {
-      if (!whatsappBrasileiroValido(telefone)) return { pulado: 'telefone sem WhatsApp brasileiro completo' }
+      if (!whatsappValido(telefone)) return { pulado: 'telefone sem número de WhatsApp válido' }
       return integ.enviarWhatsapp(env, { conta: 'aluno', numero: telefone, texto: textoAcessoAluno(nomeMensagem, cursoMensagem) })
     },
 

@@ -107,10 +107,11 @@ export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acess
 export interface AvisoManualResultado {
   email: { ok: boolean; erro?: string }
   whatsapp: { ok: boolean; erro?: string }
+  telefone?: string
 }
 
-export const avisarAcessoManual = (id: number, senha: string) =>
-  pedir<AvisoManualResultado>(`/api/acessos/eventos/${id}/avisar-manual`, { method: 'POST', body: JSON.stringify({ senha }) })
+export const avisarAcessoManual = (id: number, senha: string, telefone: string) =>
+  pedir<AvisoManualResultado>(`/api/acessos/eventos/${id}/avisar-manual`, { method: 'POST', body: JSON.stringify({ senha, telefone }) })
 
 export const marcarReativacaoFeita =(id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/reativacao-feita`, { method: 'POST' })
 

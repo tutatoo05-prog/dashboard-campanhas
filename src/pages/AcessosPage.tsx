@@ -223,7 +223,7 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
       void queryClient.invalidateQueries({ queryKey: ['acessos'] })
     },
   })
-  const avisarManual = useMutation({ mutationFn: (senha: string) => avisarAcessoManual(evento.id, senha) })
+  const avisarManual = useMutation({ mutationFn: ({ senha, telefone }: { senha: string; telefone: string }) => avisarAcessoManual(evento.id, senha, telefone) })
   const estado = ESTADO_LABEL[evento.estado] ?? { texto: evento.estado, classe: 'text-zinc-300' }
   const podeReprocessar = ['erro', 'falhou', 'atencao'].includes(evento.estado)
 
@@ -302,9 +302,12 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
                 onClick={(clique) => {
                   clique.stopPropagation()
                   const senha = window.prompt(`Acesso criado na mão para ${evento.email}.\nSenha provisória que o aluno vai receber por e-mail e WhatsApp:`)?.trim()
-                  if (senha) avisarManual.mutate(senha)
+                  if (!senha) return
+                  const telefone = window.prompt('Telefone do aluno com o código do país (ex.: 351912345678).\nDeixe em branco para usar o da compra:')
+                  if (telefone === null) return
+                  avisarManual.mutate({ senha, telefone: telefone.trim() })
                 }}
-                className="mt-3 ml-2 rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-400/10 disabled:opacity-50"
+                className="mt-3 ml-2 rounded-lg border border-emerald-800 bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
               >
                 <i className="fa-solid fa-paper-plane mr-1.5" />
                 {avisarManual.isPending ? 'Enviando...' : 'Enviar acesso manual (e-mail + WhatsApp)'}
@@ -314,7 +317,7 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
             {avisarManual.data && (
               <p className="mt-2 text-zinc-300">
                 E-mail: {avisarManual.data.email.ok ? 'enviado ✅' : `falhou (${avisarManual.data.email.erro})`} · WhatsApp:{' '}
-                {avisarManual.data.whatsapp.ok ? 'enviado ✅' : `falhou (${avisarManual.data.whatsapp.erro})`}
+                {avisarManual.data.whatsapp.ok ? `enviado ✅ (${avisarManual.data.telefone})` : `falhou (${avisarManual.data.whatsapp.erro})`}
               </p>
             )}
           </td>

@@ -32,14 +32,33 @@ export function telefoneWhatsapp(bruto, pais) {
   if (!digitos) return ''
   const sigla = String(pais ?? '').toUpperCase()
   const brasileiro = sigla === 'BR' || (!sigla && digitos.length >= 10 && digitos.length <= 11)
-  if (!brasileiro) return digitos
+  if (!brasileiro) {
+    // Estrangeiro: a Hotmart às vezes manda só o número local, sem o código do país. Com o país conhecido, completamos.
+    const ddi = DDI_POR_PAIS[sigla]
+    const semZeros = digitos.replace(/^0+/, '')
+    return ddi && !semZeros.startsWith(ddi) ? `${ddi}${semZeros}` : digitos
+  }
   return `55${digitos.length > 11 ? digitos.replace(/^55/, '') : digitos}`
+}
+
+/** Código de discagem dos países onde mais temos aluno/lead fora do Brasil. */
+const DDI_POR_PAIS = {
+  PT: '351', US: '1', CA: '1', ES: '34', IT: '39', FR: '33', DE: '49', GB: '44', IE: '353', CH: '41', NL: '31', BE: '32',
+  AR: '54', PY: '595', UY: '598', CL: '56', BO: '591', PE: '51', EC: '593', CO: '57', VE: '58', MX: '52',
+  JP: '81', AU: '61', AO: '244', MZ: '258', CV: '238',
 }
 
 /** O n8n só mandava WhatsApp ao aluno quando o número era brasileiro completo (55 + DDD + 9 dígitos). */
 export function whatsappBrasileiroValido(telefone) {
   const digitos = soDigitos(telefone)
   return digitos.startsWith('55') && digitos.length === 13
+}
+
+/** Número com cara de WhatsApp de qualquer país: 8 a 15 dígitos (padrão internacional) e, se for do Brasil, com DDD. */
+export function whatsappValido(telefone) {
+  const digitos = soDigitos(telefone)
+  if (digitos.length < 8 || digitos.length > 15) return false
+  return digitos.startsWith('55') ? digitos.length === 12 || digitos.length === 13 : true
 }
 
 /** Nome do curso como aparece nos e-mails de abandono e nas mensagens. */
