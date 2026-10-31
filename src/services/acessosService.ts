@@ -104,6 +104,8 @@ export const verificarAcessos = (emailTeste: string) =>
 
 export const reprocessarEvento = (id: number) => pedir<{ ok: true }>(`/api/acessos/eventos/${id}/reprocessar`, { method: 'POST' })
 
+export const resolverEventoManual = (id: number) => pedir<{ ok: true }>(`/api/acessos/eventos/${id}/resolver-manual`, { method: 'POST' })
+
 export interface AvisoManualResultado {
   email: { ok: boolean; erro?: string }
   whatsapp: { ok: boolean; erro?: string }

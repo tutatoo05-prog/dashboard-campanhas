@@ -15,6 +15,18 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload))
 }
 
+/** Acesso criado na mão na plataforma: fecha o evento como feito, guardando que foi manual. */
+function resolverEventoManual(env, id) {
+  return query(
+    env,
+    `update hotmart_eventos
+        set estado = 'ok', erro = null, processado_em = now(),
+            passos = coalesce(passos, '{}'::jsonb) || jsonb_build_object('acesso_manual', jsonb_build_object('ok', true, 'em', now()))
+      where id = $1 and estado in ('erro', 'falhou', 'atencao')`,
+    [id],
+  )
+}
+
 function eventoParaApi(linha) {
   const venda = normalizarEvento(linha.payload)
   const passos = linha.passos ?? {}
@@ -56,6 +68,7 @@ function eventoParaApi(linha) {
  *   GET  /api/acessos/emails/pessoa?email=      (e-mails de uma pessoa, para a linha do tempo dela)
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
+ *   POST /api/acessos/eventos/:id/resolver-manual  (acesso criado na mão: tira a venda da lista de problemas)
  *   POST /api/acessos/eventos/:id/avisar-manual  { senha, telefone? }  (acesso criado na mão: manda e-mail e WhatsApp com a senha)
  *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
  *   POST /api/acessos/lista/:id/reativacao-feita (marca "já reativei na plataforma")
@@ -202,7 +215,17 @@ export async function handleAcessosRequest(req, res, env, user) {
           resultado.whatsapp = { ok: false, erro: erro.message }
         }
       }
+      // Mandou o e-mail: a venda deixa de "precisar de atenção" (o acesso já foi criado na mão na plataforma).
+      if (resultado.email.ok) await resolverEventoManual(env, Number(avisarManual[1]))
       return sendJson(res, 200, resultado)
+    }
+
+    const resolverManual = /^\/api\/acessos\/eventos\/(\d+)\/resolver-manual$/.exec(caminho)
+    if (req.method === 'POST' && resolverManual) {
+      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
+      const { rowCount } = await resolverEventoManual(env, Number(resolverManual[1]))
+      if (!rowCount) return sendJson(res, 409, { error: 'Só dá para resolver evento com erro, falha ou atenção.' })
+      return sendJson(res, 200, { ok: true })
     }
 
     const reativacaoFeita =/^\/api\/acessos\/lista\/(\d+)\/reativacao-feita$/.exec(caminho)

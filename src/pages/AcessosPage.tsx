@@ -10,6 +10,7 @@ import {
   marcarReativacaoFeita,
   avisarAcessoManual,
   reprocessarEvento,
+  resolverEventoManual,
   verificarAcessos,
   type AcessoAluno,
   type AcessoEvento,
@@ -223,7 +224,14 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
       void queryClient.invalidateQueries({ queryKey: ['acessos'] })
     },
   })
-  const avisarManual = useMutation({ mutationFn: ({ senha, telefone }: { senha: string; telefone: string }) => avisarAcessoManual(evento.id, senha, telefone) })
+  const atualizarLista = () => void queryClient.invalidateQueries({ queryKey: ['acessos'] })
+  const avisarManual = useMutation({
+    mutationFn: ({ senha, telefone }: { senha: string; telefone: string }) => avisarAcessoManual(evento.id, senha, telefone),
+    onSuccess: (resultado) => {
+      if (resultado.email.ok) atualizarLista()
+    },
+  })
+  const resolverManual = useMutation({ mutationFn: () => resolverEventoManual(evento.id), onSuccess: atualizarLista })
   const estado = ESTADO_LABEL[evento.estado] ?? { texto: evento.estado, classe: 'text-zinc-300' }
   const podeReprocessar = ['erro', 'falhou', 'atencao'].includes(evento.estado)
 
@@ -313,6 +321,21 @@ function EventoLinha({ evento }: { evento: AcessoEvento }) {
                 {avisarManual.isPending ? 'Enviando...' : 'Enviar acesso manual (e-mail + WhatsApp)'}
               </button>
             )}
+            {evento.estado === 'atencao' && (
+              <button
+                type="button"
+                disabled={resolverManual.isPending}
+                onClick={(clique) => {
+                  clique.stopPropagation()
+                  if (window.confirm('Já criou o acesso na plataforma e avisou o aluno? A venda sai da lista de problemas.')) resolverManual.mutate()
+                }}
+                className="mt-3 ml-2 rounded-lg border border-zinc-600 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:border-zinc-400 disabled:opacity-50"
+              >
+                <i className="fa-solid fa-check mr-1.5" />
+                {resolverManual.isPending ? 'Salvando...' : 'Marcar como resolvido'}
+              </button>
+            )}
+            {resolverManual.isError && <p className="mt-2 text-red-300">{(resolverManual.error as Error).message}</p>}
             {avisarManual.isError && <p className="mt-2 text-red-300">{(avisarManual.error as Error).message}</p>}
             {avisarManual.data && (
               <p className="mt-2 text-zinc-300">
