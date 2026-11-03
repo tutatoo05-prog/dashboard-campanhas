@@ -69,7 +69,8 @@ function eventoParaApi(linha) {
  *   POST /api/acessos/verificar   { emailTeste? }  (confere as chaves; com e-mail, manda 1 e-mail e 1 WhatsApp de teste)
  *   POST /api/acessos/eventos/:id/reprocessar
  *   POST /api/acessos/eventos/:id/resolver-manual  (acesso criado na mão: tira a venda da lista de problemas)
- *   POST /api/acessos/eventos/:id/avisar-manual  { senha, telefone? }  (acesso criado na mão: manda e-mail e WhatsApp com a senha)
+ *   POST /api/acessos/reenviar-boas-vindas  { email }  (manda de novo o e-mail de login e senha)
+ *   POST /api/acessos/eventos/:id/avisar-manual { senha, telefone? }  (acesso criado na mão: manda e-mail e WhatsApp com a senha)
  *   POST /api/acessos/lista/:id/bloqueio-feito   (marca "já inativei na plataforma")
  *   POST /api/acessos/lista/:id/reativacao-feita (marca "já reativei na plataforma")
  */
@@ -218,6 +219,44 @@ export async function handleAcessosRequest(req, res, env, user) {
       // Mandou o e-mail: a venda deixa de "precisar de atenção" (o acesso já foi criado na mão na plataforma).
       if (resultado.email.ok) await resolverEventoManual(env, Number(avisarManual[1]))
       return sendJson(res, 200, resultado)
+    }
+
+    // Reenvio do e-mail de boas-vindas (login e senha) para quem já tem acesso. A senha é o documento guardado na compra.
+    if (req.method === 'POST' && caminho === '/api/acessos/reenviar-boas-vindas') {
+      if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
+      const corpo = JSON.parse((await readRequestBody(req)) || '{}')
+      const email = String(corpo.email ?? '').trim().toLowerCase()
+      if (!email) return sendJson(res, 400, { error: 'Informe o e-mail da pessoa.' })
+      let nome = ''
+      let documento = ''
+      const { rows: acessos } = await query(
+        env,
+        `select nome, documento from acessos where lower(email) = $1 and coalesce(documento, '') <> '' order by atualizado_em desc limit 1`,
+        [email],
+      )
+      if (acessos[0]) {
+        nome = acessos[0].nome ?? ''
+        documento = acessos[0].documento ?? ''
+      } else {
+        const { rows: eventos } = await query(env, `select payload from hotmart_eventos where lower(email) = $1 order by recebido_em desc limit 20`, [email])
+        for (const linha of eventos) {
+          const venda = normalizarEvento(linha.payload)
+          if (venda.documento) {
+            nome = venda.nome
+            documento = venda.documento
+            break
+          }
+        }
+      }
+      if (!documento) return sendJson(res, 404, { error: 'Não achei o CPF/documento desta pessoa (a senha do acesso). Use "Enviar acesso manual" na compra.' })
+      try {
+        const modelo = await carregarTemplate('boas-vindas')
+        const html = renderizar(modelo, { nome, email, documento })
+        await enviarEmail(env, { para: email, nomePara: nome, assunto: ASSUNTO_BOAS_VINDAS, html })
+        return sendJson(res, 200, { ok: true })
+      } catch (erro) {
+        return sendJson(res, 502, { error: `Não consegui enviar o e-mail: ${erro.message}` })
+      }
     }
 
     const resolverManual = /^\/api\/acessos\/eventos\/(\d+)\/resolver-manual$/.exec(caminho)

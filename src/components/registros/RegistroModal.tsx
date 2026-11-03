@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import type { Purchase } from '@/types'
 import { STATUS_ROTULO, type CategoriaEvento, type Passagem, type RegistroAgrupado } from '@/lib/mergeRegistros.ts'
 import { formatCurrency } from '@/lib/format.ts'
 import { whatsappLink } from '@/lib/buyerLeads.ts'
-import { fetchEmailsDaPessoa, type EmailItem } from '@/services/acessosService.ts'
+import { fetchEmailsDaPessoa, reenviarBoasVindas, type EmailItem } from '@/services/acessosService.ts'
 
 interface RegistroModalProps {
   record: RegistroAgrupado
@@ -197,6 +197,7 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
   // E-mails que o dash mandou para esta pessoa. Só admin enxerga; para os outros a chamada dá 403 e a seção some.
   const emailsQuery = useQuery({ queryKey: ['acessos', 'emails', 'pessoa', email], queryFn: () => fetchEmailsDaPessoa(email), enabled: Boolean(email), retry: false, staleTime: 60_000 })
   const emailsEnviados = emailsQuery.data ?? []
+  const reenviar = useMutation({ mutationFn: () => reenviarBoasVindas(email) })
   const bought = purchases
     ? purchases.filter(
         (purchase) =>
@@ -305,6 +306,23 @@ export function RegistroModal({ record, purchases, onClose, closeLabel = 'Fechar
             <p className="sale-note">Ainda não achei esta pessoa nos cadastros nem nos eventos da Hotmart.</p>
           ) : (
             <LinhaDoTempo passagens={record.historico} emails={emailsEnviados} />
+          )}
+          {emailsQuery.isSuccess && email && (
+            <div className="mt-3">
+              <button
+                type="button"
+                className="sale-chip-btn"
+                disabled={reenviar.isPending}
+                onClick={() => {
+                  if (window.confirm(`Reenviar o e-mail de dados e acesso liberado para ${email}?`)) reenviar.mutate()
+                }}
+              >
+                <i className="fa-solid fa-paper-plane" aria-hidden="true" />
+                {reenviar.isPending ? 'Enviando...' : 'Reenviar e-mail de acesso liberado'}
+              </button>
+              {reenviar.isSuccess && <p className="sale-note">E-mail de acesso reenviado para {email} ✅</p>}
+              {reenviar.isError && <p className="sale-note" style={{ color: '#fca5a5' }}>{(reenviar.error as Error).message}</p>}
+            </div>
           )}
         </section>
 

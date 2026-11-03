@@ -115,6 +115,10 @@ export interface AvisoManualResultado {
 export const avisarAcessoManual = (id: number, senha: string, telefone: string) =>
   pedir<AvisoManualResultado>(`/api/acessos/eventos/${id}/avisar-manual`, { method: 'POST', body: JSON.stringify({ senha, telefone }) })
 
+/** Manda de novo o e-mail de boas-vindas (login e senha) para quem já tem acesso. */
+export const reenviarBoasVindas = (email: string) =>
+  pedir<{ ok: true }>('/api/acessos/reenviar-boas-vindas', { method: 'POST', body: JSON.stringify({ email }) })
+
 export const marcarReativacaoFeita =(id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/reativacao-feita`, { method: 'POST' })
 
 export const marcarBloqueioFeito = (id: number) => pedir<{ ok: true }>(`/api/acessos/lista/${id}/bloqueio-feito`, { method: 'POST' })
