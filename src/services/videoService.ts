@@ -106,6 +106,7 @@ export interface PlayerConfig {
   barraFalsa: BarraFalsa
   cta: { ativo: boolean; segundo: number; duracao: number; repetir: number; texto: string; posicao: PosicaoBotao; vertical: VerticalBotao; tamanho: TamanhoBotao; animacao: AnimacaoBotao }
   fim: { ativo: boolean; titulo: string; texto: string }
+  legenda: { ativo: boolean; ligada: boolean; tamanho: TamanhoBotao; posicao: VerticalBotao }
 }
 
 export interface PlayerConfigState {

@@ -168,3 +168,12 @@ test('rota pública: sem linha salva, cada vídeo recebe os arquivos do seu padr
     pg.Pool.prototype.query = original
   }
 })
+
+test('legenda: desligada por padrão, valores estranhos caem no padrão e registro antigo continua válido', () => {
+  const antiga = sanitizarConfig({ ...PADRAO, legenda: undefined })
+  assert.deepEqual(antiga.legenda, { ativo: false, ligada: true, tamanho: 'm', posicao: 'baixo' })
+  const config = sanitizarConfig({ ...PADRAO, legenda: { ativo: true, ligada: false, tamanho: 'g', posicao: 'topo' } })
+  assert.deepEqual(config.legenda, { ativo: true, ligada: false, tamanho: 'g', posicao: 'topo' })
+  const torta = sanitizarConfig({ ...PADRAO, legenda: { ativo: 'sim', tamanho: 'gigante', posicao: 'meio' } })
+  assert.deepEqual(torta.legenda, { ativo: false, ligada: true, tamanho: 'm', posicao: 'baixo' })
+})

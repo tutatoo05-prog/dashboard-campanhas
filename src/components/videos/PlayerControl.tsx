@@ -29,13 +29,14 @@ const PALETA = [
   { nome: 'Branco', cor: '#ffffff' },
 ]
 
-type Painel = 'video' | 'cta' | 'fim' | 'estilo' | 'ritmo' | 'comportamento' | 'avancado'
+type Painel = 'video' | 'cta' | 'fim' | 'legenda' | 'estilo' | 'ritmo' | 'comportamento' | 'avancado'
 
 /** Cada item vira um botão ao lado do vídeo; clicar abre as opções dele num painel (o vídeo continua à vista). */
 const ITENS: { id: Painel; icone: string; nome: string; titulo: string }[] = [
   { id: 'video', icone: 'fa-film', nome: 'Vídeo', titulo: 'Qual VSL toca aqui' },
   { id: 'cta', icone: 'fa-cart-shopping', nome: 'Compra', titulo: 'Botão de compra' },
   { id: 'fim', icone: 'fa-flag-checkered', nome: 'Fim', titulo: 'Tela final' },
+  { id: 'legenda', icone: 'fa-closed-captioning', nome: 'Legenda', titulo: 'Legendas (botão CC)' },
   { id: 'estilo', icone: 'fa-palette', nome: 'Cores', titulo: 'Cores e estilo' },
   { id: 'ritmo', icone: 'fa-gauge-high', nome: 'Barra', titulo: 'Ritmo da barra de progresso' },
   { id: 'comportamento', icone: 'fa-sliders', nome: 'Regras', titulo: 'Comportamento' },
@@ -317,7 +318,7 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
         {/* ───── botões ao lado do vídeo: cada um abre as opções de um assunto ───── */}
         <nav className="pc-rail" aria-label="Opções do player">
           {ITENS.map((item) => {
-            const ligado = item.id === 'cta' ? form.cta.ativo : item.id === 'fim' ? form.fim.ativo : item.id === 'ritmo' ? form.barraFalsa.ativo : false
+            const ligado = item.id === 'cta' ? form.cta.ativo : item.id === 'fim' ? form.fim.ativo : item.id === 'ritmo' ? form.barraFalsa.ativo : item.id === 'legenda' ? form.legenda.ativo : false
             return (
               <button
                 key={item.id}
@@ -473,6 +474,41 @@ export function PlayerControl({ video, ratio = '16 / 9' }: { video: string; rati
                   <span className="pc-label">Texto do botão</span>
                   <input className="filter-select w-full" maxLength={60} value={form.fim.texto} onChange={(e) => mudar((c) => ({ ...c, fim: { ...c.fim, texto: e.target.value } }))} />
                 </label>
+              </div>
+            )}
+          </Cartao>
+
+          <Cartao id="pc-legenda" titulo="Legendas" destaque={false} visivel={aberto === 'legenda'}>
+            <Interruptor
+              ligado={form.legenda.ativo}
+              onChange={(v) => mudar((c) => ({ ...c, legenda: { ...c.legenda, ativo: v } }))}
+              titulo="Botão CC e legendas no vídeo"
+              dica="Só aparece se o arquivo de legendas existir na pasta de vídeos do servidor."
+            />
+            {form.legenda.ativo && (
+              <div className="pc-campos">
+                <Interruptor
+                  ligado={form.legenda.ligada}
+                  onChange={(v) => mudar((c) => ({ ...c, legenda: { ...c.legenda, ligada: v } }))}
+                  titulo="Já começar com a legenda ligada"
+                  dica="Abre no idioma do navegador da pessoa (ou português). Quem desligar ou trocar no CC mantém a escolha neste aparelho."
+                />
+                <Opcoes<TamanhoBotao>
+                  rotulo="Tamanho da letra"
+                  valor={form.legenda.tamanho}
+                  opcoes={[{ v: 'p', label: 'Pequena' }, { v: 'm', label: 'Média' }, { v: 'g', label: 'Grande' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, legenda: { ...c.legenda, tamanho: v } }))}
+                />
+                <Opcoes<VerticalBotao>
+                  rotulo="Posição"
+                  valor={form.legenda.posicao}
+                  opcoes={[{ v: 'topo', label: 'Em cima' }, { v: 'baixo', label: 'Embaixo' }]}
+                  onChange={(v) => mudar((c) => ({ ...c, legenda: { ...c.legenda, posicao: v } }))}
+                />
+                <p className="text-xs text-zinc-500">
+                  O texto vem do arquivo <code>{form.arquivos.hd.replace(/-\d+\.mp4$/i, '')}.legendas.json</code> (um por vídeo, com todos os
+                  idiomas dentro) na pasta <code>/produtos/media/vsl/</code>, junto com os MP4.
+                </p>
               </div>
             )}
           </Cartao>

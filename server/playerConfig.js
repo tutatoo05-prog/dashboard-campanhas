@@ -21,6 +21,8 @@ export const PADRAO = {
   barraFalsa: { ativo: false, inicioSegundos: 3, inicioVelocidade: 4, trechoSegundos: 20, rapido: 1.6, lento: 0.6 },
   cta: { ativo: false, segundo: 0, duracao: 0, repetir: 0, texto: 'Quero começar agora', posicao: 'centro', vertical: 'baixo', tamanho: 'm', animacao: 'nenhuma' },
   fim: { ativo: false, titulo: '', texto: 'Quero começar agora' },
+  // Legendas (botão CC): o player lê `<vsl>.legendas.json` ao lado dos MP4. Desligada até o arquivo ser subido.
+  legenda: { ativo: false, ligada: true, tamanho: 'm', posicao: 'baixo' },
 }
 
 /** O que muda por vídeo em relação ao PADRAO. Ids sem entrada (inclusive `vsl`) usam o PADRAO como está. */
@@ -38,6 +40,8 @@ const POSICOES = ['centro', 'esquerda', 'direita']
 const VERTICAIS = ['baixo', 'topo']
 const TAMANHOS = ['p', 'm', 'g']
 const ANIMACOES = ['nenhuma', 'pulsar', 'brilho']
+const TAMANHOS_LEGENDA = ['p', 'm', 'g']
+const POSICOES_LEGENDA = ['baixo', 'topo']
 
 const VIDEO_VALIDO = /^[\w-]{1,40}$/
 const CACHE_MS = 30_000
@@ -132,6 +136,12 @@ export function sanitizarConfig(entrada) {
       ativo: e.fim?.ativo === true,
       titulo: textoCurto(e.fim?.titulo, 'Mensagem do fim', 120),
       texto: textoCurto(e.fim?.texto, 'Texto do botão do fim', 60, { obrigatorio: true }),
+    },
+    legenda: {
+      ativo: e.legenda?.ativo === true,
+      ligada: e.legenda?.ligada !== false,
+      tamanho: opcao(e.legenda?.tamanho, TAMANHOS_LEGENDA, PADRAO.legenda.tamanho),
+      posicao: opcao(e.legenda?.posicao, POSICOES_LEGENDA, PADRAO.legenda.posicao),
     },
   }
 }
