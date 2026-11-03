@@ -18,6 +18,7 @@ import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
 import { handleAcessosRequest } from './acesso/handler.js'
+import { handleNovoLinkRequest } from './acesso/novoLink.js'
 import { handleSegurancaRequest } from './segurancaHandler.js'
 import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
@@ -47,6 +48,13 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // devolve opções de exibição. Fica antes da autenticação.
     if (req.url.startsWith('/api/player-config')) {
       await handlePlayerConfigRequest(req, res, env)
+      return
+    }
+
+    // Botão "Receber outro link" do e-mail de boas-vindas: público (o aluno ainda não tem senha). Protegido por código
+    // assinado e limite de pedidos, e o link novo só sai por e-mail (ver server/acesso/novoLink.js).
+    if (req.url.startsWith('/api/novo-link')) {
+      await handleNovoLinkRequest(req, res, env)
       return
     }
 

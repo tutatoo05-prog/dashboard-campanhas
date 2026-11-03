@@ -79,6 +79,34 @@ export async function reativarAcesso(env, { email, motivo = 'pagamento_regulariz
   return { status: r.status, matricula: maisRecente.id }
 }
 
+/**
+ * Registra a compra e libera a matrícula (cria o aluno se precisar, SEM usar o CPF como senha).
+ * Idempotente por `id_venda`: repetir a mesma venda devolve 200 sem duplicar. O link de senha NÃO é pedido aqui:
+ * ele é gerado na hora de montar o e-mail (gerarLinkSenha), para não guardar token no banco e valer só a partir do envio.
+ */
+export async function liberarMatricula(env, { idVenda, nome, email, telefone, cpf, dias, cursoId = cursoIdV2(env) }, fetchImpl = fetch) {
+  const corpo = { id_venda: String(idVenda), email, nome, curso_id: cursoId, dias: Math.min(3650, Math.max(1, Math.round(Number(dias) || 365))) }
+  if (String(telefone ?? '').trim()) corpo.telefone = String(telefone).trim().slice(0, 30)
+  if (String(cpf ?? '').trim()) corpo.cpf = String(cpf).trim().slice(0, 20)
+  const r = await chamar(env, 'POST', '/matriculas', corpo, fetchImpl)
+  if (!r.ok) throw falhar('matriculas', r)
+  const dados = r.json?.data ?? {}
+  // sem o `primeiro_acesso` de propósito: nada sensível volta para o evento gravado
+  return { status: r.status, matricula: dados.matricula?.id ?? null, alunoCriado: Boolean(dados.aluno_criado), matriculaCriada: Boolean(dados.matricula_criada) }
+}
+
+/**
+ * Link de uso único para o aluno definir a própria senha (vale 30 min por padrão, só abre uma vez, gerar outro invalida o anterior).
+ * O endereço é SENSÍVEL: quem chama só pode colocá-lo no e-mail do próprio aluno; nunca em log, em resposta de tela ou no banco.
+ */
+export async function gerarLinkSenha(env, { email }, fetchImpl = fetch) {
+  const r = await chamar(env, 'POST', '/alunos/link-senha', { email, enviar_email: false }, fetchImpl)
+  if (!r.ok) throw falhar('alunos/link-senha', r)
+  const url = String(r.json?.url ?? r.json?.data?.url ?? '')
+  if (!/^https:\/\//i.test(url)) throw new Error('alunos/link-senha respondeu sem um link válido.')
+  return { url, expiraEm: r.json?.expira_em ?? r.json?.data?.expira_em ?? null }
+}
+
 /** Disponibilidade da API (usa a mesma chave). */
 export async function saudeV2(env, fetchImpl = fetch) {
   const r = await chamar(env, 'GET', '/health', undefined, fetchImpl)

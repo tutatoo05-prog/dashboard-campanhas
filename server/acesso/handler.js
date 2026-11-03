@@ -1,8 +1,9 @@
 import { query } from '../db.js'
 import { readRequestBody } from '../readBody.js'
 import { isAdmin } from '../roles.js'
-import { ASSUNTO_BOAS_VINDAS, modoAcesso, textoAcessoManual } from './motor.js'
-import { carregarTemplate, enviarEmail, enviarWhatsapp, renderizar } from './integracoes.js'
+import { ASSUNTO_BOAS_VINDAS, htmlBoasVindasComLink, modoAcesso, textoAcessoManual } from './motor.js'
+import * as integracoes from './integracoes.js'
+import { carregarTemplate, enviarEmail, enviarWhatsapp, renderizar, v2Configurado } from './integracoes.js'
 import { nomeDoCurso, telefoneWhatsapp, whatsappValido } from './regras.js'
 import { normalizarEvento } from './hotmart.js'
 import { rodarAgora } from './scheduler.js'
@@ -221,12 +222,25 @@ export async function handleAcessosRequest(req, res, env, user) {
       return sendJson(res, 200, resultado)
     }
 
-    // Reenvio do e-mail de boas-vindas (login e senha) para quem já tem acesso. A senha é o documento guardado na compra.
+    // Reenvio do e-mail de boas-vindas para quem já tem acesso. Com a API V2 vai um link NOVO para a pessoa criar a senha
+    // (o anterior, se ainda não usado, deixa de valer); sem ela, o e-mail antigo, onde a senha é o documento guardado na compra.
     if (req.method === 'POST' && caminho === '/api/acessos/reenviar-boas-vindas') {
       if (!isAdmin(user)) return sendJson(res, 403, { error: 'Só admin.' })
       const corpo = JSON.parse((await readRequestBody(req)) || '{}')
       const email = String(corpo.email ?? '').trim().toLowerCase()
       if (!email) return sendJson(res, 400, { error: 'Informe o e-mail da pessoa.' })
+      if (v2Configurado(env)) {
+        const { rows } = await query(env, `select id, nome from acessos where lower(email) = $1 order by atualizado_em desc limit 1`, [email])
+        try {
+          // o link só vai por e-mail para a própria pessoa: nunca volta para esta resposta nem para o log
+          const html = await htmlBoasVindasComLink(env, integracoes, { nome: rows[0]?.nome ?? '', email, acessoId: rows[0]?.id })
+          await enviarEmail(env, { para: email, nomePara: rows[0]?.nome ?? '', assunto: ASSUNTO_BOAS_VINDAS, html })
+          return sendJson(res, 200, { ok: true, comLink: true })
+        } catch (erro) {
+          const naoExiste = /respondeu 404/.test(erro.message)
+          return sendJson(res, naoExiste ? 404 : 502, { error: naoExiste ? 'Essa pessoa não tem cadastro na plataforma (ainda não foi liberada).' : `Não consegui enviar o e-mail: ${erro.message}` })
+        }
+      }
       let nome = ''
       let documento = ''
       const { rows: acessos } = await query(

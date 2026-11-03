@@ -17,6 +17,7 @@ import {
 import { LINK_CHECKOUT_PADRAO, linkCheckoutDaOferta } from '../emails/conteudo.js'
 import * as integracoesPadrao from './integracoes.js'
 import { v2Configurado } from './telwayV2.js'
+import { urlNovoLink } from './tokenNovoLink.js'
 
 /**
  * Motor da liberação de acesso: pega um evento da Hotmart já gravado, decide o que fazer e executa
@@ -39,6 +40,27 @@ const PASSOS_CRITICOS = new Set(['liberar', 'revogar_acesso'])
 const ALERTA_NA_TENTATIVA = 3
 
 const dataBr = (data) => new Date(data).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+
+/** "30 minutos", "2 horas", "7 dias": quanto o link de senha ainda vale, para o e-mail dizer a verdade. */
+export function textoValidade(expiraEm, agora = new Date()) {
+  const minutos = Math.round((new Date(expiraEm).getTime() - agora.getTime()) / 60_000)
+  if (!Number.isFinite(minutos) || minutos < 1) return 'pouco tempo'
+  if (minutos < 90) return `${minutos} minutos`
+  if (minutos < 36 * 60) return `${Math.round(minutos / 60)} horas`
+  return `${Math.round(minutos / 1440)} dias`
+}
+
+/**
+ * Corpo do e-mail de boas-vindas com o link para a pessoa criar a própria senha (no lugar do CPF como senha).
+ * Gera o link na hora de montar o e-mail (cada tentativa pega um novo) e o entrega só para o e-mail da própria pessoa.
+ */
+export async function htmlBoasVindasComLink(env, integ, { nome, email, acessoId = null }, agora = new Date()) {
+  const { url, expiraEm } = await integ.gerarLinkSenha(env, { email })
+  const modelo = await integ.carregarTemplate('boas-vindas-link')
+  // Botão "Receber outro link" (página do dash). Sem como assinar o código, cai na tela de entrada da plataforma ("Esqueci minha senha").
+  const linkNovo = urlNovoLink(env, acessoId) || 'https://tuzinho.academy/login'
+  return integ.renderizar(modelo, { nome, email, linkSenha: url, linkNovo, validade: textoValidade(expiraEm, agora) })
+}
 
 export function textoAcessoAluno(nome, curso) {
   return `✅ Tudo certo, ${nome}! Seu acesso no ${curso} foi confirmado. Você receberá informações de acesso no mesmo e-mail que finalizou sua compra. \n\nAproveite para assistir agora e dominar novas técnicas.\n\n`
@@ -91,6 +113,17 @@ function criarExecutores({ env, repo, integ, agora }, venda, plano, passos = {})
 
   return {
     async liberar() {
+      // API V2: cria o aluno sem CPF como senha (ele define a senha por um link no e-mail). Sem ela, o caminho antigo.
+      if (v2Configurado(env)) {
+        return integ.liberarMatricula(env, {
+          idVenda: venda.eventId,
+          nome: venda.nome,
+          email: venda.email,
+          telefone: venda.telefoneBruto,
+          cpf: venda.documento,
+          dias: plano.dias,
+        })
+      }
       return integ.liberarCurso(env, {
         idVenda: venda.eventId,
         nome: venda.nome,
@@ -157,8 +190,12 @@ O acesso foi revogado na plataforma e a compra marcada como cancelada no dash.
 
     async email_boas_vindas() {
       if (!emailValido(venda.email)) throw new ErroPermanente(`E-mail do comprador inválido: "${venda.email}"`)
-      const modelo = await integ.carregarTemplate('boas-vindas')
-      const html = integ.renderizar(modelo, { nome: venda.nome, email: venda.email, documento: venda.documento })
+      // Quem foi liberado pela API V2 recebe um link para criar a própria senha. Os produtos sem liberação na plataforma
+      // (mentoria particular, workshop) não têm conta lá para gerar link: seguem com o e-mail antigo.
+      const comLink = v2Configurado(env) && (plano.passos ?? []).includes('liberar')
+      const html = comLink
+        ? await htmlBoasVindasComLink(env, integ, { nome: venda.nome, email: venda.email, acessoId: passos.registrar_acesso?.acessoId }, agora())
+        : integ.renderizar(await integ.carregarTemplate('boas-vindas'), { nome: venda.nome, email: venda.email, documento: venda.documento })
       return integ.enviarEmail(env, { para: venda.email, nomePara: venda.nome, assunto: ASSUNTO_BOAS_VINDAS, html })
     },
 
@@ -262,7 +299,7 @@ export async function processarEvento(motor, evento) {
   try {
     if (!passos._plano) {
       const acesso = modo === 'desligado' ? null : await repo.buscarAcesso({ assinante: venda.assinante, email: venda.email, curso: nomeDoCurso(venda) })
-      passos._plano = { ...decidir(venda, { acesso }), eventoId: evento.id }
+      passos._plano = { ...decidir(venda, { acesso, v2: v2Configurado(env) }), eventoId: evento.id }
     }
     const plano = passos._plano
 

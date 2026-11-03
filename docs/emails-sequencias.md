@@ -73,7 +73,7 @@ Regras da fila: teto de 180 por dia (de 300 da Brevo), só entre 8h e 21h (São 
 - **Título:** Ana, vamos começar?
 - **Texto:**
   - Seu acesso ao Essentials já está liberado. O melhor jeito de aproveitar é separar um tempo hoje para assistir à primeira aula e anotar o que você já quer aplicar no estúdio.
-  - Para entrar, use o login e a senha do e-mail de boas-vindas. Se não encontrar o e-mail, use "Esqueci minha senha" na página de login.
+  - Para entrar, crie a sua senha pelo link do e-mail de boas-vindas. Se o link expirou ou você não encontrar o e-mail, use "Esqueci minha senha" na página de login.
 - **Botão:** Entrar na plataforma
 
 ### onboarding_d3 — sai 3 dia(s) depois da liberação do acesso

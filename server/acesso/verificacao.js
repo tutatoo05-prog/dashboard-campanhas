@@ -21,10 +21,16 @@ const CONFIG_OBRIGATORIA = {
 }
 const CONFIG_OPCIONAL = { TELWAY_BLOQUEAR_URL: 'Endereço do bloqueio de acesso (sem ele, o bloqueio é manual)' }
 
+// Com a API V2 a liberação não usa o liberar-curso antigo (nem o token dele).
+const SO_SEM_V2 = new Set(['TELWAY_LIBERAR_URL', 'TELWAY_TOKEN'])
+
 export function configuracaoFaltando(env) {
   const vazio = (nome) => !String(env[nome] ?? '').trim()
+  const v2 = !vazio('TELWAY_V2_TOKEN')
   return {
-    obrigatorias: Object.entries(CONFIG_OBRIGATORIA).filter(([nome]) => vazio(nome)).map(([nome, descricao]) => ({ nome, descricao })),
+    obrigatorias: Object.entries(CONFIG_OBRIGATORIA)
+      .filter(([nome]) => !(v2 && SO_SEM_V2.has(nome)) && vazio(nome))
+      .map(([nome, descricao]) => ({ nome, descricao })),
     opcionais: Object.entries(CONFIG_OPCIONAL).filter(([nome]) => vazio(nome)).map(([nome, descricao]) => ({ nome, descricao })),
   }
 }

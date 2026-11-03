@@ -15,7 +15,7 @@ import {
   whatsappBrasileiroValido,
   whatsappValido,
 } from './regras.js'
-import { bloquearAtrasados, criarMotor, processarEvento, processarFila } from './motor.js'
+import { bloquearAtrasados, criarMotor, processarEvento, processarFila, textoValidade } from './motor.js'
 import { escaparHtml, renderizar, carregarTemplate } from './integracoes.js'
 
 // ── payloads ──────────────────────────────────────────────────────────────────
@@ -247,6 +247,16 @@ function criarFalsos({ falhar = {} } = {}) {
       chamadas.push(['liberarCurso', dados])
       falha('liberar')
       return { status: 200 }
+    },
+    async liberarMatricula(env, dados) {
+      chamadas.push(['liberarMatricula', dados])
+      falha('liberar')
+      return { status: 201, matricula: 501, alunoCriado: true, matriculaCriada: true }
+    },
+    async gerarLinkSenha(env, dados) {
+      chamadas.push(['gerarLinkSenha', dados])
+      falha('link')
+      return { url: 'https://tuzinho.academy/primeiro-acesso?token=TOKEN_DE_TESTE', expiraEm: '2026-10-16T15:30:00Z' }
     },
     async enviarEmail(env, dados) {
       chamadas.push(['enviarEmail', dados])
@@ -603,7 +613,7 @@ test('motor: quem estava bloqueado e pagou de novo é reativado pela API V2 e vo
 
   await processarFila(motor)
   assert.equal(eventos.get(1).estado, 'ok')
-  assert.deepEqual(nomesChamados(repo.chamadas), ['liberarCurso', 'registrarPagamento', 'reativarAcesso', 'marcarReativado'])
+  assert.deepEqual(nomesChamados(repo.chamadas), ['liberarMatricula', 'registrarPagamento', 'reativarAcesso', 'marcarReativado'])
   assert.equal(repo.chamadas[2][1].email, 'ana@exemplo.com')
   assert.equal(repo.chamadas[3][1], 1)
 })
@@ -662,4 +672,128 @@ test('API V2: aluno que não existe não quebra a revogação; sem token nem ten
   assert.equal((await revogarAcesso(ENV_V2, { email: 'a@x.com', motivo: 'reembolso' }, fetch404)).nada_a_revogar, true)
   assert.equal((await consultarAcesso(ENV_V2, { email: 'a@x.com' }, fetch404)).existe, false)
   await assert.rejects(() => consultarAcesso({}, { email: 'a@x.com' }, fetch404), /não configurada/)
+})
+
+// ── API V2: liberação com link para a pessoa criar a própria senha (sem CPF como senha) ──
+
+test('modelo de e-mail com link: preenche, escapa e não mostra senha nenhuma', async () => {
+  const html = renderizar(await carregarTemplate('boas-vindas-link'), { nome: 'Ana <b>', email: 'ana@exemplo.com', linkSenha: 'https://tuzinho.academy/primeiro-acesso?token=ABC&x=1', linkNovo: 'https://dash.tuzinho.academy/novo-link?t=1.abc', validade: '30 minutos' })
+  assert.ok(html.includes('Bem-vindo, Ana &lt;b&gt;'))
+  assert.ok(html.includes('href="https://tuzinho.academy/primeiro-acesso?token=ABC&amp;x=1"'), 'o botão deve apontar para o link')
+  assert.ok(html.includes('30 minutos'))
+  assert.ok(html.includes('Criar minha senha'))
+  assert.ok(!/\{\{\w+\}\}/.test(html), 'sobrou campo sem preencher')
+  assert.ok(!html.includes('documento'))
+})
+
+test('validade do link em texto: minutos, horas e dias', () => {
+  const agoraFixo = new Date('2026-10-16T15:00:00Z')
+  assert.equal(textoValidade('2026-10-16T15:30:00Z', agoraFixo), '30 minutos')
+  assert.equal(textoValidade('2026-10-16T19:00:00Z', agoraFixo), '4 horas')
+  assert.equal(textoValidade('2026-10-23T15:00:00Z', agoraFixo), '7 dias')
+  assert.equal(textoValidade(null, agoraFixo), 'pouco tempo')
+})
+
+test('decisão com API V2: compra sem CPF libera (o CPF não é mais senha); sem V2 continua pedindo correção', () => {
+  assert.equal(decidir(venda({ documento: '' }), { v2: true }).tipo, 'liberar')
+  assert.equal(decidir(venda({ documento: '' }), { v2: false }).tipo, 'atencao')
+  // produto que não libera curso na plataforma segue exigindo o documento
+  assert.equal(decidir(venda({ documento: '', produto: 'Mentoria Particular com Tuzinho Tattoo', item: 'Mentoria Particular com Tuzinho Tattoo' }), { v2: true }).tipo, 'atencao')
+})
+
+test('motor com API V2: libera pela matrícula, gera o link e manda o e-mail com ele (sem CPF no e-mail)', async () => {
+  relogio.agora = new Date('2026-10-16T15:00:00Z')
+  const { repo, integ, eventos } = criarFalsos()
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload({ plano: 'REC_Essentials', pagamento: 'PIX', assinante: 'SUB1' }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.deepEqual(nomesChamados(repo.chamadas), ['liberarMatricula', 'registrarPagamento', 'gerarLinkSenha', 'enviarEmail', 'registrarCompra', 'enviarWhatsapp', 'avisarEquipe'])
+
+  const liberar = repo.chamadas.find(([nome]) => nome === 'liberarMatricula')[1]
+  assert.equal(liberar.idVenda, 'ev-1')
+  assert.equal(liberar.dias, 365)
+  assert.equal(liberar.cpf, '52998224725')
+
+  const email = repo.chamadas.find(([nome]) => nome === 'enviarEmail')[1]
+  assert.ok(email.html.includes('primeiro-acesso?token=TOKEN_DE_TESTE'))
+  assert.ok(email.html.includes('30 minutos'))
+  assert.ok(!email.html.includes('52998224725'), 'o CPF não pode ir no e-mail')
+  assert.ok(email.html.includes('/novo-link?t=1.'), 'o botão "Receber outro link" vai assinado com o id do acesso')
+
+  // o link (token) nunca fica guardado no evento
+  assert.ok(!JSON.stringify(eventos.get(1).passos).includes('TOKEN_DE_TESTE'))
+})
+
+test('motor com API V2: compra sem CPF é liberada normalmente', async () => {
+  relogio.agora = new Date('2026-10-16T15:00:00Z')
+  const { repo, integ, eventos } = criarFalsos()
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload({ documento: '' }))
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.ok(nomesChamados(repo.chamadas).includes('liberarMatricula'))
+  assert.ok(!nomesChamados(repo.chamadas).includes('whatsapp_correcao'))
+  assert.equal(repo.chamadas.find(([nome]) => nome === 'liberarMatricula')[1].cpf, '')
+})
+
+test('motor com API V2: se o link falhar, o e-mail é refeito depois sem repetir a liberação', async () => {
+  relogio.agora = new Date('2026-10-16T15:00:00Z')
+  const { repo, integ, eventos } = criarFalsos({ falhar: { link: 1 } })
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload())
+
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'erro')
+  relogio.agora = new Date('2026-10-16T16:00:00Z')
+  await processarFila(motor)
+  assert.equal(eventos.get(1).estado, 'ok')
+  assert.equal(nomesChamados(repo.chamadas).filter((n) => n === 'liberarMatricula').length, 1)
+  assert.equal(nomesChamados(repo.chamadas).filter((n) => n === 'enviarEmail').length, 1)
+})
+
+test('motor com API V2: Particular segue com o e-mail antigo (não existe conta na plataforma para gerar link)', async () => {
+  relogio.agora = new Date('2026-10-16T15:00:00Z')
+  const { repo, integ, eventos } = criarFalsos()
+  const motor = criarMotor(ENV_V2, { repo, integ, agora })
+  novoEvento(eventos, payload({ produto: 'Mentoria Particular com Tuzinho Tattoo', item: 'Mentoria Particular com Tuzinho Tattoo' }))
+
+  await processarFila(motor)
+  assert.ok(!nomesChamados(repo.chamadas).includes('gerarLinkSenha'))
+  assert.ok(!nomesChamados(repo.chamadas).includes('liberarMatricula'))
+  assert.ok(nomesChamados(repo.chamadas).includes('enviarEmail'))
+})
+
+test('API V2: liberar matrícula e gerar link falam com os endpoints certos e não deixam o link vazar', async () => {
+  const pedidos = []
+  const fetchFalso = async (url, opcoes) => {
+    const caminho = new URL(url).pathname.replace('/api/v2', '')
+    pedidos.push({ chave: `${opcoes.method} ${caminho}`, corpo: opcoes.body ? JSON.parse(opcoes.body) : null })
+    if (caminho === '/matriculas') {
+      return { ok: true, status: 201, text: async () => JSON.stringify({ data: { aluno: { id: 42 }, matricula: { id: 501 }, aluno_criado: true, matricula_criada: true, primeiro_acesso: { url: 'https://x/primeiro-acesso?token=SEGREDO' } } }) }
+    }
+    return { ok: true, status: 200, text: async () => JSON.stringify({ url: 'https://tuzinho.academy/primeiro-acesso?token=ABC', expira_em: '2026-10-16T15:30:00-03:00', email_enviado: false }) }
+  }
+  const { liberarMatricula, gerarLinkSenha } = await import('./telwayV2.js')
+
+  const liberado = await liberarMatricula(ENV_V2, { idVenda: 'ev-1', nome: 'Ana', email: 'ana@x.com', telefone: '11987654321', cpf: '52998224725', dias: 99999 }, fetchFalso)
+  assert.equal(pedidos[0].chave, 'POST /matriculas')
+  assert.deepEqual(pedidos[0].corpo, { id_venda: 'ev-1', email: 'ana@x.com', nome: 'Ana', curso_id: 21, dias: 3650, telefone: '11987654321', cpf: '52998224725' })
+  assert.deepEqual(liberado, { status: 201, matricula: 501, alunoCriado: true, matriculaCriada: true })
+  assert.ok(!JSON.stringify(liberado).includes('SEGREDO'), 'o link da compra não pode ir para o evento gravado')
+
+  const link = await gerarLinkSenha(ENV_V2, { email: 'ana@x.com' }, fetchFalso)
+  assert.equal(pedidos[1].chave, 'POST /alunos/link-senha')
+  assert.deepEqual(pedidos[1].corpo, { email: 'ana@x.com', enviar_email: false })
+  assert.equal(link.url, 'https://tuzinho.academy/primeiro-acesso?token=ABC')
+})
+
+test('API V2: link inválido ou erro da plataforma lançam erro', async () => {
+  const { gerarLinkSenha, liberarMatricula } = await import('./telwayV2.js')
+  const semLink = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ expira_em: 'x' }) })
+  await assert.rejects(() => gerarLinkSenha(ENV_V2, { email: 'a@x.com' }, semLink), /sem um link válido/)
+  const conflito = async () => ({ ok: false, status: 409, text: async () => JSON.stringify({ message: 'id_venda já usado por outra pessoa' }) })
+  await assert.rejects(() => liberarMatricula(ENV_V2, { idVenda: 'x', nome: 'A', email: 'a@x.com', dias: 365 }, conflito), /matriculas respondeu 409/)
 })

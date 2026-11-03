@@ -85,7 +85,7 @@ export async function bloquearCurso(env, dados, fetchImpl = fetch) {
 }
 
 // API V2 da plataforma (consultar / revogar / reativar acesso): ver telwayV2.js.
-export { consultarAcesso, reativarAcesso, revogarAcesso, v2Configurado } from './telwayV2.js'
+export { consultarAcesso, gerarLinkSenha, liberarMatricula, reativarAcesso, revogarAcesso, v2Configurado } from './telwayV2.js'
 
 /** E-mail transacional pela Brevo. */
 export async function enviarEmail(env, { para, nomePara, assunto, html }, fetchImpl = fetch) {

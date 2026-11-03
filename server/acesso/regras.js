@@ -155,17 +155,18 @@ export function emailValido(email) {
  * Passos de cada tipo de evento. "critico" interrompe a sequência quando falha (sem o acesso liberado
  * não faz sentido avisar o aluno); os demais passos são independentes e refeitos um a um.
  */
-export function decidir(venda, { acesso = null } = {}) {
+export function decidir(venda, { acesso = null, v2 = false } = {}) {
   switch (venda.evento) {
     case 'PURCHASE_APPROVED': {
       if (!venda.email) return { tipo: 'atencao', motivo: 'Compra aprovada sem e-mail do comprador.' }
 
-      // Sem documento o n8n não liberava: pedia ao aluno para corrigir os dados na Hotmart.
-      if (!venda.documento) {
-        return { tipo: 'atencao', motivo: 'Compra sem CPF/documento: acesso não liberado.', passos: ['whatsapp_correcao'], dados: { rota: rotaDaCompra(venda) } }
+      const rota = rotaDaCompra(venda)
+      // Sem documento o n8n não liberava (o CPF era a senha): pedia ao aluno para corrigir os dados na Hotmart.
+      // Com a API V2 o CPF não é senha: quem recebe o acesso define a própria senha por um link, então não precisa de CPF.
+      if (!venda.documento && !(v2 && rota === 'liberar')) {
+        return { tipo: 'atencao', motivo: 'Compra sem CPF/documento: acesso não liberado.', passos: ['whatsapp_correcao'], dados: { rota } }
       }
 
-      const rota = rotaDaCompra(venda)
       const curso = nomeDoCurso(venda)
 
       if (rota === 'sem_regra') {

@@ -143,7 +143,7 @@ export const EMAILS = {
     titulo: ({ nome }) => `${nome}, vamos começar?`,
     paragrafos: ({ curso }) => [
       `Seu acesso ao ${curso} já está liberado. O melhor jeito de aproveitar é separar um tempo hoje para assistir à primeira aula e anotar o que você já quer aplicar no estúdio.`,
-      'Para entrar, use o login e a senha do e-mail de boas-vindas. Se não encontrar o e-mail, use "Esqueci minha senha" na página de login.',
+      'Para entrar, crie a sua senha pelo link do e-mail de boas-vindas. Se o link expirou ou você não encontrar o e-mail, use "Esqueci minha senha" na página de login.',
     ],
     botao: { texto: 'Entrar na plataforma', link: 'linkLogin' },
   },
