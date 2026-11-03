@@ -17,7 +17,7 @@ import {
 import { LINK_CHECKOUT_PADRAO, linkCheckoutDaOferta } from '../emails/conteudo.js'
 import * as integracoesPadrao from './integracoes.js'
 import { v2Configurado } from './telwayV2.js'
-import { urlNovoLink } from './tokenNovoLink.js'
+import { urlCriarSenha } from './tokenCriarSenha.js'
 
 /**
  * Motor da liberação de acesso: pega um evento da Hotmart já gravado, decide o que fazer e executa
@@ -57,9 +57,10 @@ export function textoValidade(expiraEm, agora = new Date()) {
 export async function htmlBoasVindasComLink(env, integ, { nome, email, acessoId = null }, agora = new Date()) {
   const { url, expiraEm } = await integ.gerarLinkSenha(env, { email })
   const modelo = await integ.carregarTemplate('boas-vindas-link')
-  // Botão "Receber outro link" (página do dash). Sem como assinar o código, cai na tela de entrada da plataforma ("Esqueci minha senha").
-  const linkNovo = urlNovoLink(env, acessoId) || 'https://tuzinho.academy/login'
-  return integ.renderizar(modelo, { nome, email, linkSenha: url, linkNovo, validade: textoValidade(expiraEm, agora) })
+  // O botão passa por uma página nossa: link ainda vivo (30 min) vai para a criação da senha; vencido mostra "não está mais ativo"
+  // com o botão de novo envio. Sem como cifrar o código (sem segredo), vai direto para o link da plataforma.
+  const linkSenha = urlCriarSenha(env, { url, expiraEm: expiraEm ?? new Date(agora.getTime() + 30 * 60_000).toISOString(), acessoId }) || url
+  return integ.renderizar(modelo, { nome, email, linkSenha, validade: textoValidade(expiraEm, agora) })
 }
 
 export function textoAcessoAluno(nome, curso) {

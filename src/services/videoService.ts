@@ -150,3 +150,39 @@ export async function savePlayerConfig(video: string, config: PlayerConfig): Pro
   })
   return readConfigResponse(response)
 }
+
+// ── Páginas de venda: tempo da trava inicial (rolagem e menu bloqueados logo ao abrir) ──
+
+export type PaginaId = 'essentials' | 'membros' | 'live'
+
+export interface PaginasState {
+  success: boolean
+  padroes: Record<PaginaId, { travaSegundos: number }>
+  maximo: number
+  paginas: Record<PaginaId, { config: { travaSegundos: number }; salvo: boolean; atualizadoEm?: string; atualizadoPor?: string | null }>
+  /** true = falta criar a tabela video_config no banco (db/schema.sql). */
+  precisaMigracao: boolean
+}
+
+async function readPaginasResponse(response: Response): Promise<PaginasState> {
+  if (response.status === 401) throw new Error('SESSION_EXPIRED')
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error ?? 'Não foi possível acessar a configuração das páginas.')
+  return data as PaginasState
+}
+
+export async function fetchPaginas(): Promise<PaginasState> {
+  return readPaginasResponse(await fetch('/api/videos/paginas', { credentials: 'include', headers: { Accept: 'application/json' } }))
+}
+
+export async function savePaginas(trava: Record<PaginaId, number>): Promise<PaginasState> {
+  const paginas = Object.fromEntries(Object.entries(trava).map(([pagina, travaSegundos]) => [pagina, { travaSegundos }]))
+  return readPaginasResponse(
+    await fetch('/api/videos/paginas', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paginas }),
+    }),
+  )
+}

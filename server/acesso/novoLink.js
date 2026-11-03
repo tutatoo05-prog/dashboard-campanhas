@@ -3,7 +3,8 @@ import { readRequestBody } from '../readBody.js'
 import { getClientIp } from '../security.js'
 import * as integracoesPadrao from './integracoes.js'
 import { htmlBoasVindasComLink } from './motor.js'
-import { lerTokenNovoLink, segredoConfigurado } from './tokenNovoLink.js'
+import { criarTokenNovoLink, lerTokenNovoLink, segredoConfigurado } from './tokenNovoLink.js'
+import { FOLGA_MS, lerTokenCriarSenha } from './tokenCriarSenha.js'
 
 /**
  * POST /api/novo-link  { t }  — PÚBLICO (o aluno clica no botão do e-mail, sem login).
@@ -79,6 +80,41 @@ export function criarServicoNovoLink({ limites = {}, relogio } = {}) {
     }
     return { status: 200, corpo: { ok: true, email: mascararEmail(acesso.email) } }
   }
+}
+
+/**
+ * GET /api/criar-senha?c=<código>  — PÚBLICO (o aluno clica no botão "Criar minha senha" do e-mail).
+ * Decide só pelo horário: link da plataforma ainda vivo → devolve o endereço dele para a página redirecionar;
+ * vencido → avisa e devolve o código de "novo envio" (o mesmo do /api/novo-link). Não vê se o link já foi usado: isso é da plataforma.
+ */
+export function criarServicoCriarSenha({ limite, relogio = () => Date.now() } = {}) {
+  const porIp = limite ?? criarLimite({ max: 30, janelaMs: 15 * 60_000 }, relogio)
+  return function decidir(env, { token, ip }) {
+    const rl = porIp(ip)
+    if (!rl.ok) return { status: 429, corpo: { estado: 'limite', error: `Muitas tentativas. Aguarde ${rl.espera}s e tente de novo.` } }
+    const dados = lerTokenCriarSenha(env, token)
+    if (!dados) return { status: 400, corpo: { estado: 'invalido' } }
+    if (relogio() < dados.expiraEmMs - FOLGA_MS) return { status: 200, corpo: { estado: 'ativo', url: dados.url } }
+    // vencido: oferece pedir outro (só se for possível assinar o código e a API V2 estiver ligada)
+    const novo = integracoesPadrao.v2Configurado(env) && dados.acessoId ? criarTokenNovoLink(env, dados.acessoId) : null
+    return { status: 200, corpo: { estado: 'vencido', ...(novo ? { t: novo } : {}) } }
+  }
+}
+
+const decidirCriarSenha = criarServicoCriarSenha()
+
+export function handleCriarSenhaRequest(req, res, env) {
+  const responder = (status, corpo) => {
+    res.statusCode = status
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Cache-Control', 'no-store')
+    res.end(JSON.stringify(corpo))
+  }
+  const url = new URL(req.url, 'http://localhost')
+  if (url.pathname !== '/api/criar-senha') return responder(404, { error: 'Rota não encontrada.' })
+  if (req.method !== 'GET') return responder(405, { error: 'Método não permitido.' })
+  const resposta = decidirCriarSenha(env, { token: url.searchParams.get('c') ?? '', ip: getClientIp(req) })
+  return responder(resposta.status, resposta.corpo)
 }
 
 const processarPadrao = criarServicoNovoLink()

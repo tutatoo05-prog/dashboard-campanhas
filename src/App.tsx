@@ -13,6 +13,7 @@ import { Tatu } from '@/components/mascot/Tatu.tsx'
 
 // Cada tela é baixada só quando é aberta (Login e recuperação de senha ficam no pacote inicial).
 const NovoLinkPage = lazy(() => import('@/pages/NovoLinkPage.tsx'))
+const CriarSenhaPage = lazy(() => import('@/pages/CriarSenhaPage.tsx'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage.tsx'))
 const ActionsPage = lazy(() => import('@/pages/ActionsPage.tsx'))
 const ComparePage = lazy(() => import('@/pages/ComparePage.tsx'))
@@ -158,6 +159,7 @@ function AppRoutes() {
       />
       {/* Pública: botão "Receber outro link" do e-mail de boas-vindas do aluno (não exige login e não redireciona quem está logado) */}
       <Route path="/novo-link" element={<NovoLinkPage />} />
+      <Route path="/criar-senha" element={<CriarSenhaPage />} />
       <Route
         path="/reset-password"
         element={

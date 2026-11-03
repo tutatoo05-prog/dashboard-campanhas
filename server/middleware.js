@@ -11,14 +11,14 @@ import { handleRegistrosRequest } from './registrosHandler.js'
 import { handleHotmartEventsRequest } from './hotmartEvents.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleVideosRequest } from './videosHandler.js'
-import { handlePlayerConfigRequest } from './playerConfig.js'
+import { handlePaginaConfigRequest, handlePlayerConfigRequest } from './playerConfig.js'
 import { handleCapturaRequest } from './capturaHandler.js'
 import { handleMonitorRequest } from './monitor/handler.js'
 import { handleUsersRequest } from './usersHandler.js'
 import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
 import { handleAcessosRequest } from './acesso/handler.js'
-import { handleNovoLinkRequest } from './acesso/novoLink.js'
+import { handleCriarSenhaRequest, handleNovoLinkRequest } from './acesso/novoLink.js'
 import { handleSegurancaRequest } from './segurancaHandler.js'
 import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
@@ -55,6 +55,17 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // assinado e limite de pedidos, e o link novo só sai por e-mail (ver server/acesso/novoLink.js).
     if (req.url.startsWith('/api/novo-link')) {
       await handleNovoLinkRequest(req, res, env)
+      return
+    }
+    // Botão "Criar minha senha" do mesmo e-mail: decide por horário se manda para a criação da senha ou avisa que venceu.
+    if (req.url.startsWith('/api/criar-senha')) {
+      handleCriarSenhaRequest(req, res, env)
+      return
+    }
+
+    // Tempo da trava inicial das páginas de venda (Essentials/Membros/Live): público pelo mesmo motivo do player.
+    if (req.url.startsWith('/api/pagina-config')) {
+      await handlePaginaConfigRequest(req, res, env)
       return
     }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { pedirNovoLink } from '@/services/novoLinkService.ts'
 import { AuthBackdrop } from '@/components/auth/AuthBackdrop.tsx'
@@ -14,6 +14,10 @@ export default function NovoLinkPage() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [enviadoPara, setEnviadoPara] = useState('')
+
+  useEffect(() => {
+    document.title = 'Novo link — Tuzinho Academy'
+  }, [])
 
   async function enviar() {
     setErro('')

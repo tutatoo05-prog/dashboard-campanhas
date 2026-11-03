@@ -180,6 +180,95 @@ export async function gravarConfig(env, video, config, usuario) {
   limparCache('player|')
 }
 
+// ───────────────────────────────────────────────────────────────────────────────
+// Páginas de venda (Essentials, Membros, Live): por enquanto só o tempo da trava inicial (rolagem e menu bloqueados logo
+// ao abrir). Fica na mesma tabela video_config, com a chave `pagina-<nome>`, então não precisa de migração.
+// Mantenha os padrões iguais ao SCROLL_LOCK_MS de pages/<pagina>/src/config.js do projeto produtos.
+
+/** Padrão de cada página (segundos): vale quando nada foi salvo e quando o dash não responde. */
+export const PAGINAS = {
+  essentials: { travaSegundos: 30 },
+  membros: { travaSegundos: 30 },
+  live: { travaSegundos: 0 },
+}
+export const MAX_TRAVA_SEGUNDOS = 300
+const chavePagina = (pagina) => `pagina-${pagina}`
+
+export function paginaValida(pagina) {
+  return Object.hasOwn(PAGINAS, pagina ?? '')
+}
+
+/** Valida o que veio do painel. Lança ConfigInvalida com mensagem para a tela. */
+export function sanitizarPagina(entrada, pagina) {
+  const e = entrada && typeof entrada === 'object' ? entrada : {}
+  return { travaSegundos: Math.round(numeroEntre(e.travaSegundos, 'Tempo da trava', 0, MAX_TRAVA_SEGUNDOS, PAGINAS[pagina].travaSegundos)) }
+}
+
+/** Lê o tempo salvo de cada página (ou o padrão). Sem a tabela: padrões e `precisaMigracao`. */
+export async function lerPaginas(env) {
+  const saida = {}
+  for (const [pagina, padrao] of Object.entries(PAGINAS)) saida[pagina] = { config: { ...padrao }, salvo: false }
+  try {
+    const { rows } = await query(env, 'select video, config, atualizado_em, atualizado_por from video_config where video = any($1)', [Object.keys(PAGINAS).map(chavePagina)])
+    for (const linha of rows) {
+      const pagina = String(linha.video).replace(/^pagina-/, '')
+      if (!paginaValida(pagina)) continue
+      try {
+        saida[pagina] = { config: sanitizarPagina(linha.config, pagina), salvo: true, atualizadoEm: new Date(linha.atualizado_em).toISOString(), atualizadoPor: linha.atualizado_por ?? null }
+      } catch (erro) {
+        console.error('[pagina] configuração salva é inválida, usando o padrão:', erro.message) // registro mexido à mão
+      }
+    }
+    return { paginas: saida, precisaMigracao: false }
+  } catch (erro) {
+    if (erro?.code === '42P01') return { paginas: saida, precisaMigracao: true }
+    throw erro
+  }
+}
+
+export async function gravarPaginas(env, paginas, usuario) {
+  for (const [pagina, config] of Object.entries(paginas)) {
+    await query(
+      env,
+      `insert into video_config (video, config, atualizado_em, atualizado_por)
+       values ($1, $2::jsonb, now(), $3)
+       on conflict (video) do update set config = excluded.config, atualizado_em = now(), atualizado_por = excluded.atualizado_por`,
+      [chavePagina(pagina), JSON.stringify(config), usuario ?? null],
+    )
+  }
+  limparCache('player|')
+}
+
+/**
+ * GET /api/pagina-config?p=essentials — PÚBLICO (as páginas de venda rodam em tuzinho.academy/tuzinho.app, sem login).
+ * Só devolve o tempo da trava inicial. Cache de 30 s no servidor protege o banco em pico de visitas.
+ */
+export async function handlePaginaConfigRequest(req, res, env) {
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  }
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204
+    for (const [nome, valor] of Object.entries(cors)) res.setHeader(nome, valor)
+    return res.end()
+  }
+  const url = new URL(req.url, 'http://localhost')
+  if (url.pathname !== '/api/pagina-config') return sendJson(res, 404, { error: 'Rota não encontrada.' }, cors)
+  if (req.method !== 'GET') return sendJson(res, 405, { error: 'Método não permitido.' }, cors)
+  const pagina = url.searchParams.get('p') ?? ''
+  if (!paginaValida(pagina)) return sendJson(res, 400, { error: 'Página inválida.' }, cors)
+  try {
+    const { paginas } = await comCache('player|paginas', CACHE_MS, () => lerPaginas(env))
+    return sendJson(res, 200, paginas[pagina].config, { ...cors, 'Cache-Control': 'no-cache' })
+  } catch (erro) {
+    console.error('[pagina] falha ao ler a configuração:', erro.message || erro)
+    // a página tem o padrão embutido: um erro aqui só faz ela seguir com ele
+    return sendJson(res, 502, { error: 'Configuração indisponível.' }, cors)
+  }
+}
+
 function sendJson(res, status, payload, extras = {}) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')

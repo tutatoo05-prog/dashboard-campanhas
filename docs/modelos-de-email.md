@@ -21,9 +21,9 @@ Sai assim que o acesso é liberado.
 - **Título:** Bem-vindo, {{nome}}!
 - **Texto:** Parabéns pela inscrição! Sua vaga está confirmada e seu acesso já está funcionando. Falta só um passo: criar a sua senha, pelo botão abaixo.
 - **Seu e-mail de acesso:** {{email}}
-- **Sua senha:** Você mesmo(a) cria, no botão abaixo.
-  - O link vale por {{validade}} e só funciona uma vez. Se ele expirar, use "Esqueci minha senha" na tela de entrada da plataforma.
-- **Botão:** Criar minha senha → ({{linkSenha}}, gerado na hora pela API V2 da plataforma)
+- **Sua senha:** Você mesmo(a) cria a sua, pelo botão abaixo.
+  - O link vale por {{validade}} e só funciona uma vez. Se ele expirar, é só clicar no botão e pedir um novo link.
+- **Botão:** Criar minha senha → ({{linkSenha}}: página do dash que, dentro dos 30 min, leva ao link gerado na hora pela API V2 da plataforma e, depois, mostra "este link não está mais ativo" com o botão "Receber um novo link")
   - Logo abaixo: Já criou a senha? Entrar na plataforma (https://tuzinho.academy/login)
 - **Seus 3 primeiros passos:**
   1. **Crie sua senha** pelo botão acima e entre na plataforma.

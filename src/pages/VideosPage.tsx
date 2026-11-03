@@ -6,6 +6,7 @@ import { PageHero } from '@/components/flash/PageHero.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import { BarrasVerticais } from '@/components/videos/BarrasVerticais.tsx'
 import { PlayerControl } from '@/components/videos/PlayerControl.tsx'
+import { PaginasControl } from '@/components/videos/PaginasControl.tsx'
 import { fetchVideoMetrics, type VideoMetrics } from '@/services/videoService.ts'
 import { formatNumber, formatPercent } from '@/lib/format.ts'
 import { formatDateBr } from '@/lib/period.ts'
@@ -271,6 +272,8 @@ export default function VideosPage() {
       {data && !error && <Content data={data} />}
 
       <PlayerControl key={VIDEO} video={VIDEO} ratio={escolhido.ratio} />
+
+      <PaginasControl />
 
       {data && !error && (
         <p className="text-xs text-zinc-500">

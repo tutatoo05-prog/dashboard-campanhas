@@ -17,6 +17,7 @@ import {
 } from './regras.js'
 import { bloquearAtrasados, criarMotor, processarEvento, processarFila, textoValidade } from './motor.js'
 import { escaparHtml, renderizar, carregarTemplate } from './integracoes.js'
+import { lerTokenCriarSenha } from './tokenCriarSenha.js'
 
 // ── payloads ──────────────────────────────────────────────────────────────────
 
@@ -677,7 +678,7 @@ test('API V2: aluno que não existe não quebra a revogação; sem token nem ten
 // ── API V2: liberação com link para a pessoa criar a própria senha (sem CPF como senha) ──
 
 test('modelo de e-mail com link: preenche, escapa e não mostra senha nenhuma', async () => {
-  const html = renderizar(await carregarTemplate('boas-vindas-link'), { nome: 'Ana <b>', email: 'ana@exemplo.com', linkSenha: 'https://tuzinho.academy/primeiro-acesso?token=ABC&x=1', linkNovo: 'https://dash.tuzinho.academy/novo-link?t=1.abc', validade: '30 minutos' })
+  const html = renderizar(await carregarTemplate('boas-vindas-link'), { nome: 'Ana <b>', email: 'ana@exemplo.com', linkSenha: 'https://tuzinho.academy/primeiro-acesso?token=ABC&x=1', validade: '30 minutos' })
   assert.ok(html.includes('Bem-vindo, Ana &lt;b&gt;'))
   assert.ok(html.includes('href="https://tuzinho.academy/primeiro-acesso?token=ABC&amp;x=1"'), 'o botão deve apontar para o link')
   assert.ok(html.includes('30 minutos'))
@@ -717,10 +718,12 @@ test('motor com API V2: libera pela matrícula, gera o link e manda o e-mail com
   assert.equal(liberar.cpf, '52998224725')
 
   const email = repo.chamadas.find(([nome]) => nome === 'enviarEmail')[1]
-  assert.ok(email.html.includes('primeiro-acesso?token=TOKEN_DE_TESTE'))
+  const codigo = /criar-senha\?c=([\w-]+)/.exec(email.html)[1]
+  assert.equal(lerTokenCriarSenha(ENV_V2, codigo).url, 'https://tuzinho.academy/primeiro-acesso?token=TOKEN_DE_TESTE', 'o botão leva, cifrado, o link da plataforma')
   assert.ok(email.html.includes('30 minutos'))
   assert.ok(!email.html.includes('52998224725'), 'o CPF não pode ir no e-mail')
-  assert.ok(email.html.includes('/novo-link?t=1.'), 'o botão "Receber outro link" vai assinado com o id do acesso')
+  assert.ok(email.html.includes('/criar-senha?c='), 'o botão do e-mail passa pela página do dash')
+  assert.ok(!email.html.includes('primeiro-acesso?token=TOKEN_DE_TESTE'), 'o link da plataforma não aparece em claro no e-mail')
 
   // o link (token) nunca fica guardado no evento
   assert.ok(!JSON.stringify(eventos.get(1).passos).includes('TOKEN_DE_TESTE'))

@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { criarTokenNovoLink, lerTokenNovoLink, urlNovoLink } from './tokenNovoLink.js'
-import { ASSUNTO_NOVO_LINK, criarLimite, criarServicoNovoLink, mascararEmail } from './novoLink.js'
+import { FOLGA_MS, criarTokenCriarSenha, lerTokenCriarSenha, urlCriarSenha } from './tokenCriarSenha.js'
+import { ASSUNTO_NOVO_LINK, criarLimite, criarServicoCriarSenha, criarServicoNovoLink, mascararEmail } from './novoLink.js'
 import { carregarTemplate, renderizar } from './integracoes.js'
 
 const ENV = { ACESSO_MODO: 'ativo', TELWAY_V2_TOKEN: 'token-de-teste', APP_URL: 'https://dash.tuzinho.academy/' }
@@ -39,11 +40,12 @@ test('endereço do botão usa o endereço do dash e não tem e-mail nem nome', (
   assert.ok(!url.includes('@'))
 })
 
-test('e-mail de boas-vindas: o botão "Receber outro link" aponta para o endereço assinado', async () => {
-  const url = urlNovoLink(ENV, 42)
-  const html = renderizar(await carregarTemplate('boas-vindas-link'), { nome: 'Ana', email: 'ana@exemplo.com', linkSenha: 'https://x/primeiro-acesso?token=A', linkNovo: url, validade: '30 minutos' })
+test('e-mail de boas-vindas: o botão "Criar minha senha" aponta para a página do dash e não sobra botão extra', async () => {
+  const url = urlCriarSenha(ENV, { url: 'https://tuzinho.academy/primeiro-acesso?token=A', expiraEm: '2026-10-16T15:30:00Z', acessoId: 42 })
+  const html = renderizar(await carregarTemplate('boas-vindas-link'), { nome: 'Ana', email: 'ana@exemplo.com', linkSenha: url, validade: '30 minutos' })
   assert.ok(html.includes(`href="${url}"`))
-  assert.ok(html.includes('Receber outro link'))
+  assert.ok(html.includes('Criar minha senha'))
+  assert.ok(!html.includes('Receber outro link'), 'o pedido de novo envio agora fica na página, não no e-mail')
   assert.ok(!/\{\{\w+\}\}/.test(html))
 })
 
@@ -101,8 +103,9 @@ test('novo link: manda o link novo SÓ por e-mail ao dono do acesso e não devol
   const envio = chamadas.find(([nome]) => nome === 'enviarEmail')[1]
   assert.equal(envio.para, 'ana@exemplo.com')
   assert.equal(envio.assunto, ASSUNTO_NOVO_LINK)
-  assert.ok(envio.html.includes('primeiro-acesso?token=NOVO'))
-  assert.ok(envio.html.includes('/novo-link?t=42.'), 'o e-mail novo também traz o botão para pedir outro')
+  const codigo = /criar-senha\?c=([\w-]+)/.exec(envio.html)[1]
+  assert.equal(lerTokenCriarSenha(ENV, codigo).url, 'https://tuzinho.academy/primeiro-acesso?token=NOVO', 'o botão leva, cifrado, o link novo')
+  assert.ok(envio.html.includes('/criar-senha?c='), 'o e-mail novo também passa pela página do dash')
   assert.deepEqual(chamadas.find(([nome]) => nome === 'gerarLinkSenha')[1], { email: 'ana@exemplo.com' })
 })
 
@@ -154,4 +157,77 @@ test('novo link: sem a API V2 ou sem segredo não funciona; erro da plataforma v
   const inativo = criarServicoDeTeste({ falhar: 'inativo' })
   assert.equal((await inativo.processar(ENV, { token, ip: '1.1.1.1' }, inativo.deps)).status, 409)
   assert.ok(!inativo.chamadas.some(([nome]) => nome === 'enviarEmail'))
+})
+
+// ── botão "Criar minha senha": código cifrado e decisão por horário ───────────
+
+const LINK_PLATAFORMA = 'https://tuzinho.academy/primeiro-acesso?token=SEGREDO_DA_PLATAFORMA'
+const AGORA = Date.parse('2026-10-16T15:00:00Z')
+
+test('código do "Criar minha senha": vai e volta, não deixa ler o link e rejeita adulteração', () => {
+  const expiraEm = '2026-10-16T15:30:00Z'
+  const token = criarTokenCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm, acessoId: 42 })
+  assert.ok(token && !token.includes('SEGREDO') && !token.includes('tuzinho'), 'o link da plataforma não fica legível no endereço')
+  assert.deepEqual(lerTokenCriarSenha(ENV, token), { url: LINK_PLATAFORMA, expiraEmMs: Date.parse(expiraEm), acessoId: 42 })
+
+  const trocado = `${token.slice(0, 40)}${token[40] === 'A' ? 'B' : 'A'}${token.slice(41)}`
+  assert.equal(lerTokenCriarSenha(ENV, trocado), null, 'qualquer alteração invalida')
+  assert.equal(lerTokenCriarSenha({ ...ENV, TELWAY_V2_TOKEN: 'outra-chave' }, token), null)
+  assert.equal(lerTokenCriarSenha(ENV, ''), null)
+  assert.equal(lerTokenCriarSenha(ENV, 'abc'), null)
+  assert.equal(lerTokenCriarSenha(ENV, 'x'.repeat(3000)), null)
+  assert.equal(lerTokenCriarSenha(ENV, 'não é base64!'), null)
+  assert.notEqual(token, criarTokenCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm, acessoId: 42 }), 'cada código usa um sorteio novo')
+})
+
+test('código do "Criar minha senha": sem segredo, link fora do padrão ou data inválida não geram nada', () => {
+  assert.equal(criarTokenCriarSenha({}, { url: LINK_PLATAFORMA, expiraEm: '2026-10-16T15:30:00Z' }), null)
+  assert.equal(urlCriarSenha({}, { url: LINK_PLATAFORMA, expiraEm: '2026-10-16T15:30:00Z' }), null)
+  assert.equal(criarTokenCriarSenha(ENV, { url: 'http://inseguro/x', expiraEm: '2026-10-16T15:30:00Z' }), null)
+  assert.equal(criarTokenCriarSenha(ENV, { url: 'javascript:alert(1)', expiraEm: '2026-10-16T15:30:00Z' }), null)
+  assert.equal(criarTokenCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm: 'amanhã' }), null)
+  const semId = lerTokenCriarSenha(ENV, criarTokenCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm: '2026-10-16T15:30:00Z' }))
+  assert.equal(semId.acessoId, null)
+  assert.match(urlCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm: '2026-10-16T15:30:00Z', acessoId: 1 }), /^https:\/\/dash\.tuzinho\.academy\/criar-senha\?c=[\w-]+$/)
+})
+
+function decisor(agora = AGORA) {
+  return criarServicoCriarSenha({ relogio: () => agora })
+}
+const tokenCom = (expiraEm, acessoId = 42) => criarTokenCriarSenha(ENV, { url: LINK_PLATAFORMA, expiraEm, acessoId })
+
+test('"Criar minha senha": dentro dos 30 minutos manda para o link da plataforma', () => {
+  const r = decisor()(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '1.1.1.1' })
+  assert.equal(r.status, 200)
+  assert.deepEqual(r.corpo, { estado: 'ativo', url: LINK_PLATAFORMA })
+})
+
+test('"Criar minha senha": depois do vencimento avisa e oferece novo envio (com a folga de segurança)', () => {
+  const vencido = decisor(Date.parse('2026-10-16T15:31:00Z'))(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '1.1.1.1' })
+  assert.equal(vencido.status, 200)
+  assert.equal(vencido.corpo.estado, 'vencido')
+  assert.ok(!JSON.stringify(vencido.corpo).includes('SEGREDO'), 'o link vencido não é devolvido')
+  assert.equal(lerTokenNovoLink(ENV, vencido.corpo.t), 42, 'o código de novo envio é o do mesmo acesso')
+
+  const expira = Date.parse('2026-10-16T15:30:00Z')
+  assert.equal(decisor(expira - FOLGA_MS - 1)(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '2.2.2.2' }).corpo.estado, 'ativo')
+  assert.equal(decisor(expira - FOLGA_MS)(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '3.3.3.3' }).corpo.estado, 'vencido', 'nos últimos segundos já conta como vencido')
+})
+
+test('"Criar minha senha": vencido sem acesso conhecido ou sem API V2 não oferece novo envio', () => {
+  const agoraTarde = Date.parse('2026-10-16T16:00:00Z')
+  const semId = decisor(agoraTarde)(ENV, { token: tokenCom('2026-10-16T15:30:00Z', null), ip: '1.1.1.1' })
+  assert.deepEqual(semId.corpo, { estado: 'vencido' })
+  const envSemV2 = { ...ENV, TELWAY_V2_TOKEN: '', NOVO_LINK_SEGREDO: 'so-o-segredo' }
+  const tokenSemV2 = criarTokenCriarSenha(envSemV2, { url: LINK_PLATAFORMA, expiraEm: '2026-10-16T15:30:00Z', acessoId: 42 })
+  assert.deepEqual(decisor(agoraTarde)(envSemV2, { token: tokenSemV2, ip: '2.2.2.2' }).corpo, { estado: 'vencido' })
+})
+
+test('"Criar minha senha": código falso é inválido e o excesso de pedidos por rede é barrado', () => {
+  const decidir = decisor()
+  assert.deepEqual(decidir(ENV, { token: 'lixo', ip: '1.1.1.1' }), { status: 400, corpo: { estado: 'invalido' } })
+  assert.equal(decidir(ENV, { token: '', ip: '1.1.1.1' }).status, 400)
+  for (let i = 0; i < 28; i += 1) decidir(ENV, { token: 'lixo', ip: '1.1.1.1' })
+  assert.equal(decidir(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '1.1.1.1' }).status, 429)
+  assert.equal(decidir(ENV, { token: tokenCom('2026-10-16T15:30:00Z'), ip: '9.9.9.9' }).status, 200, 'outra rede segue normal')
 })
