@@ -164,6 +164,10 @@ test('rota pública: sem linha salva, cada vídeo recebe os arquivos do seu padr
     assert.equal(vertical.status, 200)
     assert.equal(vertical.corpo.arquivos.hd, 'vsl-v2-720.mp4')
     assert.equal(vertical.corpo.arquivos.leve, 'vsl-v2-480.mp4')
+    const mentoria = await chamar('GET', '/api/player-config?v=vsl-mentoria', env)
+    assert.equal(mentoria.status, 200)
+    assert.equal(mentoria.corpo.arquivos.hd, 'vsl-v3-720.mp4')
+    assert.equal(mentoria.corpo.arquivos.leve, 'vsl-v3-480.mp4')
   } finally {
     pg.Pool.prototype.query = original
   }

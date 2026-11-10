@@ -46,7 +46,8 @@ const ITENS: { id: Painel; icone: string; nome: string; titulo: string }[] = [
 /** VSLs prontas (arquivos na pasta de vídeos do servidor). Escolher uma troca HD e leve juntos. */
 const VSLS_PRONTAS = [
   { id: 'v1', nome: 'VSL antiga · horizontal 16:9', hd: 'vsl-v1-720.mp4', leve: 'vsl-v1-480.mp4', ratio: '16 / 9' },
-  { id: 'v2', nome: 'VSL nova · vertical 9:16 (23 min)', hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4', ratio: '9 / 16' },
+  { id: 'v3', nome: 'VSL mentoria · horizontal 16:9 (Live e Membros)', hd: 'vsl-v3-720.mp4', leve: 'vsl-v3-480.mp4', ratio: '16 / 9' },
+  { id: 'v2', nome:'VSL nova · vertical 9:16 (23 min)', hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4', ratio: '9 / 16' },
 ]
 
 function iframeCode(video: string, vertical = false): string {

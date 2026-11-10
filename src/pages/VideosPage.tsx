@@ -34,7 +34,7 @@ const TOOLTIP_STYLE = {
 /** VSLs monitoradas aqui (os depoimentos não usam o player hospedado). `id` é o ?v= do player e o campo `video` dos eventos. */
 const VIDEOS = [
   { id: 'vsl', nome: 'Essentials · horizontal 16:9', ratio: '16 / 9' },
-  { id: 'vsl-vertical', nome: 'Live e Membros · vertical 9:16', ratio: '9 / 16' },
+  { id: 'vsl-mentoria', nome: 'Live e Membros · horizontal 16:9', ratio: '16 / 9' },
 ]
 
 const DEVICE_LABELS: Record<string, string> = { mobile: 'Celular', desktop: 'Computador', tablet: 'Tablet', outro: 'Outro' }

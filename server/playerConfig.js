@@ -27,6 +27,7 @@ export const PADRAO = {
 
 /** O que muda por vídeo em relação ao PADRAO. Ids sem entrada (inclusive `vsl`) usam o PADRAO como está. */
 const PADROES_POR_VIDEO = {
+  'vsl-mentoria': { arquivos: { hd: 'vsl-v3-720.mp4', leve: 'vsl-v3-480.mp4' } },
   'vsl-vertical': { arquivos: { hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4' } },
 }
 
