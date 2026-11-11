@@ -392,8 +392,8 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
       <Planilha dados={dados} ano={ano} indices={recorte} lancar={lancar} />
 
       {completa && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Planilha completa" onClick={() => setCompleta(false)}>
-          <div className="max-h-[92vh] w-[90vw] overflow-y-auto rounded-2xl bg-[var(--bg,#0b0f17)] p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 xl:left-[var(--sidebar-width)]" role="dialog" aria-modal="true" aria-label="Planilha completa" onClick={() => setCompleta(false)}>
+          <div className="max-h-[92vh] w-[90%] overflow-y-auto rounded-2xl bg-[var(--bg,#0b0f17)] p-4" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <p className="section-label">Planilha completa {ano}</p>
               <button type="button" className="btn-gold" onClick={() => setCompleta(false)}>
