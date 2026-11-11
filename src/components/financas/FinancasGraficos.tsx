@@ -27,7 +27,7 @@ const FONTES: Record<string, { rotulo: string; cor: string }> = {
   hotmart: { rotulo: 'Hotmart', cor: '#f26a1b' },
   youtube: { rotulo: 'YouTube', cor: '#ff0000' },
   principia: { rotulo: 'Principia', cor: '#eda100' },
-  asaas: { rotulo: 'Asaas', cor: '#2f5bff' },
+  asaas: { rotulo: 'Asaas', cor: '#0e7c4a' },
   pix_ted: { rotulo: 'Pix / TED', cor: '#32bcad' },
   stripe: { rotulo: 'Stripe', cor: '#e87ba4' },
   facebook: { rotulo: 'Facebook', cor: '#1877f2' },
