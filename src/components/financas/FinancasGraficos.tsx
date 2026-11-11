@@ -26,10 +26,10 @@ const COR = {
 const FONTES: Record<string, { rotulo: string; cor: string }> = {
   hotmart: { rotulo: 'Hotmart', cor: '#f26a1b' },
   youtube: { rotulo: 'YouTube', cor: '#ff0000' },
-  principia: { rotulo: 'Principia', cor: '#7c3aed' },
+  principia: { rotulo: 'Principia', cor: '#eda100' },
   asaas: { rotulo: 'Asaas', cor: '#2f5bff' },
   pix_ted: { rotulo: 'Pix / TED', cor: '#32bcad' },
-  stripe: { rotulo: 'Stripe', cor: '#a29bff' },
+  stripe: { rotulo: 'Stripe', cor: '#e87ba4' },
   facebook: { rotulo: 'Facebook', cor: '#1877f2' },
 }
 
@@ -65,18 +65,6 @@ function Bloco({ titulo, descricao, legenda, altura = 260, children }: { titulo:
   )
 }
 
-function Resumo({ rotulo, valor, dica, cor }: { rotulo: string; valor: string; dica: string; cor?: string }) {
-  return (
-    <div className="kpi2">
-      <p className="kpi2-label">{rotulo}</p>
-      <p className="mt-1 text-2xl font-semibold" style={{ color: cor ?? 'var(--ink)' }}>
-        {valor}
-      </p>
-      <p className="mt-0.5 text-xs text-zinc-500">{dica}</p>
-    </div>
-  )
-}
-
 export function FinancasGraficos({ dados }: { dados: Financas }) {
   const hoje = new Date()
   const ultimo = dados.ano < hoje.getFullYear() ? 11 : dados.ano > hoje.getFullYear() ? 0 : hoje.getMonth()
@@ -87,9 +75,7 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
 
   const valor = (id: string, tipo: 'receitas' | 'custos', i: number) => dados[tipo].find((l) => l.id === id)?.celulas[i]?.valor ?? 0
   const receitaAno = dados.anual.receita
-  const custoAno = dados.anual.custo
   const lucroAno = dados.anual.lucro
-  const margemAno = receitaAno > 0 ? (lucroAno / receitaAno) * 100 : 0
   const mesParcial = dados.ano === hoje.getFullYear()
   const ultimoRotulo = MESES[ultimo]
   const ultimoLucro = dados.lucro[ultimo]
@@ -113,9 +99,9 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
     .map((f) => ({ ...f, nome: `${f.rotulo} (${receitaAno > 0 ? Math.round((f.total / receitaAno) * 100) : 0}%)` }))
 
   const cascata = [
-    { nome: 'Entrou', faixa: [0, receitaAno], cor: COR.ganho, sinal: '' },
-    { nome: 'Saiu', faixa: [Math.min(lucroAno, receitaAno), receitaAno], cor: COR.custo, sinal: '-' },
-    { nome: 'Sobrou', faixa: [0, lucroAno], cor: lucroAno >= 0 ? COR.lucro : COR.prejuizo, sinal: '' },
+    { nome: 'Entrou', valor: receitaAno, cor: COR.ganho },
+    { nome: 'Saiu', valor: dados.anual.custo, cor: COR.custo },
+    { nome: 'Sobrou', valor: lucroAno, cor: lucroAno >= 0 ? COR.lucro : COR.prejuizo },
   ]
 
   const margem = indices.map((i) => {
@@ -139,15 +125,6 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
 
   return (
     <div className="space-y-4">
-      <div className="kpi-grid">
-        <Resumo rotulo="Entrou no ano" valor={formatCurrency(receitaAno)} dica="Todas as fontes" cor={COR.ganho} />
-        <Resumo rotulo="Saiu no ano" valor={formatCurrency(custoAno)} dica="Operação + anúncios" cor={COR.custo} />
-        <Resumo rotulo="Lucro no ano" valor={formatCurrency(lucroAno)} dica={`Margem de ${margemAno.toFixed(1).replace('.', ',')}%`} cor={lucroAno >= 0 ? COR.lucro : COR.prejuizo} />
-        {mesParcial && ultimoLucro !== null && (
-          <Resumo rotulo={`${ultimoRotulo} (parcial)`} valor={formatCurrency(ultimoLucro)} dica="Mês em andamento" cor={ultimoLucro >= 0 ? COR.lucro : COR.prejuizo} />
-        )}
-      </div>
-
       <Bloco
         titulo="Entrou, saiu e sobrou por mês"
         descricao="Verde entra, cinza sai, a linha amarela é o lucro."
@@ -163,7 +140,7 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
           {eixoX}
           {eixoY}
           <ReferenceLine y={0} stroke={AXIS} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
           <Bar dataKey="Ganhos" fill={COR.ganho} radius={[4, 4, 0, 0]} maxBarSize={26} />
           <Bar dataKey="Custos" fill={COR.custo} radius={[4, 4, 0, 0]} maxBarSize={26} />
           <Line dataKey="Lucro" stroke={COR.lucro} strokeWidth={2} dot={{ r: 4, fill: COR.lucro }} connectNulls />
@@ -180,7 +157,7 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
           {grade}
           {eixoX}
           {eixoY}
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
           {fontesComValor.map((f) => (
             <Bar key={f.id} dataKey={FONTES[f.id].rotulo} stackId="fontes" fill={FONTES[f.id].cor} maxBarSize={40} stroke="var(--card)" strokeWidth={1} />
           ))}
@@ -193,7 +170,7 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
             <CartesianGrid stroke={GRID} horizontal={false} />
             <XAxis type="number" stroke={AXIS} fontSize={12} tickFormatter={compacto} />
             <YAxis type="category" dataKey="nome" stroke={AXIS} fontSize={12} width={116} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
             <Bar dataKey="total" name="Ano" radius={[0, 4, 4, 0]} maxBarSize={24}>
               {peso.map((f) => (
                 <Cell key={f.id} fill={f.cor} />
@@ -202,21 +179,14 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
           </BarChart>
         </Bloco>
 
-        <Bloco titulo="Cascata do ano" descricao="Do que entrou até o que sobrou." altura={Math.max(220, peso.length * 38 + 40)}>
+        <Bloco titulo="Entrou, saiu e sobrou no ano" descricao="Os três totais lado a lado, todos saindo do zero." altura={Math.max(220, peso.length * 38 + 40)}>
           <BarChart data={cascata}>
             {grade}
             {eixoX}
             {eixoY}
             <ReferenceLine y={0} stroke={AXIS} />
-            <Tooltip
-              contentStyle={TOOLTIP_STYLE}
-              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-              formatter={(v) => {
-                const [de, ate] = v as unknown as [number, number]
-                return formatCurrency(ate - de)
-              }}
-            />
-            <Bar dataKey="faixa" name="Ano" radius={[4, 4, 0, 0]} maxBarSize={70}>
+            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+            <Bar dataKey="valor" name="Total do ano" radius={[4, 4, 0, 0]} maxBarSize={70}>
               {cascata.map((c) => (
                 <Cell key={c.nome} fill={c.cor} />
               ))}
@@ -233,7 +203,7 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
             <YAxis stroke={AXIS} fontSize={12} width={52} domain={[-100, 100]} tickFormatter={(v: number) => `${v}%`} />
             <ReferenceLine y={0} stroke={AXIS} />
             <Tooltip
-              contentStyle={TOOLTIP_STYLE}
+              contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }}
               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
               formatter={(_, __, item) => {
                 const real = (item.payload as { real: number | null }).real
@@ -262,14 +232,14 @@ export function FinancasGraficos({ dados }: { dados: Financas }) {
             {grade}
             {eixoX}
             {eixoY}
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink)' }} formatter={dica} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
             <Bar dataKey="Operação" stackId="c" fill={COR.custo} maxBarSize={32} stroke="var(--card)" strokeWidth={1} />
             <Bar dataKey="Anúncios (Meta)" stackId="c" fill={COR.meta} maxBarSize={32} stroke="var(--card)" strokeWidth={1} />
           </BarChart>
         </Bloco>
       </div>
 
-      {mesParcial && <p className="text-xs text-zinc-500">{ultimoRotulo} está em andamento: os números mudam conforme as vendas e os gastos chegam.</p>}
+      {mesParcial && <p className="text-xs text-zinc-500">{ultimoRotulo} está em andamento{ultimoLucro !== null ? ` (resultado até agora: ${formatCurrency(ultimoLucro)})` : ''}: os números mudam conforme as vendas e os gastos chegam.</p>}
     </div>
   )
 }

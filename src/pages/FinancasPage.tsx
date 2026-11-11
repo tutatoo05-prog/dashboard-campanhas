@@ -280,9 +280,6 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
   const caixaMut = useMutation({ mutationFn: (valor: number) => salvarCaixa(valor, ano), onSuccess: guardar })
 
   const [completa, setCompleta] = useState(false)
-  const hoje = new Date()
-  const fim = ano < hoje.getFullYear() ? 11 : ano > hoje.getFullYear() ? 4 : Math.max(4, hoje.getMonth())
-  const recorte = TODOS.slice(fim - 4, fim + 1)
   useEffect(() => {
     if (!completa) return
     const fechar = (e: KeyboardEvent) => e.key === 'Escape' && setCompleta(false)
@@ -350,14 +347,13 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
 
       <section className="surface-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <p className="text-sm text-zinc-400">
-          Mostrando {MESES[recorte[0]]} a {MESES[recorte[recorte.length - 1]]}. A coluna Ano soma o ano inteiro.
+          Para digitar ou corrigir um valor, abra a planilha completa. O que você digita nunca é sobrescrito pelas fontes automáticas.
         </p>
         <button type="button" className="btn-gold" onClick={() => setCompleta(true)}>
           Ver planilha completa
         </button>
       </section>
 
-      <Planilha dados={dados} ano={ano} indices={recorte} lancar={lancar} />
 
       {completa && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 xl:left-[var(--sidebar-width)]" role="dialog" aria-modal="true" aria-label="Planilha completa" onClick={() => setCompleta(false)}>
