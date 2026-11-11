@@ -86,7 +86,7 @@ function Celula({
     return (
       <input
         autoFocus
-        className={`w-24 rounded border bg-transparent px-1 py-1 text-right text-sm ${erro ? 'border-red-500' : 'border-white/20'}`}
+        className={`w-24 rounded border bg-transparent px-1 py-1 text-center text-sm ${erro ? 'border-red-500' : 'border-white/20'}`}
         value={texto}
         inputMode="decimal"
         aria-label="Valor em reais"
@@ -109,7 +109,7 @@ function Celula({
       type="button"
       disabled={!editavel}
       title={celula ? `${formatCurrency(celula.valor)} · ${ORIGEM_DICA[celula.origem]}` : 'Sem valor. Clique para digitar.'}
-      className={`w-full whitespace-nowrap rounded px-1 py-1.5 text-right text-[13px] tabular-nums hover:bg-white/10 ${vazio || celula.valor === 0 ? 'text-zinc-600' : 'text-zinc-100'}`}
+      className={`w-full whitespace-nowrap rounded px-1 py-1.5 text-center text-[13px] tabular-nums hover:bg-white/10 ${vazio || celula.valor === 0 ? 'text-zinc-600' : 'text-zinc-100'}`}
       onClick={() => {
         setTexto(celula ? String(celula.valor).replace('.', ',') : '')
         setErro(false)
@@ -147,7 +147,7 @@ function Bloco({
               <Celula celula={linha.celulas[i]} editavel onSalvar={(valor) => onSalvar(meses[i], tipo, linha.id, valor)} />
             </td>
           ))}
-          <td className="whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-semibold tabular-nums text-zinc-100">
+          <td className="whitespace-nowrap border-l border-white/10 px-2 text-center text-[13px] font-semibold tabular-nums text-zinc-100">
             {reais(linha.celulas.reduce((s, c) => s + (c?.valor ?? 0), 0))}
           </td>
         </tr>
@@ -174,11 +174,11 @@ function Tabela({ titulo, tom, ano, indices, children }: { titulo: string; tom: 
           <tr>
             <th className="px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
             {indices.map((i) => (
-              <th key={i} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              <th key={i} className="px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 {MESES[i]}
               </th>
             ))}
-            <th className="border-l border-white/10 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
+            <th className="border-l border-white/10 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
           </tr>
         </thead>
         <tbody>{children}</tbody>
@@ -194,11 +194,11 @@ function LinhaTotal({ rotulo, valores, indices, cor, forte }: { rotulo: string; 
         {rotulo}
       </th>
       {indices.map((i) => (
-        <td key={i} title={formatCurrency(valores[i])} className={`whitespace-nowrap px-1 py-2.5 text-right text-[13px] font-semibold tabular-nums ${cor}`}>
+        <td key={i} title={formatCurrency(valores[i])} className={`whitespace-nowrap px-1 py-2.5 text-center text-[13px] font-semibold tabular-nums ${cor}`}>
           {reais(valores[i])}
         </td>
       ))}
-      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] tabular-nums ${forte ? 'font-bold' : 'font-semibold'} ${cor}`}>{reais(valores.reduce((a, v) => a + v, 0))}</td>
+      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-center text-[13px] tabular-nums ${forte ? 'font-bold' : 'font-semibold'} ${cor}`}>{reais(valores.reduce((a, v) => a + v, 0))}</td>
     </tr>
   )
 }
@@ -236,12 +236,12 @@ function Planilha({
       {indices.map((i) => {
         const valor = dados.lucro[i]
         return (
-        <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+        <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-center text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
           {valor === null ? '—' : reais(valor)}
         </td>
         )
       })}
-      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${dados.anual.lucro < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(dados.anual.lucro)}</td>
+      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-center text-[13px] font-bold tabular-nums ${dados.anual.lucro < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(dados.anual.lucro)}</td>
     </tr>
   </Tabela>
     </div>
