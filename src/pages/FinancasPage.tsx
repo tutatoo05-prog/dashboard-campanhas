@@ -32,10 +32,9 @@ const ORIGEM_DICA: Record<FinCelula['origem'], string> = {
   planilha: 'Veio da planilha "Lucro Academy 2026". Clique para corrigir.',
 }
 
-// Tabela mensal: sem "R$" e sem centavos para ficar legivel (valor exato no title).
-const inteiro = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
+// Tabela mensal: valor completo com R$; zero aparece como traco.
 function reais(v: number) {
-  return inteiro.format(Math.round(v))
+  return v === 0 ? '—' : formatCurrency(v)
 }
 
 function Kpi({ label, value, hint, tom }: { label: string; value: string; hint?: string; tom?: 'bom' | 'ruim' }) {
@@ -118,7 +117,7 @@ function Celula({
       }}
     >
       {celula?.origem === 'auto' && <i className="fa-solid fa-bolt mr-1 text-[9px] text-amber-400" aria-hidden />}
-      {vazio || celula.valor === 0 ? '—' : reais(celula.valor)}
+      {vazio ? '—' : reais(celula.valor)}
     </button>
   )
 }
@@ -267,10 +266,10 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
       </section>
 
       <section className="surface-card overflow-x-auto">
-        <table className="w-full min-w-[1250px] border-collapse">
+        <table className="w-full min-w-[1500px] border-collapse">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano} <span className="text-[10px] font-normal normal-case text-zinc-500">em R$</span></th>
+              <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
               {MESES.map((m) => (
                 <th key={m} className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   {m}
