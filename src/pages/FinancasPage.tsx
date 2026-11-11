@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { FinancasGraficos } from '@/components/financas/FinancasGraficos.tsx'
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import {
@@ -16,16 +16,6 @@ import {
 import { formatCurrency } from '@/lib/format.ts'
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-const GRID = 'var(--chart-grid)'
-const AXIS = 'var(--muted)'
-const TOOLTIP_STYLE = {
-  background: 'var(--card)',
-  border: '3px solid var(--line)',
-  borderRadius: 10,
-  boxShadow: '3px 3px 0 var(--shade)',
-  color: 'var(--ink)',
-  fontSize: 12,
-}
 
 const ORIGEM_DICA: Record<FinCelula['origem'], string> = {
   auto: 'Automático (atualiza sozinho). Clique para digitar um valor.',
@@ -303,12 +293,6 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
   const [editandoCaixa, setEditandoCaixa] = useState(false)
   const [textoCaixa, setTextoCaixa] = useState('')
 
-  const grafico = dados.meses.map((_, i) => ({
-    nome: MESES[i],
-    Receita: dados.totalReceita[i],
-    Custos: dados.totalCusto[i],
-    Lucro: dados.lucro[i],
-  }))
   const lucroAno = dados.anual.lucro
   const sync = dados.sincronizacao
 
@@ -362,23 +346,7 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
         <Kpi label="Faltam para 12 meses" value={dados.faltamPara12Meses === null ? '—' : formatCurrency(dados.faltamPara12Meses)} hint="12 × custo mensal − caixa" />
       </div>
 
-      <section className="surface-card p-4">
-        <p className="section-label mb-3">Receita, custos e lucro por mês</p>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={grafico}>
-              <CartesianGrid stroke={GRID} vertical={false} />
-              <XAxis dataKey="nome" stroke={AXIS} fontSize={12} />
-              <YAxis stroke={AXIS} fontSize={12} tickFormatter={(v: number) => `${Math.round(v / 1000)}k`} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
-              <Legend />
-              <Bar dataKey="Receita" fill="#2f9e6e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Custos" fill="#ff8a1f" radius={[4, 4, 0, 0]} />
-              <Line dataKey="Lucro" stroke="#e8e0d0" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
+      <FinancasGraficos dados={dados} />
 
       <section className="surface-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <p className="text-sm text-zinc-400">
