@@ -141,7 +141,7 @@ function Bloco({
       </tr>
       {linhas.map((linha) => (
         <tr key={linha.id} className="border-t border-white/5">
-          <th scope="row" className="sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1 text-left text-xs font-medium text-zinc-300">
+          <th scope="row" className={`sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1 text-left text-xs font-medium ${linha.incluso ? 'pl-6 italic text-zinc-500' : 'text-zinc-300'}`}>
             {linha.rotulo}
           </th>
           {linha.celulas.map((celula, i) => (

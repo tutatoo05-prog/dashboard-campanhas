@@ -16,6 +16,7 @@ export function montarResumo(lancamentos, ano, caixa) {
       id: linha.id,
       rotulo: linha.rotulo,
       auto: linha.auto,
+      incluso: Boolean(linha.incluso),
       celulas: meses.map((mes) => mapa.get(`${mes}|${tipo}|${linha.id}`) ?? null),
     }))
 
@@ -23,7 +24,7 @@ export function montarResumo(lancamentos, ano, caixa) {
   const custos = montar('custo')
   const somaPorMes = (linhas) => meses.map((_, i) => arredondar(linhas.reduce((s, l) => s + (l.celulas[i]?.valor ?? 0), 0)))
   const totalReceita = somaPorMes(receitas)
-  const totalCusto = somaPorMes(custos)
+  const totalCusto = somaPorMes(custos.filter((l) => !l.incluso))
   const temDado = (i) => receitas.some((l) => l.celulas[i]) || custos.some((l) => l.celulas[i])
   const lucro = meses.map((_, i) => (temDado(i) ? arredondar(totalReceita[i] - totalCusto[i]) : null))
 

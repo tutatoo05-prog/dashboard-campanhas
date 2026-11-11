@@ -7,6 +7,8 @@ export interface FinLinha {
   id: string
   rotulo: string
   auto: boolean
+  /** Já está somado em outra linha (não entra no total). */
+  incluso: boolean
   celulas: (FinCelula | null)[]
 }
 

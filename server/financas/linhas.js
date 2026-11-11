@@ -10,8 +10,9 @@ export const LINHAS = {
     { id: 'youtube', rotulo: 'YouTube', auto: true },
   ],
   custo: [
-    { id: 'anuncios', rotulo: 'Anúncios (Meta)', auto: true },
-    { id: 'operacao', rotulo: 'Custos da operação', auto: false },
+    { id: 'operacao', rotulo: 'Gastos (operação + anúncios)', auto: false },
+    // Os anúncios já estão dentro dos "Gastos": aparecem só como detalhe, sem entrar no total.
+    { id: 'anuncios', rotulo: 'dos quais: anúncios (Meta)', auto: true, incluso: true },
   ],
 }
 

@@ -3,11 +3,11 @@ import { getSaoPauloClock } from '../clock.js'
 import { mesesEntre } from './linhas.js'
 import { buscarHotmart, buscarMeta, buscarYoutube, hotmartConfigurada, metaConfigurada, youtubeConfigurado } from './fontes.js'
 
-/** A Hotmart é pequena (poucas vendas por ano) e substitui a planilha: sempre refaz desde janeiro do ano. */
-const janeiroDoAno = () => `${getSaoPauloClock().dateKey.slice(0, 4)}-01`
+/** Hotmart: janeiro a outubro ficam como na planilha (valor depositado); daí em diante vem da API (vendas do mês). */
+const inicioDaHotmart = (env) => env.FINANCAS_HOTMART_DESDE || '2026-11'
 
 const FONTES = [
-  { id: 'hotmart', rotulo: 'Hotmart', tipo: 'receita', linha: 'hotmart', janela: janeiroDoAno, configurada: hotmartConfigurada, buscar: buscarHotmart, vars: 'HOTMART_CLIENT_ID / HOTMART_CLIENT_SECRET / HOTMART_BASIC' },
+  { id: 'hotmart', rotulo: 'Hotmart', tipo: 'receita', linha: 'hotmart', janela: inicioDaHotmart, configurada: hotmartConfigurada, buscar: buscarHotmart, vars: 'HOTMART_CLIENT_ID / HOTMART_CLIENT_SECRET / HOTMART_BASIC' },
   { id: 'meta', rotulo: 'Anúncios (Meta)', tipo: 'custo', linha: 'anuncios', configurada: metaConfigurada, buscar: buscarMeta, vars: 'META_ACCESS_TOKEN / META_ALLOWED_ACCOUNT_IDS' },
   { id: 'youtube', rotulo: 'YouTube', tipo: 'receita', linha: 'youtube', configurada: youtubeConfigurado, buscar: buscarYoutube, vars: 'YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET / YOUTUBE_REFRESH_TOKEN' },
 ]
@@ -34,7 +34,7 @@ export async function sincronizar(env, { desde, consultar = (t, p) => query(env,
   const ate = getSaoPauloClock().dateKey.slice(0, 7)
   const resultado = []
   for (const fonte of FONTES) {
-    const inicio = desde ?? fonte.janela?.() ?? mesPadraoDeInicio()
+    const inicio = desde ?? fonte.janela?.(env) ?? mesPadraoDeInicio()
     const meses = mesesEntre(inicio, ate)
     if (!fonte.configurada(env)) {
       resultado.push({ id: fonte.id, rotulo: fonte.rotulo, status: 'sem_credencial', mensagem: `Falta configurar ${fonte.vars} no .env.` })

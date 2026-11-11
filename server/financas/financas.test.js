@@ -26,7 +26,7 @@ test('somarHotmartPorMes: líquido = base - taxa, só aprovadas em BRL, por mês
 })
 
 test('a carga da planilha reproduz os totais, lucro e indicadores da planilha', () => {
-  const resumo = montarResumo(lancamentosDaPlanilha(2026, { comHotmart: true }).map((l) => ({ ...l, origem: 'planilha' })), 2026, 41635.32)
+  const resumo = montarResumo(lancamentosDaPlanilha().map((l) => ({ ...l, origem: 'planilha' })), 2026, 41635.32)
   assert.equal(resumo.totalReceita[0], 10489.39) // janeiro
   assert.equal(resumo.totalReceita[9], 22917.2) // outubro (a planilha mostra 22.917,19: diferença de 1 centavo de arredondamento dela)
   assert.equal(resumo.lucro[0], 3838.32)
