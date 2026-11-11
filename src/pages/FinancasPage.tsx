@@ -350,7 +350,7 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
         </div>
       </section>
 
-      <section className="surface-card filter-bar">
+      <section className="surface-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <p className="text-sm text-zinc-400">
           Mostrando {MESES[recorte[0]]} a {MESES[recorte[recorte.length - 1]]}. A coluna Ano soma o ano inteiro.
         </p>
