@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PageHero } from '@/components/flash/PageHero.tsx'
@@ -126,9 +126,11 @@ function Bloco({
   tipo,
   linhas,
   meses,
+  indices,
   onSalvar,
 }: {
   meses: string[]
+  indices: number[]
   tipo: 'receita' | 'custo'
   linhas: FinLinha[]
   onSalvar: (mes: string, tipo: 'receita' | 'custo', linha: string, valor: number | null) => Promise<unknown>
@@ -140,9 +142,9 @@ function Bloco({
           <th scope="row" className={`sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1.5 text-left text-sm font-medium ${linha.incluso ? 'pl-6 italic text-zinc-500' : 'text-zinc-300'}`}>
             {linha.rotulo}
           </th>
-          {linha.celulas.map((celula, i) => (
+          {indices.map((i) => (
             <td key={i} className="px-0.5 py-0.5">
-              <Celula celula={celula} editavel onSalvar={(valor) => onSalvar(meses[i], tipo, linha.id, valor)} />
+              <Celula celula={linha.celulas[i]} editavel onSalvar={(valor) => onSalvar(meses[i], tipo, linha.id, valor)} />
             </td>
           ))}
           <td className="whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-semibold tabular-nums text-zinc-100">
@@ -154,7 +156,7 @@ function Bloco({
   )
 }
 
-function Tabela({ titulo, tom, ano, children }: { titulo: string; tom: 'verde' | 'vermelho' | 'neutro'; ano: number; children: React.ReactNode }) {
+function Tabela({ titulo, tom, ano, indices, children }: { titulo: string; tom: 'verde' | 'vermelho' | 'neutro'; ano: number; indices: number[]; children: React.ReactNode }) {
   const cor = tom === 'verde' ? 'text-emerald-300' : tom === 'vermelho' ? 'text-rose-300' : 'text-zinc-100'
   const fundo = tom === 'verde' ? 'bg-emerald-500/10' : tom === 'vermelho' ? 'bg-rose-500/10' : 'bg-white/5'
   return (
@@ -163,17 +165,17 @@ function Tabela({ titulo, tom, ano, children }: { titulo: string; tom: 'verde' |
       <table className="w-full table-fixed border-collapse">
         <colgroup>
           <col style={{ width: 190 }} />
-          {MESES.map((m) => (
-            <col key={m} />
+          {indices.map((i) => (
+            <col key={i} />
           ))}
           <col style={{ width: 112 }} />
         </colgroup>
         <thead>
           <tr>
             <th className="px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
-            {MESES.map((m) => (
-              <th key={m} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                {m}
+            {indices.map((i) => (
+              <th key={i} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                {MESES[i]}
               </th>
             ))}
             <th className="border-l border-white/10 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
@@ -185,19 +187,64 @@ function Tabela({ titulo, tom, ano, children }: { titulo: string; tom: 'verde' |
   )
 }
 
-function LinhaTotal({ rotulo, valores, cor, forte }: { rotulo: string; valores: number[]; cor: string; forte?: boolean }) {
+function LinhaTotal({ rotulo, valores, indices, cor, forte }: { rotulo: string; valores: number[]; indices: number[]; cor: string; forte?: boolean }) {
   return (
     <tr className="border-t border-white/10">
       <th scope="row" className={`whitespace-nowrap px-3 py-2.5 text-left text-sm font-semibold ${cor}`}>
         {rotulo}
       </th>
-      {valores.map((valor, i) => (
-        <td key={i} title={formatCurrency(valor)} className={`whitespace-nowrap px-1 py-2.5 text-right text-[13px] font-semibold tabular-nums ${cor}`}>
-          {reais(valor)}
+      {indices.map((i) => (
+        <td key={i} title={formatCurrency(valores[i])} className={`whitespace-nowrap px-1 py-2.5 text-right text-[13px] font-semibold tabular-nums ${cor}`}>
+          {reais(valores[i])}
         </td>
       ))}
       <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] tabular-nums ${forte ? 'font-bold' : 'font-semibold'} ${cor}`}>{reais(valores.reduce((a, v) => a + v, 0))}</td>
     </tr>
+  )
+}
+
+const TODOS = Array.from({ length: 12 }, (_, i) => i)
+
+function Planilha({
+  dados,
+  ano,
+  indices,
+  lancar,
+}: {
+  dados: Financas
+  ano: number
+  indices: number[]
+  lancar: { mutateAsync: (p: { mes: string; tipo: 'receita' | 'custo'; linha: string; valor: number | null }) => Promise<unknown> }
+}) {
+  return (
+    <div className="space-y-4">
+    <Tabela titulo="Ganhos" tom="verde" ano={ano} indices={indices}>
+    <Bloco meses={dados.meses} indices={indices} tipo="receita" linhas={dados.receitas} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
+  </Tabela>
+
+  <Tabela titulo="Custos" tom="vermelho" ano={ano} indices={indices}>
+    <Bloco meses={dados.meses} indices={indices} tipo="custo" linhas={dados.custos} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
+  </Tabela>
+
+  <Tabela titulo="Resultado" tom="neutro" ano={ano} indices={indices}>
+    <LinhaTotal indices={indices} rotulo="Total de ganhos" valores={dados.totalReceita} cor="text-emerald-300" />
+    <LinhaTotal indices={indices} rotulo="Total de custos" valores={dados.totalCusto} cor="text-rose-300" />
+    <tr className="border-t-2 border-white/20 bg-white/[0.04]">
+      <th scope="row" className="whitespace-nowrap px-3 py-3 text-left text-sm font-bold text-zinc-50">
+        Lucro
+      </th>
+      {indices.map((i) => {
+        const valor = dados.lucro[i]
+        return (
+        <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+          {valor === null ? '—' : reais(valor)}
+        </td>
+        )
+      })}
+      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${dados.anual.lucro < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(dados.anual.lucro)}</td>
+    </tr>
+  </Tabela>
+    </div>
   )
 }
 
@@ -211,6 +258,17 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
   })
   const atualizar = useMutation({ mutationFn: (desde?: string) => sincronizarFinancas(desde), onSuccess: guardar })
   const caixaMut = useMutation({ mutationFn: (valor: number) => salvarCaixa(valor, ano), onSuccess: guardar })
+
+  const [completa, setCompleta] = useState(false)
+  const hoje = new Date()
+  const fim = ano < hoje.getFullYear() ? 11 : ano > hoje.getFullYear() ? 4 : Math.max(4, hoje.getMonth())
+  const recorte = TODOS.slice(fim - 4, fim + 1)
+  useEffect(() => {
+    if (!completa) return
+    const fechar = (e: KeyboardEvent) => e.key === 'Escape' && setCompleta(false)
+    window.addEventListener('keydown', fechar)
+    return () => window.removeEventListener('keydown', fechar)
+  }, [completa])
 
   const [editandoCaixa, setEditandoCaixa] = useState(false)
   const [textoCaixa, setTextoCaixa] = useState('')
@@ -292,29 +350,30 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
         </div>
       </section>
 
-      <Tabela titulo="Ganhos" tom="verde" ano={ano}>
-        <Bloco meses={dados.meses} tipo="receita" linhas={dados.receitas} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
-      </Tabela>
+      <section className="surface-card filter-bar">
+        <p className="text-sm text-zinc-400">
+          Mostrando {MESES[recorte[0]]} a {MESES[recorte[recorte.length - 1]]}. A coluna Ano soma o ano inteiro.
+        </p>
+        <button type="button" className="btn-gold" onClick={() => setCompleta(true)}>
+          Ver planilha completa
+        </button>
+      </section>
 
-      <Tabela titulo="Custos" tom="vermelho" ano={ano}>
-        <Bloco meses={dados.meses} tipo="custo" linhas={dados.custos} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
-      </Tabela>
+      <Planilha dados={dados} ano={ano} indices={recorte} lancar={lancar} />
 
-      <Tabela titulo="Resultado" tom="neutro" ano={ano}>
-        <LinhaTotal rotulo="Total de ganhos" valores={dados.totalReceita} cor="text-emerald-300" />
-        <LinhaTotal rotulo="Total de custos" valores={dados.totalCusto} cor="text-rose-300" />
-        <tr className="border-t-2 border-white/20 bg-white/[0.04]">
-          <th scope="row" className="whitespace-nowrap px-3 py-3 text-left text-sm font-bold text-zinc-50">
-            Lucro
-          </th>
-          {dados.lucro.map((valor, i) => (
-            <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
-              {valor === null ? '—' : reais(valor)}
-            </td>
-          ))}
-          <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${lucroAno < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(lucroAno)}</td>
-        </tr>
-      </Tabela>
+      {completa && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Planilha completa" onClick={() => setCompleta(false)}>
+          <div className="max-h-[92vh] w-[90vw] overflow-y-auto rounded-2xl bg-[var(--bg,#0b0f17)] p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="section-label">Planilha completa {ano}</p>
+              <button type="button" className="btn-gold" onClick={() => setCompleta(false)}>
+                Fechar
+              </button>
+            </div>
+            <Planilha dados={dados} ano={ano} indices={TODOS} lancar={lancar} />
+          </div>
+        </div>
+      )}
 
       <section className="surface-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
