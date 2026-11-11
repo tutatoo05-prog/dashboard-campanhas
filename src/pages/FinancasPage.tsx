@@ -32,6 +32,12 @@ const ORIGEM_DICA: Record<FinCelula['origem'], string> = {
   planilha: 'Veio da planilha "Lucro Academy 2026". Clique para corrigir.',
 }
 
+// Tabela mensal: sem "R$" e sem centavos para ficar legivel (valor exato no title).
+const inteiro = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
+function reais(v: number) {
+  return inteiro.format(Math.round(v))
+}
+
 function Kpi({ label, value, hint, tom }: { label: string; value: string; hint?: string; tom?: 'bom' | 'ruim' }) {
   return (
     <div className="kpi2">
@@ -81,7 +87,7 @@ function Celula({
     return (
       <input
         autoFocus
-        className={`w-24 rounded border bg-transparent px-1 py-0.5 text-right text-xs ${erro ? 'border-red-500' : 'border-white/20'}`}
+        className={`w-24 rounded border bg-transparent px-1 py-1 text-right text-sm ${erro ? 'border-red-500' : 'border-white/20'}`}
         value={texto}
         inputMode="decimal"
         aria-label="Valor em reais"
@@ -103,8 +109,8 @@ function Celula({
     <button
       type="button"
       disabled={!editavel}
-      title={celula ? ORIGEM_DICA[celula.origem] : 'Sem valor. Clique para digitar.'}
-      className={`w-full rounded px-1 py-0.5 text-right text-xs tabular-nums hover:bg-white/5 ${vazio ? 'text-zinc-600' : 'text-zinc-200'}`}
+      title={celula ? `${formatCurrency(celula.valor)} · ${ORIGEM_DICA[celula.origem]}` : 'Sem valor. Clique para digitar.'}
+      className={`w-full rounded px-1.5 py-1.5 text-right text-sm tabular-nums hover:bg-white/10 ${vazio || celula.valor === 0 ? 'text-zinc-600' : 'text-zinc-100'}`}
       onClick={() => {
         setTexto(celula ? String(celula.valor).replace('.', ',') : '')
         setErro(false)
@@ -112,7 +118,7 @@ function Celula({
       }}
     >
       {celula?.origem === 'auto' && <i className="fa-solid fa-bolt mr-1 text-[9px] text-amber-400" aria-hidden />}
-      {vazio ? '—' : formatCurrency(celula.valor)}
+      {vazio || celula.valor === 0 ? '—' : reais(celula.valor)}
     </button>
   )
 }
@@ -135,35 +141,35 @@ function Bloco({
   return (
     <>
       <tr>
-        <th colSpan={14} className="bg-white/5 px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+        <th colSpan={14} className="bg-white/5 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-300">
           {titulo}
         </th>
       </tr>
       {linhas.map((linha) => (
-        <tr key={linha.id} className="border-t border-white/5">
-          <th scope="row" className={`sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1 text-left text-xs font-medium ${linha.incluso ? 'pl-6 italic text-zinc-500' : 'text-zinc-300'}`}>
+        <tr key={linha.id} className="border-t border-white/5 hover:bg-white/[0.03]">
+          <th scope="row" className={`sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1.5 text-left text-sm font-medium ${linha.incluso ? 'pl-6 italic text-zinc-500' : 'text-zinc-300'}`}>
             {linha.rotulo}
           </th>
           {linha.celulas.map((celula, i) => (
-            <td key={i} className="px-1 py-0.5">
+            <td key={i} className="px-0.5 py-0.5">
               <Celula celula={celula} editavel onSalvar={(valor) => onSalvar(meses[i], tipo, linha.id, valor)} />
             </td>
           ))}
-          <td className="px-2 text-right text-xs font-semibold tabular-nums text-zinc-100">
-            {formatCurrency(linha.celulas.reduce((s, c) => s + (c?.valor ?? 0), 0))}
+          <td className="border-l border-white/10 px-3 text-right text-sm font-semibold tabular-nums text-zinc-100">
+            {reais(linha.celulas.reduce((s, c) => s + (c?.valor ?? 0), 0))}
           </td>
         </tr>
       ))}
-      <tr className="border-t border-white/10">
-        <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-1 text-left text-xs font-semibold text-zinc-100">
+      <tr className="border-t border-white/20 bg-white/[0.04]">
+        <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-100">
           Total
         </th>
         {total.map((valor, i) => (
-          <td key={i} className="px-2 py-1 text-right text-xs font-semibold tabular-nums text-zinc-100">
-            {formatCurrency(valor)}
+          <td key={i} className="px-2 py-2 text-right text-sm font-semibold tabular-nums text-zinc-100" title={formatCurrency(valor)}>
+            {reais(valor)}
           </td>
         ))}
-        <td className="px-2 text-right text-xs font-bold tabular-nums text-zinc-50">{formatCurrency(total.reduce((s, v) => s + v, 0))}</td>
+        <td className="border-l border-white/10 px-3 text-right text-sm font-bold tabular-nums text-zinc-50">{reais(total.reduce((s, v) => s + v, 0))}</td>
       </tr>
     </>
   )
@@ -261,31 +267,31 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
       </section>
 
       <section className="surface-card overflow-x-auto">
-        <table className="w-full min-w-[1100px] border-collapse">
+        <table className="w-full min-w-[1250px] border-collapse">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-[11px] uppercase tracking-wide text-zinc-500">{ano}</th>
+              <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano} <span className="text-[10px] font-normal normal-case text-zinc-500">em R$</span></th>
               {MESES.map((m) => (
-                <th key={m} className="px-2 py-2 text-right text-[11px] uppercase tracking-wide text-zinc-500">
+                <th key={m} className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   {m}
                 </th>
               ))}
-              <th className="px-2 py-2 text-right text-[11px] uppercase tracking-wide text-zinc-500">Ano</th>
+              <th className="border-l border-white/10 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
             </tr>
           </thead>
           <tbody>
             <Bloco meses={dados.meses} titulo="Receitas" tipo="receita" linhas={dados.receitas} total={dados.totalReceita} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
             <Bloco meses={dados.meses} titulo="Custos" tipo="custo" linhas={dados.custos} total={dados.totalCusto} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
-            <tr className="border-t-2 border-white/10">
-              <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-xs font-bold text-zinc-50">
+            <tr className="border-t-2 border-white/20 bg-white/[0.04]">
+              <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-3 text-left text-sm font-bold text-zinc-50">
                 Lucro
               </th>
               {dados.lucro.map((valor, i) => (
-                <td key={i} className={`px-2 py-2 text-right text-xs font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {valor === null ? '—' : formatCurrency(valor)}
+                <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`px-2 py-3 text-right text-sm font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {valor === null ? '—' : reais(valor)}
                 </td>
               ))}
-              <td className={`px-2 text-right text-xs font-bold tabular-nums ${lucroAno < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{formatCurrency(lucroAno)}</td>
+              <td className={`border-l border-white/10 px-3 text-right text-sm font-bold tabular-nums ${lucroAno < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{reais(lucroAno)}</td>
             </tr>
           </tbody>
         </table>
