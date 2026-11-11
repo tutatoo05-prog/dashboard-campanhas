@@ -26,7 +26,6 @@ const OPERACAO: Atalho[] = [
   { to: '/live', rotulo: 'Live', icone: 'fa-tower-broadcast' },
   { to: '/videos', rotulo: 'Vídeos', icone: 'fa-circle-play' },
   { to: '/acessos', rotulo: 'Acessos', icone: 'fa-key' },
-  { to: '/financas', rotulo: 'Finanças', icone: 'fa-sack-dollar' },
 ]
 
 const ADMIN: Atalho[] = [
