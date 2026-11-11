@@ -39,7 +39,10 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: 'Operação',
-    items: [{ to: '/monitoramento', label: 'Monitoramento', sticker: 'lighthouse', adminOnly: true }],
+    items: [
+      { to: '/monitoramento', label: 'Monitoramento', sticker: 'lighthouse', adminOnly: true },
+      { to: '/financas', label: 'Finanças', sticker: 'crown', adminOnly: true },
+    ],
   },
 ]
 
