@@ -217,9 +217,9 @@ test('compra_completa da mesma transação não vira segunda compra; sozinha con
   assert.deepEqual(lista.map((e) => e.id), ['1', '3'])
 })
 
-test('rotuloDoEvento: compra completa vira "garantia encerrada"; o resto segue o rótulo da categoria', async () => {
+test('rotuloDoEvento: compra completa vira "compra concluída · 7 dias"; o resto segue o rótulo da categoria', async () => {
   const { rotuloDoEvento } = await import('./hotmartEvents.js')
-  assert.match(rotuloDoEvento({ categoria: 'venda', evento: 'compra_completa' }), /Garantia encerrada/)
+  assert.match(rotuloDoEvento({ categoria: 'venda', evento: 'compra_completa' }), /Compra concluída · 7 dias/)
   assert.equal(rotuloDoEvento({ categoria: 'venda', evento: 'compra_aprovada' }), 'Compra aprovada')
   assert.equal(rotuloDoEvento({ categoria: 'abandono', evento: 'abandono_carrinho' }), 'Carrinho abandonado')
 })

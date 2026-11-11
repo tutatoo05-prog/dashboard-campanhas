@@ -67,7 +67,7 @@ export const CATEGORY_LABELS = {
  * 7 dias de garantia, então ela ganha nome próprio em vez de aparecer como segunda "Compra aprovada".
  */
 export function rotuloDoEvento(evento) {
-  if (evento?.categoria === 'venda' && /complet/i.test(String(evento.evento ?? ''))) return 'Garantia encerrada · 7 dias sem reembolso'
+  if (evento?.categoria === 'venda' && /complet/i.test(String(evento.evento ?? ''))) return 'Compra concluída · 7 dias'
   return CATEGORY_LABELS[evento?.categoria] ?? evento?.evento
 }
 
