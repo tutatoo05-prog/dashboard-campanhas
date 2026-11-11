@@ -23,6 +23,7 @@ import { handleSegurancaRequest } from './segurancaHandler.js'
 import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
 import { handleDeployRequest } from './deploy.js'
+import { handleFinancasRequest } from './financas/handler.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, isAdmin } from './roles.js'
 import { applySecurityHeaders } from './security.js'
@@ -116,6 +117,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/live') ||
       req.url.startsWith('/api/monitor') ||
       req.url.startsWith('/api/videos') ||
+      req.url.startsWith('/api/financas') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
     ) {
@@ -220,6 +222,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/videos')) {
         await handleVideosRequest(req, res, env, user)
+        return
+      }
+
+      if (req.url.startsWith('/api/financas')) {
+        await handleFinancasRequest(req, res, env)
         return
       }
 

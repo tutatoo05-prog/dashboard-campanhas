@@ -27,6 +27,7 @@ const PAGES = [
   { to: '/monitoramento', label: 'Monitoramento', hint: 'Sites no ar e cadastros chegando', icon: 'fa-heart-pulse' },
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
   { to: '/videos', label: 'Vídeos', hint: 'Quem assiste à VSL e até onde', icon: 'fa-circle-play' },
+  { to: '/financas', label: 'Finanças', hint: 'Receitas, custos e lucro do mês', icon: 'fa-sack-dollar' },
   { to: '/config/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },
   { to: '/config/seguranca', label: 'Segurança', hint: 'Backup, avisos e sessões', icon: 'fa-shield-halved' },
 ]

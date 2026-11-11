@@ -19,6 +19,8 @@ import { startConciliacao } from './conciliacaoHotmart.js'
 import { startFilaEmails } from './emails/fila.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
 import { startBackupScheduler } from './backup.js'
+import { startFinancasSync } from './financas/sync.js'
+import { garantirEsquemaFinancas } from './financas/esquema.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const distDir = join(__dirname, '../dist')
@@ -167,6 +169,7 @@ server.listen(port, '0.0.0.0', () => {
   startConciliacao(env)
   startFilaEmails(env)
   startBackupScheduler(env)
+  startFinancasSync(env, garantirEsquemaFinancas)
   void aquecerConexoes(env)
   if (env.DATABASE_URL) {
     // Mantém umas conexões abertas: o pooler do banco derruba as paradas e a próxima tela pagaria para reabrir.

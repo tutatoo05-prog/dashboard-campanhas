@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   '/purchases': 'Compras',
   '/live': 'Live do Essentials',
   '/videos': 'Vídeos',
+  '/financas': 'Finanças',
   '/acessos': 'Acessos',
   '/usuarios': 'Usuários',
   '/seguranca': 'Segurança',

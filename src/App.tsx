@@ -23,6 +23,7 @@ const LeadsPage = lazy(() => import('@/pages/LeadsPage.tsx'))
 const RegistrosPage = lazy(() => import('@/pages/RegistrosPage.tsx'))
 const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
 const VideosPage = lazy(() => import('@/pages/VideosPage.tsx'))
+const FinancasPage = lazy(() => import('@/pages/FinancasPage.tsx'))
 const AccountPage = lazy(() => import('@/pages/AccountPage.tsx'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage.tsx'))
 const MonitorPage = lazy(() => import('@/pages/MonitorPage.tsx'))
@@ -204,6 +205,14 @@ function AppRoutes() {
           element={
             <RequireAdmin>
               <VideosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="financas"
+          element={
+            <RequireAdmin>
+              <FinancasPage />
             </RequireAdmin>
           }
         />
