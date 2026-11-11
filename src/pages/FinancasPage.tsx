@@ -109,14 +109,14 @@ function Celula({
       type="button"
       disabled={!editavel}
       title={celula ? `${formatCurrency(celula.valor)} · ${ORIGEM_DICA[celula.origem]}` : 'Sem valor. Clique para digitar.'}
-      className={`w-full rounded px-1.5 py-1.5 text-right text-sm tabular-nums hover:bg-white/10 ${vazio || celula.valor === 0 ? 'text-zinc-600' : 'text-zinc-100'}`}
+      className={`w-full whitespace-nowrap rounded px-1 py-1.5 text-right text-[13px] tabular-nums hover:bg-white/10 ${vazio || celula.valor === 0 ? 'text-zinc-600' : 'text-zinc-100'}`}
       onClick={() => {
         setTexto(celula ? String(celula.valor).replace('.', ',') : '')
         setErro(false)
         setEditando(true)
       }}
     >
-      {celula?.origem === 'auto' && <i className="fa-solid fa-bolt mr-1 text-[9px] text-amber-400" aria-hidden />}
+      {celula?.origem === 'auto' && <i className="fa-solid fa-bolt mr-0.5 text-[8px] text-amber-400" aria-hidden />}
       {vazio ? '—' : reais(celula.valor)}
     </button>
   )
@@ -140,7 +140,7 @@ function Bloco({
   return (
     <>
       <tr>
-        <th colSpan={14} className="bg-white/5 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-300">
+        <th colSpan={14} className={`${tipo === 'receita' ? 'bg-emerald-500/10' : 'bg-rose-500/10'} px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`}>
           {titulo}
         </th>
       </tr>
@@ -154,7 +154,7 @@ function Bloco({
               <Celula celula={celula} editavel onSalvar={(valor) => onSalvar(meses[i], tipo, linha.id, valor)} />
             </td>
           ))}
-          <td className="border-l border-white/10 px-3 text-right text-sm font-semibold tabular-nums text-zinc-100">
+          <td className="whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-semibold tabular-nums text-zinc-100">
             {reais(linha.celulas.reduce((s, c) => s + (c?.valor ?? 0), 0))}
           </td>
         </tr>
@@ -164,11 +164,11 @@ function Bloco({
           Total
         </th>
         {total.map((valor, i) => (
-          <td key={i} className="px-2 py-2 text-right text-sm font-semibold tabular-nums text-zinc-100" title={formatCurrency(valor)}>
+          <td key={i} className={`whitespace-nowrap px-1 py-2 text-right text-[13px] font-semibold tabular-nums ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`} title={formatCurrency(valor)}>
             {reais(valor)}
           </td>
         ))}
-        <td className="border-l border-white/10 px-3 text-right text-sm font-bold tabular-nums text-zinc-50">{reais(total.reduce((s, v) => s + v, 0))}</td>
+        <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`}>{reais(total.reduce((s, v) => s + v, 0))}</td>
       </tr>
     </>
   )
@@ -265,13 +265,20 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
         </div>
       </section>
 
-      <section className="surface-card overflow-x-auto">
-        <table className="w-full min-w-[1500px] border-collapse">
+      <section className="surface-card">
+        <table className="w-full table-fixed border-collapse">
+          <colgroup>
+            <col style={{ width: 190 }} />
+            {MESES.map((m) => (
+              <col key={m} />
+            ))}
+            <col style={{ width: 112 }} />
+          </colgroup>
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
               {MESES.map((m) => (
-                <th key={m} className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                <th key={m} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   {m}
                 </th>
               ))}
@@ -286,11 +293,11 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
                 Lucro
               </th>
               {dados.lucro.map((valor, i) => (
-                <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`px-2 py-3 text-right text-sm font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
                   {valor === null ? '—' : reais(valor)}
                 </td>
               ))}
-              <td className={`border-l border-white/10 px-3 text-right text-sm font-bold tabular-nums ${lucroAno < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{reais(lucroAno)}</td>
+              <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${lucroAno < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(lucroAno)}</td>
             </tr>
           </tbody>
         </table>
