@@ -62,6 +62,15 @@ export const CATEGORY_LABELS = {
   outro: 'Outro evento',
 }
 
+/**
+ * Título do evento na tela. A "compra completa" da Hotmart não é outra compra: é o aviso de que passaram os
+ * 7 dias de garantia, então ela ganha nome próprio em vez de aparecer como segunda "Compra aprovada".
+ */
+export function rotuloDoEvento(evento) {
+  if (evento?.categoria === 'venda' && /complet/i.test(String(evento.evento ?? ''))) return 'Garantia encerrada · 7 dias sem reembolso'
+  return CATEGORY_LABELS[evento?.categoria] ?? evento?.evento
+}
+
 /** "2026-10-16 11:56:23" (horário de Brasília, como o n8n grava) -> ISO UTC. */
 export function toIso(raw) {
   const match = String(raw ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/)

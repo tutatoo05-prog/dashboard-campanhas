@@ -4,7 +4,7 @@
 
 import { query } from './db.js'
 import { readRequestBody } from './readBody.js'
-import { CATEGORY_LABELS, loadExtraBuyers, loadHotmartEvents } from './hotmartEvents.js'
+import { rotuloDoEvento, loadExtraBuyers, loadHotmartEvents } from './hotmartEvents.js'
 import { ApagarInvalido, apagarPessoa, ocultarApagados } from './registrosApagados.js'
 import { importarHistorico, situacaoDaImportacao } from './importarPlanilhas.js'
 import { cleanEmail, registroDeEvento, resolveCampaign, resolveChannel } from './registrosUtil.js'
@@ -161,7 +161,7 @@ export async function eventosDaHotmart(env) {
     return { tabs: [], records: [] }
   }
   const records = ABAS_HOTMART.flatMap((aba) =>
-    eventos.filter((evento) => evento.categoria === aba.categoria).map((evento) => registroDeEvento(GRUPO_HOTMART, aba.nome, 'evento', { ...evento, evento: CATEGORY_LABELS[evento.categoria] ?? evento.evento })),
+    eventos.filter((evento) => evento.categoria === aba.categoria).map((evento) => registroDeEvento(GRUPO_HOTMART, aba.nome, 'evento', { ...evento, evento: rotuloDoEvento(evento) })),
   )
   const tabs = ABAS_HOTMART.map((aba) => ({
     planilha: GRUPO_HOTMART,

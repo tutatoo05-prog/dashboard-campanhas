@@ -1,6 +1,6 @@
 // Pedaços comuns do Registros: como o dash descreve a origem de um lead e como um evento da Hotmart vira registro.
 import { normalizeKey } from './sheetsCsv.js'
-import { CATEGORY_LABELS } from './hotmartEvents.js'
+import { rotuloDoEvento } from './hotmartEvents.js'
 
 export function cleanEmail(value) {
   return value.trim().toLowerCase()
@@ -48,7 +48,7 @@ export function registroDeEvento(grupo, aba, tipo, event) {
     canal: event.canal,
     campanha: event.campanha,
     criativo: '',
-    evento: CATEGORY_LABELS[event.categoria] ?? event.evento,
+    evento: rotuloDoEvento(event),
     situacao: event.situacao ?? '',
     produto: event.produto,
     valor: event.valor,
