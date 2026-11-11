@@ -123,27 +123,18 @@ function Celula({
 }
 
 function Bloco({
-  titulo,
   tipo,
   linhas,
-  total,
   meses,
   onSalvar,
 }: {
   meses: string[]
-  titulo: string
   tipo: 'receita' | 'custo'
   linhas: FinLinha[]
-  total: number[]
   onSalvar: (mes: string, tipo: 'receita' | 'custo', linha: string, valor: number | null) => Promise<unknown>
 }) {
   return (
     <>
-      <tr>
-        <th colSpan={14} className={`${tipo === 'receita' ? 'bg-emerald-500/10' : 'bg-rose-500/10'} px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`}>
-          {titulo}
-        </th>
-      </tr>
       {linhas.map((linha) => (
         <tr key={linha.id} className="border-t border-white/5 hover:bg-white/[0.03]">
           <th scope="row" className={`sticky left-0 z-10 whitespace-nowrap bg-[var(--card)] px-3 py-1.5 text-left text-sm font-medium ${linha.incluso ? 'pl-6 italic text-zinc-500' : 'text-zinc-300'}`}>
@@ -159,18 +150,54 @@ function Bloco({
           </td>
         </tr>
       ))}
-      <tr className="border-t border-white/20 bg-white/[0.04]">
-        <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-100">
-          Total
-        </th>
-        {total.map((valor, i) => (
-          <td key={i} className={`whitespace-nowrap px-1 py-2 text-right text-[13px] font-semibold tabular-nums ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`} title={formatCurrency(valor)}>
-            {reais(valor)}
-          </td>
-        ))}
-        <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${tipo === 'receita' ? 'text-emerald-300' : 'text-rose-300'}`}>{reais(total.reduce((s, v) => s + v, 0))}</td>
-      </tr>
     </>
+  )
+}
+
+function Tabela({ titulo, tom, ano, children }: { titulo: string; tom: 'verde' | 'vermelho' | 'neutro'; ano: number; children: React.ReactNode }) {
+  const cor = tom === 'verde' ? 'text-emerald-300' : tom === 'vermelho' ? 'text-rose-300' : 'text-zinc-100'
+  const fundo = tom === 'verde' ? 'bg-emerald-500/10' : tom === 'vermelho' ? 'bg-rose-500/10' : 'bg-white/5'
+  return (
+    <section className="surface-card overflow-hidden">
+      <p className={`${fundo} ${cor} px-3 py-2 text-xs font-semibold uppercase tracking-wide`}>{titulo}</p>
+      <table className="w-full table-fixed border-collapse">
+        <colgroup>
+          <col style={{ width: 190 }} />
+          {MESES.map((m) => (
+            <col key={m} />
+          ))}
+          <col style={{ width: 112 }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th className="px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
+            {MESES.map((m) => (
+              <th key={m} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                {m}
+              </th>
+            ))}
+            <th className="border-l border-white/10 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </section>
+  )
+}
+
+function LinhaTotal({ rotulo, valores, cor, forte }: { rotulo: string; valores: number[]; cor: string; forte?: boolean }) {
+  return (
+    <tr className="border-t border-white/10">
+      <th scope="row" className={`whitespace-nowrap px-3 py-2.5 text-left text-sm font-semibold ${cor}`}>
+        {rotulo}
+      </th>
+      {valores.map((valor, i) => (
+        <td key={i} title={formatCurrency(valor)} className={`whitespace-nowrap px-1 py-2.5 text-right text-[13px] font-semibold tabular-nums ${cor}`}>
+          {reais(valor)}
+        </td>
+      ))}
+      <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] tabular-nums ${forte ? 'font-bold' : 'font-semibold'} ${cor}`}>{reais(valores.reduce((a, v) => a + v, 0))}</td>
+    </tr>
   )
 }
 
@@ -265,43 +292,29 @@ function Conteudo({ dados, ano }: { dados: Financas; ano: number }) {
         </div>
       </section>
 
-      <section className="surface-card">
-        <table className="w-full table-fixed border-collapse">
-          <colgroup>
-            <col style={{ width: 190 }} />
-            {MESES.map((m) => (
-              <col key={m} />
-            ))}
-            <col style={{ width: 112 }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-[var(--card)] px-3 py-2 text-left text-sm font-semibold text-zinc-200">{ano}</th>
-              {MESES.map((m) => (
-                <th key={m} className="px-1 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  {m}
-                </th>
-              ))}
-              <th className="border-l border-white/10 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-200">Ano</th>
-            </tr>
-          </thead>
-          <tbody>
-            <Bloco meses={dados.meses} titulo="Receitas" tipo="receita" linhas={dados.receitas} total={dados.totalReceita} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
-            <Bloco meses={dados.meses} titulo="Custos" tipo="custo" linhas={dados.custos} total={dados.totalCusto} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
-            <tr className="border-t-2 border-white/20 bg-white/[0.04]">
-              <th scope="row" className="sticky left-0 z-10 bg-[var(--card)] px-3 py-3 text-left text-sm font-bold text-zinc-50">
-                Lucro
-              </th>
-              {dados.lucro.map((valor, i) => (
-                <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
-                  {valor === null ? '—' : reais(valor)}
-                </td>
-              ))}
-              <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${lucroAno < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(lucroAno)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+      <Tabela titulo="Ganhos" tom="verde" ano={ano}>
+        <Bloco meses={dados.meses} tipo="receita" linhas={dados.receitas} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
+      </Tabela>
+
+      <Tabela titulo="Custos" tom="vermelho" ano={ano}>
+        <Bloco meses={dados.meses} tipo="custo" linhas={dados.custos} onSalvar={(mes, tipo, linha, valor) => lancar.mutateAsync({ mes, tipo, linha, valor })} />
+      </Tabela>
+
+      <Tabela titulo="Resultado" tom="neutro" ano={ano}>
+        <LinhaTotal rotulo="Total de ganhos" valores={dados.totalReceita} cor="text-emerald-300" />
+        <LinhaTotal rotulo="Total de custos" valores={dados.totalCusto} cor="text-rose-300" />
+        <tr className="border-t-2 border-white/20 bg-white/[0.04]">
+          <th scope="row" className="whitespace-nowrap px-3 py-3 text-left text-sm font-bold text-zinc-50">
+            Lucro
+          </th>
+          {dados.lucro.map((valor, i) => (
+            <td key={i} title={valor === null ? undefined : formatCurrency(valor)} className={`whitespace-nowrap px-1 py-3 text-right text-[13px] font-bold tabular-nums ${valor === null ? 'text-zinc-600' : valor < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+              {valor === null ? '—' : reais(valor)}
+            </td>
+          ))}
+          <td className={`whitespace-nowrap border-l border-white/10 px-2 text-right text-[13px] font-bold tabular-nums ${lucroAno < 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>{reais(lucroAno)}</td>
+        </tr>
+      </Tabela>
 
       <section className="surface-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
