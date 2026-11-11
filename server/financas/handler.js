@@ -4,6 +4,7 @@ import { getSaoPauloClock } from '../clock.js'
 import { garantirEsquemaFinancas } from './esquema.js'
 import { linhaValida, mesValido } from './linhas.js'
 import { montarResumo } from './resumo.js'
+import { cotacoesAoVivo } from './cambio.js'
 import { estadoDasFontes, sincronizar, ultimaSync } from './sync.js'
 
 function sendJson(res, status, payload) {
@@ -38,6 +39,7 @@ async function resposta(env, ano) {
 
 /**
  * GET  /api/financas?ano=2026          — tabela do ano (receitas, custos, lucro, indicadores)
+ * GET  /api/financas/cambio          — dólar e euro ao vivo em reais
  * PUT  /api/financas/lancamento        — { mes, tipo, linha, valor } grava; valor null apaga (volta ao automático)
  * PUT  /api/financas/caixa             — { valor } caixa acumulado
  * POST /api/financas/sincronizar       — { desde?: 'AAAA-MM' } busca Hotmart, Meta e YouTube agora
@@ -52,6 +54,14 @@ export async function handleFinancasRequest(req, res, env) {
       const ano = Number(url.searchParams.get('ano') ?? getSaoPauloClock().dateKey.slice(0, 4))
       if (!Number.isInteger(ano) || ano < 2020 || ano > 2100) return sendJson(res, 400, { error: 'Ano inválido.' })
       return sendJson(res, 200, await resposta(env, ano))
+    }
+
+    if (url.pathname === '/api/financas/cambio' && req.method === 'GET') {
+      try {
+        return sendJson(res, 200, { success: true, cotacoes: await cotacoesAoVivo(['USD', 'EUR']) })
+      } catch {
+        return sendJson(res, 502, { error: 'Cotação indisponível agora.' })
+      }
     }
 
     if (url.pathname === '/api/financas/lancamento' && req.method === 'PUT') {

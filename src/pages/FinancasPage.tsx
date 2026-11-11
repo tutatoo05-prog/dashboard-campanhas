@@ -4,6 +4,7 @@ import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, T
 import { PageHero } from '@/components/flash/PageHero.tsx'
 import { Typewriter } from '@/components/mascot/Typewriter.tsx'
 import {
+  fetchCambio,
   fetchFinancas,
   salvarCaixa,
   salvarLancamento,
@@ -35,6 +36,35 @@ const ORIGEM_DICA: Record<FinCelula['origem'], string> = {
 // Tabela mensal: valor completo com R$; zero aparece como traco.
 function reais(v: number) {
   return v === 0 ? '—' : formatCurrency(v)
+}
+
+function CotacaoAoVivo() {
+  const query = useQuery({ queryKey: ['cambio'], queryFn: fetchCambio, refetchInterval: 60_000, retry: 1 })
+  if (query.isError) return <p className="text-xs text-zinc-500">Cotação indisponível agora.</p>
+  const moedas = [
+    { id: 'USD', rotulo: 'Dólar' },
+    { id: 'EUR', rotulo: 'Euro' },
+  ]
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1" aria-live="polite" title="Atualiza a cada minuto (AwesomeAPI)">
+      {moedas.map(({ id, rotulo }) => {
+        const c = query.data?.[id]
+        if (!c) return <span key={id} className="text-xs text-zinc-500">{rotulo} …</span>
+        return (
+          <span key={id} className="flex items-baseline gap-1.5 text-sm text-zinc-200">
+            <span className="text-xs uppercase tracking-wide text-zinc-500">{rotulo}</span>
+            <b className="tabular-nums">{formatCurrency(c.valor)}</b>
+            <span className={`text-xs tabular-nums ${c.variacao < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+              {c.variacao < 0 ? '▼' : '▲'} {Math.abs(c.variacao).toFixed(2).replace('.', ',')}%
+            </span>
+          </span>
+        )
+      })}
+      <span className="flex items-center gap-1 text-[11px] text-zinc-500">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" aria-hidden /> ao vivo
+      </span>
+    </div>
+  )
 }
 
 function Kpi({ label, value, hint, tom }: { label: string; value: string; hint?: string; tom?: 'bom' | 'ruim' }) {
@@ -445,7 +475,7 @@ export default function FinancasPage() {
         </p>
       </PageHero>
 
-      <section className="surface-card filter-bar">
+      <section className="surface-card filter-bar flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="seg" role="group" aria-label="Ano">
           {[ano - 1, ano, ano + 1].map((a) => (
             <button key={a} type="button" className={`seg-btn ${a === ano ? 'seg-btn-active' : ''}`} aria-pressed={a === ano} onClick={() => setAno(a)}>
@@ -453,6 +483,7 @@ export default function FinancasPage() {
             </button>
           ))}
         </div>
+        <CotacaoAoVivo />
       </section>
 
       {error && (

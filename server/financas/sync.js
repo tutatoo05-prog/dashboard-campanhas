@@ -41,7 +41,7 @@ export async function sincronizar(env, { desde, consultar = (t, p) => query(env,
       continue
     }
     try {
-      const { porMes, ignoradas } = await fonte.buscar(env, inicio)
+      const { porMes, ignoradas, convertidas } = await fonte.buscar(env, inicio)
       for (const mes of meses) {
         await consultar(
           `insert into fin_lancamentos (mes, tipo, linha, valor, origem) values ($1, $2, $3, $4, 'auto')
@@ -50,8 +50,11 @@ export async function sincronizar(env, { desde, consultar = (t, p) => query(env,
           [mes, fonte.tipo, fonte.linha, porMes[mes] ?? 0],
         )
       }
-      const aviso = ignoradas && (Array.isArray(ignoradas) ? ignoradas.length : ignoradas) ? ' Algumas vendas/contas em moeda estrangeira foram ignoradas.' : ''
-      resultado.push({ id: fonte.id, rotulo: fonte.rotulo, status: 'ok', mensagem: `${meses.length} mês(es) atualizados.${aviso}` })
+      const aviso = ignoradas && (Array.isArray(ignoradas) ? ignoradas.length : ignoradas) ? ' Algumas vendas/contas em moeda estrangeira ficaram de fora (sem cotação).' : ''
+      const conversoes = Object.entries(convertidas ?? {})
+        .map(([moeda, c]) => ` ${c.vendas} venda(s) em ${moeda} (${c.original.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ${moeda}) convertida(s) para R$ ${c.reais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`)
+        .join('')
+      resultado.push({ id: fonte.id, rotulo: fonte.rotulo, status: 'ok', mensagem: `${meses.length} mês(es) atualizados.${conversoes}${aviso}` })
     } catch (erro) {
       console.error(`[financas] falha ao sincronizar ${fonte.id}:`, erro.message || erro)
       resultado.push({ id: fonte.id, rotulo: fonte.rotulo, status: 'erro', mensagem: String(erro.message || erro).slice(0, 300) })

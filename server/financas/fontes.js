@@ -1,6 +1,7 @@
 import { fetchHotmartSalesHistory, getHotmartAccessToken } from '../hotmartApi.js'
 import { graphGet, parseAllowedAccountIds } from '../metaApi.js'
 import { getSaoPauloClock, TIMEZONE } from '../clock.js'
+import { cotacaoDoDia, cotacoesAoVivo, cotacoesDiarias } from './cambio.js'
 
 const STATUS_COM_RECEITA = new Set(['APPROVED', 'COMPLETE'])
 
@@ -20,13 +21,19 @@ export function inicioDoMes(mes) {
   return new Date(`${mes}-01T00:00:00-03:00`)
 }
 
+function diaDeData(data) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(data)
+}
+
 /**
  * Soma a Hotmart por mês de aprovação: valor base da venda menos a taxa da Hotmart (o que sobra para o produtor,
- * sem repartir com coprodutor). Só vendas aprovadas/completas em reais; moeda estrangeira vai para `ignoradas`.
+ * sem repartir com coprodutor). Só vendas aprovadas/completas. Vendas em outra moeda são convertidas para reais pela
+ * cotação do dia da aprovação (`taxaDe(moeda, 'AAAA-MM-DD')`); sem cotação, vão para `ignoradas`.
  * Pura: recebe os itens do /sales/history.
  */
-export function somarHotmartPorMes(itens) {
+export function somarHotmartPorMes(itens, taxaDe = () => null) {
   const porMes = {}
+  const convertidas = {}
   let ignoradas = 0
   for (const item of itens ?? []) {
     const compra = item?.purchase ?? {}
@@ -34,19 +41,30 @@ export function somarHotmartPorMes(itens) {
     const quando = new Date(Number(compra.approved_date ?? compra.order_date))
     if (Number.isNaN(quando.getTime())) continue
     const moeda = String(compra.price?.currency_code ?? 'BRL').toUpperCase()
-    if (moeda !== 'BRL') {
-      ignoradas += 1
-      continue
-    }
     const taxa = compra.hotmart_fee ?? {}
     const base = Number(taxa.base)
     const bruto = Number.isFinite(base) && base > 0 ? base : Number(compra.price?.value)
     if (!Number.isFinite(bruto)) continue
-    const liquido = bruto - (Number(taxa.total) || 0)
+    let liquido = bruto - (Number(taxa.total) || 0)
+    if (moeda !== 'BRL') {
+      const cotacao = taxaDe(moeda, diaDeData(quando))
+      if (!cotacao) {
+        ignoradas += 1
+        continue
+      }
+      const emReais = liquido * cotacao
+      const acumulado = convertidas[moeda] ?? { original: 0, reais: 0, vendas: 0 }
+      convertidas[moeda] = {
+        original: Math.round((acumulado.original + liquido) * 100) / 100,
+        reais: Math.round((acumulado.reais + emReais) * 100) / 100,
+        vendas: acumulado.vendas + 1,
+      }
+      liquido = emReais
+    }
     const mes = mesDeData(quando)
     porMes[mes] = Math.round(((porMes[mes] ?? 0) + liquido) * 100) / 100
   }
-  return { porMes, ignoradas }
+  return { porMes, ignoradas, convertidas }
 }
 
 export function hotmartConfigurada(env) {
@@ -55,8 +73,19 @@ export function hotmartConfigurada(env) {
 
 export async function buscarHotmart(env, desde) {
   const token = await getHotmartAccessToken(env)
-  const itens = await fetchHotmartSalesHistory(token, { startDate: inicioDoMes(desde), endDate: new Date() })
-  return somarHotmartPorMes(itens)
+  const inicio = inicioDoMes(desde)
+  const itens = await fetchHotmartSalesHistory(token, { startDate: inicio, endDate: new Date() })
+  const moedas = [...new Set((itens ?? []).map((i) => String(i?.purchase?.price?.currency_code ?? 'BRL').toUpperCase()).filter((m) => m !== 'BRL'))]
+  const series = {}
+  for (const moeda of moedas) {
+    try {
+      series[moeda] = await cotacoesDiarias(moeda, inicio)
+    } catch (erro) {
+      console.error(`[financas] cotação histórica de ${moeda}:`, erro.message || erro)
+    }
+  }
+  const aoVivo = moedas.length ? await cotacoesAoVivo(moedas).catch(() => ({})) : {}
+  return somarHotmartPorMes(itens, (moeda, dia) => cotacaoDoDia(series[moeda], dia) ?? aoVivo[moeda]?.valor ?? null)
 }
 
 export function metaConfigurada(env) {

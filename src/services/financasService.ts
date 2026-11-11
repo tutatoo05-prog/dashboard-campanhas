@@ -74,3 +74,17 @@ export async function salvarCaixa(valor: number, ano: number): Promise<Financas>
 export async function sincronizarFinancas(desde?: string): Promise<Financas> {
   return ler(await fetch('/api/financas/sincronizar', { method: 'POST', credentials: 'include', headers: json, body: JSON.stringify(desde ? { desde } : {}) }))
 }
+
+export interface Cotacao {
+  valor: number
+  variacao: number
+  em: string | null
+}
+
+export async function fetchCambio(): Promise<Record<string, Cotacao>> {
+  const response = await fetch('/api/financas/cambio', { credentials: 'include', headers: { Accept: 'application/json' } })
+  if (response.status === 401) throw new Error('SESSION_EXPIRED')
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error ?? 'Cotação indisponível.')
+  return data.cotacoes as Record<string, Cotacao>
+}

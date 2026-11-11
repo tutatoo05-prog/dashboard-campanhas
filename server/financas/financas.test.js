@@ -9,7 +9,7 @@ test('mesesEntre atravessa a virada de ano', () => {
   assert.deepEqual(mesesEntre('2026-11', '2027-02'), ['2026-11', '2026-12', '2027-01', '2027-02'])
 })
 
-test('somarHotmartPorMes: líquido = base - taxa, só aprovadas em BRL, por mês de São Paulo', () => {
+test('somarHotmartPorMes: líquido = base - taxa, só aprovadas, por mês de São Paulo; moeda sem cotação fica de fora', () => {
   const venda = (status, quando, base, taxa, moeda = 'BRL') => ({
     purchase: { status, approved_date: Date.parse(quando), price: { value: base, currency_code: moeda }, hotmart_fee: { base, total: taxa } },
   })
@@ -23,6 +23,17 @@ test('somarHotmartPorMes: líquido = base - taxa, só aprovadas em BRL, por mês
   assert.equal(porMes['2026-11'], 270 + 270)
   assert.equal(porMes['2026-12'], undefined)
   assert.equal(ignoradas, 1)
+})
+
+test('somarHotmartPorMes converte moeda estrangeira pela cotação do dia da aprovação', () => {
+  const itens = [
+    { purchase: { status: 'APPROVED', approved_date: Date.parse('2026-11-07T15:00:00Z'), price: { value: 50, currency_code: 'USD' }, hotmart_fee: { base: 50, total: 5 } } },
+    { purchase: { status: 'APPROVED', approved_date: Date.parse('2026-11-08T15:00:00Z'), price: { value: 100, currency_code: 'BRL' }, hotmart_fee: { base: 100, total: 10 } } },
+  ]
+  const { porMes, convertidas, ignoradas } = somarHotmartPorMes(itens, (moeda, dia) => (moeda === 'USD' && dia === '2026-11-07' ? 5 : null))
+  assert.equal(porMes['2026-11'], 45 * 5 + 90)
+  assert.deepEqual(convertidas.USD, { original: 45, reais: 225, vendas: 1 })
+  assert.equal(ignoradas, 0)
 })
 
 test('a carga da planilha reproduz os totais, lucro e indicadores da planilha', () => {
