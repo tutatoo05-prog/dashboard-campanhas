@@ -102,9 +102,29 @@ export async function liberarMatricula(env, { idVenda, nome, email, telefone, cp
 export async function gerarLinkSenha(env, { email }, fetchImpl = fetch) {
   const r = await chamar(env, 'POST', '/alunos/link-senha', { email, enviar_email: false }, fetchImpl)
   if (!r.ok) throw falhar('alunos/link-senha', r)
-  const url = String(r.json?.url ?? r.json?.data?.url ?? '')
+  const url = enderecoPublicoDoLink(env, String(r.json?.url ?? r.json?.data?.url ?? ''))
   if (!/^https:\/\//i.test(url)) throw new Error('alunos/link-senha respondeu sem um link válido.')
   return { url, expiraEm: r.json?.expira_em ?? r.json?.data?.expira_em ?? null }
+}
+
+/**
+ * A plataforma monta o link com o próprio APP_URL, e em produção ele vem como http://localhost (ela não sabe seu domínio público).
+ * Quando o endereço é local ou sem https, mantém o caminho e o token e troca só a origem pelo domínio dos alunos
+ * (TELWAY_ALUNO_URL, padrão https://tuzinho.academy). Link já em https com domínio de verdade passa como veio.
+ */
+export function enderecoPublicoDoLink(env, bruto) {
+  let u
+  try {
+    u = new URL(bruto)
+  } catch {
+    return ''
+  }
+  const local = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)$/i.test(u.hostname) || u.hostname.endsWith('.localhost')
+  if (u.protocol === 'https:' && !local) return u.href
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return ''
+  const origem = new URL(String(env.TELWAY_ALUNO_URL || 'https://tuzinho.academy').replace(/\/+$/, ''))
+  if (origem.protocol !== 'https:') return ''
+  return `${origem.origin}${u.pathname}${u.search}`
 }
 
 /** Disponibilidade da API (usa a mesma chave). */
