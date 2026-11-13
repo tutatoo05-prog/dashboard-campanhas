@@ -75,7 +75,8 @@ export function LeadDrawer({ rico, pessoa, nota, podeEditar, carregandoHistorico
     const itens = (pessoa?.historico ?? []).map((p) => {
       const categoria = categoriaDe(p)
       const ts = p.data ? new Date(p.data).getTime() : 0
-      const titulo = categoria ? CATEGORIA_TITULO[categoria] : p.tipo === 'lead' ? `Cadastrou (${p.aba || p.planilha})` : p.aba || 'Registro'
+      const parcelaSeguinte = categoria === 'venda' && Number(p.recorrencia) > 1 && p.evento
+      const titulo = parcelaSeguinte || (categoria ? CATEGORIA_TITULO[categoria] : p.tipo === 'lead' ? `Cadastrou (${p.aba || p.planilha})` : p.aba || 'Registro')
       const detalhe = [p.produto, p.valor != null ? formatCurrency(p.valor) : '', p.campanha].filter(Boolean).join(' · ')
       return { ts: Number.isFinite(ts) ? ts : 0, titulo, detalhe, lead: p.tipo === 'lead' }
     })

@@ -222,4 +222,11 @@ test('rotuloDoEvento: compra completa vira "compra concluída · 7 dias"; o rest
   assert.match(rotuloDoEvento({ categoria: 'venda', evento: 'compra_completa' }), /Compra concluída · 7 dias/)
   assert.equal(rotuloDoEvento({ categoria: 'venda', evento: 'compra_aprovada' }), 'Compra aprovada')
   assert.equal(rotuloDoEvento({ categoria: 'abandono', evento: 'abandono_carrinho' }), 'Carrinho abandonado')
+  // parcela 2+ não é compra nova; a 1ª parcela segue como "Compra aprovada"
+  assert.equal(rotuloDoEvento({ categoria: 'venda', evento: 'compra_aprovada', recorrencia: 2 }), 'Pagamento da 2ª parcela')
+  assert.equal(rotuloDoEvento({ categoria: 'venda', evento: 'compra_aprovada', recorrencia: 1 }), 'Compra aprovada')
+  const { semCompletaRepetida } = await import('./hotmartEvents.js')
+  const parcela = { categoria: 'venda', transacao: 'HP9', recorrencia: 3 }
+  assert.equal(semCompletaRepetida([{ ...parcela, evento: 'compra_completa' }, { ...parcela, evento: 'compra_aprovada' }]).length, 1)
+  assert.equal(semCompletaRepetida([{ categoria: 'venda', transacao: 'HP8', evento: 'compra_completa' }]).length, 1)
 })

@@ -67,9 +67,16 @@ export const CATEGORY_LABELS = {
  * 7 dias de garantia, então ela ganha nome próprio em vez de aparecer como segunda "Compra aprovada".
  */
 export function rotuloDoEvento(evento) {
-  if (evento?.categoria === 'venda' && /complet/i.test(String(evento.evento ?? ''))) return 'Compra concluída · 7 dias'
+  if (evento?.categoria === 'venda') {
+    // Parcela 2, 3... de uma compra parcelada: é dinheiro entrando, não uma compra nova.
+    if (ehParcelaSeguinte(evento)) return `Pagamento da ${evento.recorrencia}ª parcela`
+    if (/complet/i.test(String(evento.evento ?? ''))) return 'Compra concluída · 7 dias'
+  }
   return CATEGORY_LABELS[evento?.categoria] ?? evento?.evento
 }
+
+/** Cobrança da 2ª parcela em diante (recurrence_number da Hotmart). Sem o número, vale como compra. */
+export const ehParcelaSeguinte = (evento) => Number(evento?.recorrencia) > 1
 
 /** "2026-10-16 11:56:23" (horário de Brasília, como o n8n grava) -> ISO UTC. */
 export function toIso(raw) {
@@ -172,7 +179,12 @@ function cancelSituation(evento) {
  */
 export function semCompletaRepetida(events) {
   const aprovadas = new Set(events.filter((event) => event.transacao && /aprovad/i.test(event.evento)).map((event) => event.transacao))
-  return events.filter((event) => !(event.transacao && /complet/i.test(event.evento) && event.categoria === 'venda' && aprovadas.has(event.transacao)))
+  return events.filter((event) => {
+    if (event.categoria !== 'venda' || !/complet/i.test(event.evento)) return true
+    // A garantia de 7 dias é da compra, não de cada parcela: "concluída" da parcela 2+ não diz nada.
+    if (ehParcelaSeguinte(event)) return false
+    return !(event.transacao && aprovadas.has(event.transacao))
+  })
 }
 
 export function withSituations(rawEvents, now = Date.now(), otherBuyers = extraBuyers) {
@@ -267,7 +279,8 @@ export function summarize(events) {
 
   return {
     total: events.length,
-    vendas: { total: uniqueBy(sales, (event) => event.transacao || event.id).length },
+    // Só a primeira cobrança é venda; parcelas 2+ são pagamentos de uma compra que já existia.
+    vendas: { total: uniqueBy(sales.filter((event) => !ehParcelaSeguinte(event)), (event) => event.transacao || event.id).length },
     pixBoleto: {
       gerados: pix.length,
       pagos: pix.filter((event) => event.situacao === 'pago').length,
