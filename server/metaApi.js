@@ -118,10 +118,26 @@ export async function graphGet(path, params, token) {
     const errorBody = await response.json().catch(() => ({}))
     const message =
       errorBody?.error?.message ?? `Erro na API Meta (${response.status})`
-    throw new Error(message)
+    const erro = new Error(message)
+    erro.metaCode = errorBody?.error?.code
+    erro.metaSubcode = errorBody?.error?.error_subcode
+    if (erro.metaCode === 190 || erro.metaCode === 102) {
+      try {
+        ouvinteTokenRejeitado?.(erro)
+      } catch {
+        // o aviso nunca pode derrubar a leitura
+      }
+    }
+    throw erro
   }
 
   return response.json()
+}
+
+/** Quem quiser saber quando a Meta rejeita o token (ver vigiaMeta.js). Passe null para desligar. */
+let ouvinteTokenRejeitado = null
+export function aoTokenRejeitado(funcao) {
+  ouvinteTokenRejeitado = typeof funcao === 'function' ? funcao : null
 }
 
 export async function fetchAllPages(path, params, token) {
