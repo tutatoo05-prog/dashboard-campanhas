@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { avisoDaConferencia, conferirTokenMeta, descreverResultado, erroDeToken } from './vigiaMeta.js'
+import { avisoDaConferencia, conferirTokenMeta, descreverResultado, erroDeToken, estadoDoTokenMeta } from './vigiaMeta.js'
 import { aoTokenRejeitado, graphGet } from './metaApi.js'
 
 const json = (corpo, status = 200) => new Response(JSON.stringify(corpo), { status })
@@ -75,4 +75,18 @@ test('descreverResultado diz o tipo e o vencimento, sem mostrar o token', async 
   const usuario = await conferirTokenMeta(ENV, { agora: () => agora, fetchImpl: async () => json({ data: { is_valid: true, type: 'USER', expires_at: Math.floor((agora + 3 * 86_400_000) / 1000) } }) })
   assert.equal(descreverResultado(usuario), 'token ok, mas vence em 3 dia(s) · tipo USER')
   assert.ok(!descreverResultado(semVenc).includes('EAAteste'))
+})
+
+test('estadoDoTokenMeta guarda o resultado por 10 minutos e depois confere de novo', async () => {
+  let chamadas = 0
+  let agora = 1_000_000
+  const conferir = async () => ({ estado: 'ok', tipo: 'SYSTEM_USER', dias: null, n: ++chamadas })
+  const a = await estadoDoTokenMeta(ENV, { conferir, agora: () => agora })
+  agora += 9 * 60_000
+  await estadoDoTokenMeta(ENV, { conferir, agora: () => agora })
+  assert.equal(chamadas, 1)
+  assert.equal(a.descricao, 'token ok · tipo SYSTEM_USER · sem vencimento')
+  agora += 2 * 60_000
+  await estadoDoTokenMeta(ENV, { conferir, agora: () => agora })
+  assert.equal(chamadas, 2)
 })

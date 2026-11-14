@@ -99,6 +99,18 @@ export function avisoDaConferencia(resultado) {
   return null
 }
 
+let ultimoEstado = null
+const VALIDADE_ESTADO_MS = 10 * 60_000
+
+/** Resultado da última conferência (guardado por 10 minutos): é o que a tela Segurança mostra, sem pedir à Meta a cada abertura. */
+export async function estadoDoTokenMeta(env, { conferir = conferirTokenMeta, agora = () => Date.now() } = {}) {
+  if (!ultimoEstado || agora() - ultimoEstado.em > VALIDADE_ESTADO_MS) {
+    const resultado = await conferir(env)
+    ultimoEstado = { em: agora(), resultado }
+  }
+  return { ...ultimoEstado.resultado, conferidoEm: new Date(ultimoEstado.em).toISOString(), descricao: descreverResultado(ultimoEstado.resultado) }
+}
+
 /** Linha de log (sem o token): serve para ver, no log de produção, qual token o app está usando. */
 export function descreverResultado(r) {
   const tipo = r.tipo ? ` · tipo ${r.tipo}` : ''

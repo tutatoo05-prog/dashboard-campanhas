@@ -124,6 +124,22 @@ export default function SegurancaPage() {
               dica={dados.avisos.canal === 'telegram' ? 'canal principal' : 'configure o Telegram'}
               tom={dados.avisos.canal === 'nenhum' ? 'alerta' : undefined}
             />
+            {dados.metaToken && (
+              <Cartao
+                rotulo="Token da Meta"
+                valor={
+                  dados.metaToken.estado === 'rejeitado'
+                    ? 'rejeitado'
+                    : dados.metaToken.estado === 'vencendo'
+                      ? `vence em ${dados.metaToken.dias} dia(s)`
+                      : dados.metaToken.estado === 'ok'
+                        ? dados.metaToken.dias == null ? 'sem vencimento' : `vence em ${dados.metaToken.dias} dias`
+                        : 'não deu para conferir'
+                }
+                dica={`${dados.metaToken.tipo ? `tipo ${dados.metaToken.tipo} · ` : ''}conferido ${quando(dados.metaToken.conferidoEm)}`}
+                tom={dados.metaToken.estado === 'ok' ? 'ok' : dados.metaToken.estado === 'indeterminado' ? undefined : 'alerta'}
+              />
+            )}
             <Cartao rotulo="Logins ativos" valor={formatNumber(dados.sessoes.length)} dica="sessões de 30 dias" />
             <Cartao rotulo="Ajustes pendentes" valor={formatNumber(configuracaoRuim)} dica="veja a lista abaixo" tom={configuracaoRuim ? 'alerta' : 'ok'} />
             <Cartao rotulo="Chaves a trocar" valor={formatNumber(pendentes)} dica="sua lista de lembretes" tom={pendentes ? 'alerta' : 'ok'} />

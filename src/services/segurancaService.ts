@@ -44,6 +44,13 @@ export interface ResumoDeSeguranca {
     ultimaAceitaEm: string | null
     hottokConfigurado: boolean
   }
+  metaToken: {
+    estado: 'ok' | 'vencendo' | 'rejeitado' | 'indeterminado'
+    tipo?: string
+    dias?: number | null
+    descricao: string
+    conferidoEm: string
+  } | null
 }
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {

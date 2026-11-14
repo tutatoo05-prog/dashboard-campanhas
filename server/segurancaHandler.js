@@ -10,6 +10,7 @@ import { rodarAgora } from './acesso/scheduler.js'
 import { readRequestBody } from './readBody.js'
 import { telegramConfigurado } from './alertas.js'
 import { avisarProblema } from './acesso/integracoes.js'
+import { estadoDoTokenMeta } from './vigiaMeta.js'
 import { modoAcesso } from './acesso/motor.js'
 
 function sendJson(res, status, payload) {
@@ -164,6 +165,7 @@ export async function handleSegurancaRequest(req, res, env, user) {
         configuracao: checklistDeConfiguracao(env),
         deploy: await lerUltimoDeploy(env),
         hotmart: await resumoDoWebhook(env),
+        metaToken: await estadoDoTokenMeta(env).catch(() => null),
       })
     }
 
