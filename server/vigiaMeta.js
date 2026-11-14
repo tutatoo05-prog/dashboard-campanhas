@@ -76,11 +76,13 @@ export async function conferirTokenMeta(env, { fetchImpl = fetch, agora = () => 
       return { estado: 'rejeitado', motivo: motivoLegivel(dados.error) }
     }
     // expires_at 0 = sem vencimento (token de usuário do sistema).
+    const tipo = dados.type ?? 'desconhecido'
     if (Number(dados.expires_at) > 0) {
       const dias = Math.ceil((Number(dados.expires_at) * 1000 - agora()) / 86_400_000)
-      if (dias <= diasAntes) return { estado: 'vencendo', dias: Math.max(dias, 0) }
+      if (dias <= diasAntes) return { estado: 'vencendo', dias: Math.max(dias, 0), tipo }
+      return { estado: 'ok', tipo, dias }
     }
-    return { estado: 'ok' }
+    return { estado: 'ok', tipo, dias: null }
   } catch (erro) {
     return { estado: 'indeterminado', motivo: String(erro?.message ?? erro).slice(0, 160) }
   }
@@ -95,6 +97,15 @@ export function avisoDaConferencia(resultado) {
     return { chave: 'meta-token-vencendo', repetirEmMin: REPETIR_VENCENDO_MIN, texto: textoVencendo(resultado.dias) }
   }
   return null
+}
+
+/** Linha de log (sem o token): serve para ver, no log de produção, qual token o app está usando. */
+export function descreverResultado(r) {
+  const tipo = r.tipo ? ` · tipo ${r.tipo}` : ''
+  if (r.estado === 'ok') return `token ok${tipo} · ${r.dias == null ? 'sem vencimento' : `vence em ${r.dias} dia(s)`}`
+  if (r.estado === 'vencendo') return `token ok, mas vence em ${r.dias} dia(s)${tipo}`
+  if (r.estado === 'rejeitado') return `token REJEITADO pela Meta (${r.motivo})`
+  return `não consegui conferir o token (${r.motivo ?? 'sem detalhe'})`
 }
 
 export function startVigiaMeta(env, { enviar = avisarProblema, conferir = conferirTokenMeta } = {}) {
@@ -122,7 +133,9 @@ export function startVigiaMeta(env, { enviar = avisarProblema, conferir = confer
     if (rodando) return
     rodando = true
     try {
-      await avisar(avisoDaConferencia(await conferir(env)))
+      const resultado = await conferir(env)
+      console.log(`[vigia-meta] ${descreverResultado(resultado)}`)
+      await avisar(avisoDaConferencia(resultado))
     } catch (erro) {
       console.error('[vigia-meta] falha na conferência:', erro.message || erro)
     } finally {

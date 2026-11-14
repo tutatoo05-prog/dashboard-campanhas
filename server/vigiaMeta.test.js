@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { avisoDaConferencia, conferirTokenMeta, erroDeToken } from './vigiaMeta.js'
+import { avisoDaConferencia, conferirTokenMeta, descreverResultado, erroDeToken } from './vigiaMeta.js'
 import { aoTokenRejeitado, graphGet } from './metaApi.js'
 
 const json = (corpo, status = 200) => new Response(JSON.stringify(corpo), { status })
@@ -66,4 +66,13 @@ test('graphGet avisa o ouvinte quando a Meta devolve 190, e só nesse caso', asy
     aoTokenRejeitado(null)
   }
   assert.deepEqual(recebidos, [190])
+})
+
+test('descreverResultado diz o tipo e o vencimento, sem mostrar o token', async () => {
+  const semVenc = await conferirTokenMeta(ENV, { fetchImpl: async () => json({ data: { is_valid: true, expires_at: 0, type: 'SYSTEM_USER' } }) })
+  assert.equal(descreverResultado(semVenc), 'token ok · tipo SYSTEM_USER · sem vencimento')
+  const agora = Date.UTC(2026, 10, 14)
+  const usuario = await conferirTokenMeta(ENV, { agora: () => agora, fetchImpl: async () => json({ data: { is_valid: true, type: 'USER', expires_at: Math.floor((agora + 3 * 86_400_000) / 1000) } }) })
+  assert.equal(descreverResultado(usuario), 'token ok, mas vence em 3 dia(s) · tipo USER')
+  assert.ok(!descreverResultado(semVenc).includes('EAAteste'))
 })
