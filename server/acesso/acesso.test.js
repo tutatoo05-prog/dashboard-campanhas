@@ -97,6 +97,14 @@ test('prazo: a plataforma recebe sempre 365 dias; o Pix parcelado só é marcado
   assert.equal(ehPixParcelado(venda({ plano: 'Essentials', pagamento: 'PIX' })), false)
 })
 
+test('aviso de atraso: plano REC_ conta como parcelado mesmo vindo como cartão (a Hotmart manda o método padrão)', () => {
+  const atraso = (opcoes) => decidir(venda({ event: 'PURCHASE_DELAYED', ...opcoes }), {})
+  assert.equal(atraso({ plano: 'REC_Essentials', pagamento: 'CREDIT_CARD', recorrencia: 5 }).parcelado, true)
+  assert.equal(atraso({ plano: 'REC_Essentials', pagamento: 'PIX' }).parcelado, true)
+  assert.equal(atraso({ plano: 'REC_Essentials total', pagamento: 'CREDIT_CARD' }).parcelado, false)
+  assert.equal(atraso({ plano: 'Essentials', pagamento: 'CREDIT_CARD' }).parcelado, false)
+})
+
 test('curso: plano recorrente e "total" viram o mesmo curso', () => {
   assert.equal(normalizarCurso('REC_Essentials'), 'Essentials')
   assert.equal(normalizarCurso('REC_Essentials total'), 'Essentials')

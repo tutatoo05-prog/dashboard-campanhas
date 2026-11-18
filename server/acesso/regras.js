@@ -110,6 +110,14 @@ export function ehPixParcelado(venda) {
   return planoParcelado(venda.plano) || Number(venda.recorrencia) > 1
 }
 
+/**
+ * No aviso de atraso (PURCHASE_DELAYED) a Hotmart informa o método padrão da assinatura (cartão), mesmo quando o aluno
+ * paga as parcelas por Pix. Por isso, no atraso, o plano parcelado (REC_...) vale em qualquer forma de pagamento.
+ */
+export function ehParceladoNoAtraso(venda) {
+  return planoParcelado(venda.plano) || ehPixParcelado(venda)
+}
+
 /** Dias que o dash pede à plataforma: sempre 365, em qualquer forma de pagamento. */
 export function diasDeAcesso() {
   return DIAS_PADRAO
@@ -212,7 +220,7 @@ export function decidir(venda, { acesso = null, v2 = false } = {}) {
       return { tipo: 'abandono', abandono: 'carrinho', curso: rotuloCurso(venda), passos: ['registrar_abandono', 'email_apoio'] }
 
     case 'PURCHASE_DELAYED':
-      return { tipo: 'atraso', abandono: 'atraso', curso: rotuloCurso(venda), parcelado: ehPixParcelado(venda), passos: ['registrar_atraso', 'registrar_abandono', 'email_apoio'] }
+      return { tipo: 'atraso', abandono: 'atraso', curso: rotuloCurso(venda), parcelado: ehParceladoNoAtraso(venda), passos: ['registrar_atraso', 'registrar_abandono', 'email_apoio'] }
 
     default:
       return { tipo: 'ignorar' }
