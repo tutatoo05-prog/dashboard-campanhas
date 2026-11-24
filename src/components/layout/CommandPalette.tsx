@@ -21,6 +21,7 @@ const PAGES = [
   { to: '/acoes', label: 'Central de Ações', hint: 'O que fazer hoje', icon: 'fa-bolt' },
   { to: '/compare', label: 'Comparar períodos', hint: 'Antes x depois', icon: 'fa-chart-column' },
   { to: '/leads', label: 'Leads', hint: 'Quem se inscreveu', icon: 'fa-user-plus' },
+  { to: '/recuperacao', label: 'Recuperação', hint: 'Carrinho abandonado, Pix não pago, cancelou, reembolso', icon: 'fa-life-ring' },
   { to: '/registros', label: 'Registros', hint: 'Tabela de registros', icon: 'fa-table-list' },
   { to: '/purchases', label: 'Compras', hint: 'Vendas aprovadas', icon: 'fa-bag-shopping' },
   { to: '/acessos', label: 'Acessos', hint: 'Liberação de curso e alunos', icon: 'fa-key' },

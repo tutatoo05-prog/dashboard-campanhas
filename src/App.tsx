@@ -20,6 +20,7 @@ const ComparePage = lazy(() => import('@/pages/ComparePage.tsx'))
 const PurchasesPage = lazy(() => import('@/pages/PurchasesPage.tsx'))
 const AcessosPage = lazy(() => import('@/pages/AcessosPage.tsx'))
 const LeadsPage = lazy(() => import('@/pages/LeadsPage.tsx'))
+const RecuperacaoPage = lazy(() => import('@/pages/RecuperacaoPage.tsx'))
 const RegistrosPage = lazy(() => import('@/pages/RegistrosPage.tsx'))
 const LivePage = lazy(() => import('@/pages/LivePage.tsx'))
 const VideosPage = lazy(() => import('@/pages/VideosPage.tsx'))
@@ -198,6 +199,7 @@ function AppRoutes() {
           }
         />
         <Route path="leads" element={<LeadsPage />} />
+        <Route path="recuperacao" element={<RecuperacaoPage />} />
         <Route path="registros" element={<RegistrosPage />} />
         <Route path="live" element={<LivePage />} />
         <Route

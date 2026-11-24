@@ -25,7 +25,8 @@ import { handleSaudeRequest } from './saude.js'
 import { handleDeployRequest } from './deploy.js'
 import { handleFinancasRequest } from './financas/handler.js'
 import { requireAuth } from './authHandler.js'
-import { canAccessApi, isAdmin } from './roles.js'
+import { canAccessApi, canWriteAsUser, isAdmin } from './roles.js'
+import { handleRecuperacaoRequest } from './recuperacao.js'
 import { applySecurityHeaders } from './security.js'
 
 export function createApiMiddleware(env, { isProduction = false } = {}) {
@@ -111,6 +112,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/goals') ||
       req.url.startsWith('/api/registros') ||
       req.url.startsWith('/api/eventos-hotmart') ||
+      req.url.startsWith('/api/recuperacao') ||
       req.url.startsWith('/api/acessos') ||
       req.url.startsWith('/api/seguranca') ||
       req.url.startsWith('/api/fichas') ||
@@ -135,7 +137,9 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       const isWrite = req.method !== 'GET' && req.method !== 'HEAD'
       if (
-        (req.url.startsWith('/api/users') || req.url.startsWith('/api/seguranca') || (isWrite && !req.url.startsWith('/api/report'))) &&
+        (req.url.startsWith('/api/users') ||
+          req.url.startsWith('/api/seguranca') ||
+          (isWrite && !req.url.startsWith('/api/report') && !canWriteAsUser(req.method, req.url))) &&
         !isAdmin(user)
       ) {
         res.statusCode = 403
@@ -197,6 +201,11 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/eventos-hotmart')) {
         await handleHotmartEventsRequest(req, res, env)
+        return
+      }
+
+      if (req.url.startsWith('/api/recuperacao')) {
+        await handleRecuperacaoRequest(req, res, env)
         return
       }
 

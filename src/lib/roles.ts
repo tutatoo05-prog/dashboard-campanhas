@@ -5,8 +5,8 @@ export function isAdmin(user: User | null | undefined): boolean {
   return user?.cargo === 'admin'
 }
 
-/** Páginas liberadas pro cargo "usuario" (por enquanto só Leads). */
-const USER_PATHS = ['/leads']
+/** Páginas liberadas pro cargo "usuario": Leads e Recuperação. */
+const USER_PATHS = ['/leads', '/recuperacao']
 const ALWAYS_PATHS = ['/perfil']
 
 export function canAccessPath(user: User | null | undefined, pathname: string): boolean {

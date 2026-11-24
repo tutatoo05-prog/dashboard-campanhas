@@ -76,7 +76,9 @@
 .lv-chip { cursor: pointer; display: inline-flex; align-items: center; padding: 2px 9px; border: 2px solid var(--line); border-radius: 8px; background: var(--white); font-size: 0.7rem; font-weight: 800; color: var(--ink); }
 
 /* filtros */
-.lv-filters { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; padding: 0.8rem 1rem; }
+/* z-index: o card da tabela vem depois e cria seu proprio empilhamento (blur/hover);
+   sem isso o menu "Colunas" fica escondido atras do cabecalho da tabela. */
+.lv-filters { position: relative; z-index: 5; display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; padding: 0.8rem 1rem; }
 .lv-search { flex: 1 1 14rem; min-width: 0; }
 .lv-filters .filter-select { max-width: 13rem; }
 .lv-cols { position: relative; }
@@ -136,3 +138,20 @@
 .lv-tags button { cursor: pointer; }
 .lv-drawer-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .lv-error { font-size: 0.74rem; font-weight: 700; color: var(--bad); }
+
+/* Recuperação: motivo, contato e marcas de contexto */
+.rc-pill { display: inline-block; padding: 2px 9px; border: 2px solid; border-radius: 99px; font-size: 0.66rem; font-weight: 800; white-space: nowrap; }
+.rc-pill.abandono { color: #c2570a; border-color: var(--o); }
+.rc-pill.pix_boleto { color: var(--t); border-color: var(--t); }
+.rc-pill.cancelamento { color: var(--muted); border-color: var(--muted); }
+.rc-pill.reembolso { color: var(--bad); border-color: var(--bad); }
+.rc-pill.ok { color: var(--good); border-color: var(--good); }
+:root[data-theme='dark'] .rc-pill.abandono { color: var(--o); }
+.rc-contato { font-size: 0.7rem; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.rc-contato.chamado { color: var(--t); }
+.rc-contato.respondeu { color: var(--good); }
+.rc-contato.sem_interesse { color: var(--bad); }
+.rc-tag { display: inline-block; margin: 0 4px 2px 0; padding: 1px 7px; border: 2px solid var(--line); border-radius: 6px; background: var(--white); font-size: 0.62rem; font-weight: 800; white-space: nowrap; }
+.rc-tag.aluno { border-color: var(--good); color: var(--good); }
+.lt small.rc-parado { color: var(--bad); }
+.lv-rank li[aria-selected='true'] { background: color-mix(in srgb, var(--y) 22%, transparent); }
