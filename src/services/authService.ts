@@ -94,7 +94,8 @@ export interface SimpleResult {
   message: string
 }
 
-export async function forgotPassword(email: string): Promise<SimpleResult> {
+/** E-mail cadastrado e aprovado: devolve o token para abrir a troca de senha na hora (sem e-mail). */
+export async function forgotPassword(email: string): Promise<SimpleResult & { token?: string }> {
   const response = await fetch('/api/auth/forgot-password', {
     method: 'POST',
     credentials: 'include',

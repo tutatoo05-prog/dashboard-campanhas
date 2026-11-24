@@ -12,6 +12,7 @@ import {
 } from './session.js'
 import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
 import { avisarCadastroPendente } from './aprovacaoTelegram.js'
+import { enviarTelegram } from './alertas.js'
 import { emailDomainExists, isValidEmailFormat } from './emailValidation.js'
 import { atualizarPerfil, senhaForte as isStrongPassword, trocarSenha } from './perfil.js'
 
@@ -30,26 +31,6 @@ function sendJson(res, status, payload) {
 function toPublicUser(row) {
   if (!row) return null
   return { id: row.id, nome: row.nome, email: row.email, usuario: row.usuario, cargo: row.cargo ?? 'usuario', avatar: row.avatar ?? null }
-}
-
-/** Avisa o n8n (e-mail/WhatsApp) com o link de redefinição de senha. Não bloqueia a resposta se falhar. */
-function notifyPasswordReset(env, { nome, email, resetLink }) {
-  const webhookUrl = env.N8N_RESET_PASSWORD_WEBHOOK_URL
-  if (!webhookUrl) return
-
-  fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, email, resetLink }),
-  }).catch((error) => {
-    console.error('Erro ao avisar redefinição de senha via n8n:', error)
-  })
-}
-
-/** Link enviado ao usuário. Prioriza APP_URL (evita confiar no header Host em produção). */
-function buildResetLink(env, req, token) {
-  const base = env.APP_URL || `https://${req.headers.host}`
-  return `${base.replace(/\/$/, '')}/reset-password?token=${token}`
 }
 
 export async function requireAuth(req, res, env) {
@@ -234,37 +215,29 @@ export async function handleAuthRequest(req, res, env) {
 
       const email = String(body.email ?? '').trim().toLowerCase()
 
-      // Resposta genérica sempre — não revela se o e-mail existe na base.
-      const genericResponse = {
-        success: true,
-        message: 'Se esse e-mail estiver cadastrado, você vai receber um link para redefinir a senha.',
-      }
-
+      // Dash interno (equipe de poucas pessoas): sem e-mail no meio. E-mail certo de um cadastro aprovado já
+      // abre a troca de senha (token de uso único, 30 min). Toda troca avisa a equipe no Telegram, e o limite
+      // de tentativas por IP continua valendo.
       if (!email || !isEmail(email)) {
-        return sendJson(res, 200, genericResponse)
+        return sendJson(res, 400, { error: 'Digite um e-mail válido.' })
       }
 
-      const result = await query(env, 'select id, nome, email from users where email = $1', [email])
+      const result = await query(env, 'select id, ativo from users where email = $1', [email])
       const user = result.rows[0]
-
-      if (user) {
-        const token = randomBytes(32).toString('hex')
-        const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS)
-
-        await query(
-          env,
-          'insert into password_resets (token, user_id, expires_at) values ($1, $2, $3)',
-          [token, user.id, expiresAt],
-        )
-
-        notifyPasswordReset(env, {
-          nome: user.nome,
-          email: user.email,
-          resetLink: buildResetLink(env, req, token),
-        })
+      if (!user) {
+        return sendJson(res, 404, { error: 'Esse e-mail não está cadastrado no dash. Confira se digitou certo.' })
+      }
+      if (!user.ativo) {
+        return sendJson(res, 403, { error: 'Esse cadastro ainda não foi aprovado. Peça para um administrador aprovar.' })
       }
 
-      return sendJson(res, 200, genericResponse)
+      const token = randomBytes(32).toString('hex')
+      await query(env, 'insert into password_resets (token, user_id, expires_at) values ($1, $2, $3)', [
+        token,
+        user.id,
+        new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      ])
+      return sendJson(res, 200, { success: true, token })
     } catch (error) {
       console.error('Erro ao solicitar redefinição de senha:', error)
       return sendJson(res, 500, { error: 'Erro ao processar a solicitação.' })
@@ -296,7 +269,8 @@ export async function handleAuthRequest(req, res, env) {
 
       const result = await query(
         env,
-        'select user_id from password_resets where token = $1 and used_at is null and expires_at > now()',
+        `select r.user_id, u.nome, u.email from password_resets r join users u on u.id = r.user_id
+          where r.token = $1 and r.used_at is null and r.expires_at > now()`,
         [token],
       )
       const reset = result.rows[0]
@@ -311,6 +285,10 @@ export async function handleAuthRequest(req, res, env) {
       await query(env, 'update password_resets set used_at = now() where token = $1', [token])
       // Invalida sessões ativas — a troca de senha não deve deixar sessões antigas válidas.
       await query(env, 'delete from sessions where user_id = $1', [reset.user_id])
+      // A troca não passa por e-mail: avisa a equipe para que uma troca indevida não passe despercebida.
+      enviarTelegram(env, `🔐 Senha do dash trocada pela tela "Esqueci minha senha": ${reset.nome} (${reset.email})`).catch((erro) =>
+        console.warn('[senha] não consegui avisar no Telegram:', erro.message || erro),
+      )
 
       return sendJson(res, 200, { success: true, message: 'Senha redefinida. Faça login novamente.' })
     } catch (error) {

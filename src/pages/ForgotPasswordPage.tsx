@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { forgotPassword } from '@/services/authService.ts'
 import { AuthBackdrop } from '@/components/auth/AuthBackdrop.tsx'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -17,8 +18,12 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      const result = await forgotPassword(email)
-      setMessage(result.message)
+      const result = await forgotPassword(email.trim())
+      if (result.token) {
+        navigate(`/reset-password?token=${result.token}`, { replace: true })
+        return
+      }
+      setMessage(result.message ?? '')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível concluir a ação.')
     } finally {
@@ -73,7 +78,7 @@ export default function ForgotPasswordPage() {
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-paper-plane" /> Enviar link de redefinição
+                    <i className="fa-solid fa-key" /> Continuar para nova senha
                   </>
                 )}
               </button>
