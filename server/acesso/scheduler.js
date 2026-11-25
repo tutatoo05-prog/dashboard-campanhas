@@ -1,6 +1,7 @@
 import { bloquearAtrasados, criarMotor, modoAcesso, processarFila } from './motor.js'
 import { criarRepo } from './repo.js'
 import { criarSequencias } from '../emails/fila.js'
+import { criarVerificacao } from './verificacaoAcesso.js'
 
 const INTERVALO_MS = 20_000
 
@@ -9,7 +10,7 @@ let rodando = false
 let pedidoPendente = false
 
 function motorDo(env) {
-  if (!motorCompartilhado) motorCompartilhado = criarMotor(env, { repo: criarRepo(env), sequencias: criarSequencias(env) })
+  if (!motorCompartilhado) motorCompartilhado = criarMotor(env, { repo: criarRepo(env), sequencias: criarSequencias(env), verificacao: criarVerificacao(env) })
   return motorCompartilhado
 }
 

@@ -18,6 +18,7 @@ import { startMonitor } from './monitor/monitor.js'
 import { garantirEsquemaDeLeads } from './projetos/esquema.js'
 import { startConciliacao } from './conciliacaoHotmart.js'
 import { startFilaEmails } from './emails/fila.js'
+import { startVerificacaoAcesso } from './acesso/verificacaoAcesso.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
 import { startBackupScheduler } from './backup.js'
 import { startFinancasSync } from './financas/sync.js'
@@ -170,6 +171,7 @@ server.listen(port, '0.0.0.0', () => {
   if (env.DATABASE_URL) void garantirEsquemaDeLeads(env).catch((erro) => console.error('[leads] não consegui preparar o esquema (tipo/slug):', erro.message || erro))
   startConciliacao(env)
   startFilaEmails(env)
+  startVerificacaoAcesso(env)
   startBackupScheduler(env)
   startFinancasSync(env, garantirEsquemaFinancas)
   void aquecerConexoes(env)

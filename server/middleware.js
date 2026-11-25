@@ -19,6 +19,7 @@ import { handleActionsRequest } from './actionsHandler.js'
 import { handleMetaWriteRequest } from './metaWrite.js'
 import { handleAcessosRequest } from './acesso/handler.js'
 import { handleCriarSenhaRequest, handleNovoLinkRequest } from './acesso/novoLink.js'
+import { handleWhatsappRespostaRequest } from './acesso/verificacaoAcesso.js'
 import { handleSegurancaRequest } from './segurancaHandler.js'
 import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
@@ -63,6 +64,12 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // Botão "Criar minha senha" do mesmo e-mail: decide por horário se manda para a criação da senha ou avisa que venceu.
     if (req.url.startsWith('/api/criar-senha')) {
       handleCriarSenhaRequest(req, res, env)
+      return
+    }
+
+    // Resposta do aluno no WhatsApp (webhook da Evolution): autenticada por segredo na URL/cabeçalho, não por sessão.
+    if (req.url.startsWith('/api/whatsapp-resposta')) {
+      await handleWhatsappRespostaRequest(req, res, env)
       return
     }
 

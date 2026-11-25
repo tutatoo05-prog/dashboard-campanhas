@@ -131,6 +131,11 @@ Código em `server/acesso/`. O dash recebe os eventos da Hotmart, grava, e execu
 
 A tela Acessos lista o que ainda falta configurar.
 
+**Verificação de acesso (WhatsApp + e-mail de link novo).** Para quem foi liberado pela API V2, o dash pergunta por WhatsApp (instância dos alunos) se a pessoa conseguiu entrar (1 = sim, 2 = não), capta a resposta e manda um e-mail com link novo quando o primeiro vence. Código em `server/acesso/verificacaoAcesso.js`; tabela `acesso_verificacoes` (criada sozinha no primeiro uso).
+- `VERIFICACAO_ACESSO_MODO`: `desligado` (padrão) → `teste` (agenda e simula, não envia) → `ativo`. `VERIFICACAO_WHATSAPP_MIN` (10) e `VERIFICACAO_EMAIL_MIN` (31) ajustam os tempos.
+- `EVOLUTION_WEBHOOK_SEGREDO`: texto aleatório. No Evolution (instância dos alunos → Webhook), ligar o evento `MESSAGES_UPSERT` e usar a URL `https://dash.tuzinho.academy/api/whatsapp-resposta?s=<o segredo>` (ou o cabeçalho `x-webhook-secret`). Atenção: se o n8n já lê mensagens dessa instância por webhook, a Evolution só aceita um endereço por instância; confira antes.
+- Resposta 1 → confirma e agradece; 2 → manda link novo por e-mail na hora, responde e avisa a equipe (Telegram); 2 de novo ou texto livre → avisa a equipe. Quem confirma não recebe o e-mail de link novo.
+
 **Entrada em produção (sem risco de liberar duas vezes)**
 1. Migration + variáveis, `ACESSO_MODO=teste`, Restart.
 2. Hotmart → Webhook: **adicionar** (sem remover o do n8n) `https://dash.tuzinho.academy/api/hotmart/webhook` com os eventos de compra aprovada, atrasada, carrinho abandonado e cancelamento.
