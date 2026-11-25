@@ -81,6 +81,35 @@ export async function lerLeadsParaRecuperacao(env, consultar = (texto, params) =
   }
 }
 
+// Ofertas da Hotmart de cada página (pages/*/src/config.js do repositório de produtos). Essentials, Live e Membros
+// usam o MESMO produto na Hotmart (N108253747X, "Essentials"): só a oferta e o `src` dizem de qual página veio.
+const OFERTA_PAGINA = { scq7pq9v: 'essentials', '0gapxraj': 'live' }
+const PAGINAS = {
+  essentials: 'Essentials (página principal)',
+  live: 'Essentials Live',
+  membros: 'Essentials Membros',
+  particular: 'Mentoria Particular',
+}
+
+/**
+ * De qual página/checkout veio o caso. O rótulo `src` que a página manda ao checkout (essentials_<variante>, live,
+ * membros) vale mais que a oferta; sem nenhum dos dois, usa o nome do produto na Hotmart (Mentoria Essentials,
+ * Workshop Presencial...). Retorna { id, rotulo } — o id é o que o filtro compara.
+ */
+export function paginaDe(evento) {
+  const src = String(evento?.src ?? '').trim().toLowerCase()
+  const oferta = String(evento?.oferta ?? '').trim().toLowerCase()
+  let id = ''
+  if (/particular/.test(src)) id = 'particular'
+  else if (/live/.test(src)) id = 'live'
+  else if (/membros/.test(src)) id = 'membros'
+  else if (/^essentials/.test(src)) id = 'essentials'
+  else id = OFERTA_PAGINA[oferta] ?? ''
+  if (id) return { id, rotulo: PAGINAS[id] }
+  const produto = String(evento?.produto ?? '').trim()
+  return produto ? { id: `produto:${produto.toLowerCase()}`, rotulo: produto } : { id: 'sem-pagina', rotulo: 'Sem página' }
+}
+
 const soma = (itens) => itens.reduce((total, item) => total + (item.valor ?? 0), 0)
 
 /**
@@ -146,6 +175,8 @@ export function montarRecuperacao(eventos, leads = [], agora = Date.now()) {
       data: principal.data,
       diasParado: Math.max(0, Math.floor((agora - new Date(principal.data).getTime()) / DIA)),
       produto: principal.produto,
+      pagina: paginaDe(principal).id,
+      paginaRotulo: paginaDe(principal).rotulo,
       oferta: principal.oferta,
       valor: principal.valor,
       pagamento: principal.pagamento,
@@ -196,11 +227,12 @@ export function resumir(casos, agora = Date.now()) {
       return [motivo, { abertos: abertosDoMotivo.length, recuperados: doMotivo.length - abertosDoMotivo.length, valorAberto: soma(abertosDoMotivo) }]
     }),
   )
+  // Por página/checkout (Essentials, Live, Membros...), não só pelo nome do produto da Hotmart.
   const produtos = new Map()
   for (const caso of abertos) {
-    const nome = caso.produto || 'Sem produto'
-    const atual = produtos.get(nome) ?? { produto: nome, abertos: 0, valor: 0 }
-    produtos.set(nome, { ...atual, abertos: atual.abertos + 1, valor: atual.valor + (caso.valor ?? 0) })
+    const id = caso.pagina || 'sem-pagina'
+    const atual = produtos.get(id) ?? { pagina: id, produto: caso.paginaRotulo || caso.produto || 'Sem página', abertos: 0, valor: 0 }
+    produtos.set(id, { ...atual, abertos: atual.abertos + 1, valor: atual.valor + (caso.valor ?? 0) })
   }
   return {
     abertos: abertos.length,

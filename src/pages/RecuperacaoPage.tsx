@@ -35,16 +35,21 @@ export default function RecuperacaoPage() {
   const resumo = dados.data?.resumo
   const contatoDe = (caso: CasoRecuperacao): SituacaoContato => notas.get(caso.chave)?.situacao ?? 'novo'
 
-  const produtos = useMemo(() => [...new Set(casos.map((c) => c.produto).filter(Boolean))].sort(), [casos])
+  // Páginas/checkouts (Essentials, Live, Membros...) com os casos de cada uma; o produto da Hotmart é o mesmo para várias.
+  const produtos = useMemo(() => {
+    const mapa = new Map<string, string>()
+    for (const c of casos) if (c.pagina) mapa.set(c.pagina, c.paginaRotulo || c.produto)
+    return [...mapa].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+  }, [casos])
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase()
     const filtrados = casos.filter((c) => {
       if (estado !== 'todos' && c.estadoCaso !== estado) return false
       if (motivo && c.motivo !== motivo) return false
-      if (produto && c.produto !== produto) return false
+      if (produto && c.pagina !== produto) return false
       if (contato && contatoDe(c) !== contato) return false
-      if (termo && ![c.nome, c.email, c.telefone, c.produto, c.campanha, c.lead?.campanha].some((v) => String(v ?? '').toLowerCase().includes(termo))) return false
+      if (termo && ![c.nome, c.email, c.telefone, c.produto, c.paginaRotulo, c.campanha, c.lead?.campanha].some((v) => String(v ?? '').toLowerCase().includes(termo))) return false
       return true
     })
     const porOrdem: Record<Ordem, (a: CasoRecuperacao, b: CasoRecuperacao) => number> = {
@@ -78,7 +83,7 @@ export default function RecuperacaoPage() {
   function exportar() {
     exportCsv(
       'recuperacao.csv',
-      ['Nome', 'Email', 'Telefone', 'Motivo', 'Situação', 'Produto', 'Valor', 'Pagamento', 'Data', 'Dias parado', 'Já comprou', 'Campanha do lead', 'Contato', 'Etiquetas', 'Anotação'],
+      ['Nome', 'Email', 'Telefone', 'Motivo', 'Situação', 'Página', 'Produto', 'Valor', 'Pagamento', 'Data', 'Dias parado', 'Já comprou', 'Campanha do lead', 'Contato', 'Etiquetas', 'Anotação'],
       lista.map((c) => {
         const n = notas.get(c.chave)
         return [
@@ -87,6 +92,7 @@ export default function RecuperacaoPage() {
           c.telefone,
           MOTIVO_ROTULO[c.motivo],
           c.rotulo,
+          c.paginaRotulo,
           c.produto,
           c.valor ?? '',
           c.pagamento,
@@ -202,10 +208,10 @@ export default function RecuperacaoPage() {
               </ul>
             </div>
             <div className="surface-card lv-pad">
-              <p className="section-label">Produtos com mais casos abertos</p>
+              <p className="section-label">Páginas com mais casos abertos</p>
               <ul className="lv-rank">
                 {resumo.produtos.map((p, i) => (
-                  <li key={p.produto} onClick={() => filtrar(() => setProduto(produto === p.produto ? '' : p.produto))} aria-selected={produto === p.produto}>
+                  <li key={p.pagina} onClick={() => filtrar(() => setProduto(produto === p.pagina ? '' : p.pagina))} aria-selected={produto === p.pagina}>
                     <span className="n">{i + 1}</span>
                     <span className="nome">{p.produto}</span>
                     <span className="taxa">
@@ -244,11 +250,11 @@ export default function RecuperacaoPage() {
                 </option>
               ))}
             </select>
-            <select className="filter-select" value={produto} onChange={(e) => filtrar(() => setProduto(e.target.value))} aria-label="Produto">
-              <option value="">Produto: todos</option>
-              {produtos.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+            <select className="filter-select" value={produto} onChange={(e) => filtrar(() => setProduto(e.target.value))} aria-label="Página">
+              <option value="">Página: todas</option>
+              {produtos.map(([id, rotulo]) => (
+                <option key={id} value={id}>
+                  {rotulo}
                 </option>
               ))}
             </select>
@@ -271,7 +277,6 @@ export default function RecuperacaoPage() {
                     <th>Motivo</th>
                     <th>Produto / valor</th>
                     <th>Quando</th>
-                    <th>Contexto</th>
                     <th>Contato</th>
                     <th>Ações</th>
                   </tr>
@@ -298,7 +303,7 @@ export default function RecuperacaoPage() {
                           {c.outrosAbertos.length > 0 && <small>+{c.outrosAbertos.length} pendência(s)</small>}
                         </td>
                         <td>
-                          {c.produto || '—'}
+                          {c.paginaRotulo || c.produto || '—'}
                           <small>
                             {c.valor != null ? formatCurrency(c.valor) : ''}
                             {c.pagamento ? ` · ${c.pagamento}` : ''}
@@ -307,11 +312,6 @@ export default function RecuperacaoPage() {
                         <td title={new Date(c.data).toLocaleString('pt-BR')}>
                           {dataRelativa(new Date(c.data).getTime())}
                           {c.estadoCaso === 'aberto' && c.diasParado >= 3 && <small className="rc-parado">parado há {c.diasParado} d</small>}
-                        </td>
-                        <td>
-                          {c.jaComprou.length ? <span className="rc-tag aluno">já é aluno</span> : null}
-                          {c.tentativas.carrinhos + c.tentativas.pixBoletos > 1 && <span className="rc-tag">{c.tentativas.carrinhos + c.tentativas.pixBoletos} tentativas</span>}
-                          {c.lead && <small>{c.lead.campanha || c.lead.projeto}</small>}
                         </td>
                         <td>
                           <span className={`rc-contato ${situacaoContato}`}>{CONTATO_ROTULO[situacaoContato]}</span>
@@ -338,7 +338,7 @@ export default function RecuperacaoPage() {
                   })}
                   {!visiveis.length && (
                     <tr>
-                      <td colSpan={7} className="lv-empty">
+                      <td colSpan={6}className="lv-empty">
                         Ninguém com esses filtros.
                       </td>
                     </tr>

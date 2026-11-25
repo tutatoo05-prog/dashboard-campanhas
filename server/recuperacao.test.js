@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { montarRecuperacao } from './recuperacao.js'
+import { montarRecuperacao, paginaDe } from './recuperacao.js'
 import { canAccessApi, canWriteAsUser } from './roles.js'
 
 const AGORA = new Date('2026-11-24T15:00:00Z').getTime()
@@ -73,4 +73,23 @@ test('cargo usuario: lê a recuperação e só escreve a anotação', () => {
   assert.equal(canWriteAsUser('PUT', '/api/leads/notas'), true)
   assert.equal(canWriteAsUser('DELETE', '/api/leads/notas'), false)
   assert.equal(canWriteAsUser('PUT', '/api/leads'), false)
+})
+
+test('paginaDe separa Essentials, Live, Membros e Mentoria mesmo com o mesmo produto na Hotmart', () => {
+  assert.equal(paginaDe({ produto: 'Essentials', src: 'essentials_hero-v1_b' }).id, 'essentials')
+  assert.equal(paginaDe({ produto: 'Essentials', src: 'live' }).id, 'live')
+  assert.equal(paginaDe({ produto: 'Essentials', src: 'membros' }).id, 'membros')
+  assert.equal(paginaDe({ produto: 'Essentials', src: 'mentoria-particular' }).id, 'particular')
+  assert.equal(paginaDe({ produto: 'Essentials', oferta: '0gapxraj' }).id, 'live')
+  assert.equal(paginaDe({ produto: 'Essentials', oferta: 'scq7pq9v' }).id, 'essentials')
+  assert.equal(paginaDe({ produto: 'Mentoria Essentials' }).rotulo, 'Mentoria Essentials')
+})
+
+test('resumo.produtos agrupa os casos abertos por página', () => {
+  const { resumo } = montarRecuperacao([
+    ev({ email: 'a@x.com', categoria: 'abandono', evento: 'abandono', situacao: 'em aberto', src: 'essentials_v1', data: '2026-11-20T10:00:00Z' }),
+    ev({ email: 'b@x.com', categoria: 'abandono', evento: 'abandono', situacao: 'em aberto', src: 'live', data: '2026-11-20T10:00:00Z' }),
+    ev({ email: 'c@x.com', categoria: 'abandono', evento: 'abandono', situacao: 'em aberto', src: 'live', data: '2026-11-20T10:00:00Z' }),
+  ])
+  assert.deepEqual(resumo.produtos.map((p) => [p.pagina, p.abertos]), [['live', 2], ['essentials', 1]])
 })

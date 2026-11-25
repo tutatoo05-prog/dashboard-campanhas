@@ -15,6 +15,9 @@ export interface CasoRecuperacao {
   data: string
   diasParado: number
   produto: string
+  /** Página/checkout de origem (essentials, live, membros, particular ou produto:<nome>) e o rótulo para exibir. */
+  pagina: string
+  paginaRotulo: string
   oferta: string
   valor: number | null
   pagamento: string
@@ -45,7 +48,7 @@ export interface ResumoRecuperacao {
   valorAberto: number
   novos7d: number
   porMotivo: Record<MotivoRecuperacao, { abertos: number; recuperados: number; valorAberto: number }>
-  produtos: { produto: string; abertos: number; valor: number }[]
+  produtos: { pagina: string; produto: string; abertos: number; valor: number }[]
 }
 
 export interface RecuperacaoResponse {
