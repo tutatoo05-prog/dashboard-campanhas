@@ -804,7 +804,8 @@ test('API V2: liberar matrícula e gerar link falam com os endpoints certos e n�
 test('API V2: link com http://localhost (APP_URL da plataforma) vira o domínio público, mantendo o token', async () => {
   const { gerarLinkSenha, enderecoPublicoDoLink } = await import('./telwayV2.js')
   const local = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ url: 'http://localhost/primeiro-acesso?token=ABC', expira_em: 'x' }) })
-  assert.equal((await gerarLinkSenha(ENV_V2, { email: 'a@x.com' }, local)).url, 'https://tuzinho.academy/primeiro-acesso?token=ABC')
+  assert.equal((await gerarLinkSenha(ENV_V2, { email: 'a@x.com' }, local)).url, 'https://gestao.tuzinho.academy/primeiro-acesso?token=ABC')
+  assert.equal(enderecoPublicoDoLink({ TELWAY_V2_URL: 'https://plataforma.exemplo.com/api/v2' }, 'http://localhost/primeiro-acesso?token=Y'), 'https://plataforma.exemplo.com/primeiro-acesso?token=Y', 'sem TELWAY_ALUNO_URL usa o domínio da API V2')
   assert.equal(enderecoPublicoDoLink({ TELWAY_ALUNO_URL: 'https://aluno.exemplo.com/' }, 'http://127.0.0.1:8000/primeiro-acesso?token=Z'), 'https://aluno.exemplo.com/primeiro-acesso?token=Z')
   assert.equal(enderecoPublicoDoLink({}, 'https://outro.dominio.com/primeiro-acesso?token=Q'), 'https://outro.dominio.com/primeiro-acesso?token=Q')
   assert.equal(enderecoPublicoDoLink({}, 'lixo'), '')

@@ -109,8 +109,9 @@ export async function gerarLinkSenha(env, { email }, fetchImpl = fetch) {
 
 /**
  * A plataforma monta o link com o próprio APP_URL, e em produção ele vem como http://localhost (ela não sabe seu domínio público).
- * Quando o endereço é local ou sem https, mantém o caminho e o token e troca só a origem pelo domínio dos alunos
- * (TELWAY_ALUNO_URL, padrão https://tuzinho.academy). Link já em https com domínio de verdade passa como veio.
+ * Quando o endereço é local ou sem https, mantém o caminho e o token e troca só a origem pelo domínio da plataforma
+ * (TELWAY_ALUNO_URL; sem ela, o domínio da própria API V2, ex.: https://gestao.tuzinho.academy, onde a página /primeiro-acesso existe;
+ * o domínio tuzinho.academy não tem essa página e dava 404). Link já em https com domínio de verdade passa como veio.
  */
 export function enderecoPublicoDoLink(env, bruto) {
   let u
@@ -122,7 +123,7 @@ export function enderecoPublicoDoLink(env, bruto) {
   const local = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)$/i.test(u.hostname) || u.hostname.endsWith('.localhost')
   if (u.protocol === 'https:' && !local) return u.href
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return ''
-  const origem = new URL(String(env.TELWAY_ALUNO_URL || 'https://tuzinho.academy').replace(/\/+$/, ''))
+  const origem = new URL(String(env.TELWAY_ALUNO_URL || new URL(env.TELWAY_V2_URL || URL_PADRAO).origin).replace(/\/+$/, ''))
   if (origem.protocol !== 'https:') return ''
   return `${origem.origin}${u.pathname}${u.search}`
 }
