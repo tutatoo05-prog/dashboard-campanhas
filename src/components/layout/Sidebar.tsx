@@ -48,11 +48,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Tuzinho Store',
     items: [
-      { to: '/loja', label: 'Loja', sticker: 'crown', end: true, adminOnly: true },
-      { to: '/loja/pedidos', label: 'Pedidos', sticker: 'scroll', adminOnly: true },
-      { to: '/loja/catalogo', label: 'Catálogo', sticker: 'bottle', adminOnly: true },
-      { to: '/loja/financeiro', label: 'Financeiro da loja', sticker: 'coin', adminOnly: true },
-      { to: '/loja/atendimento', label: 'Atendimento', sticker: 'swallow', adminOnly: true },
+      { to: '/loja', label: 'Loja', sticker: 'crown', adminOnly: true },
     ],
   },
 ]

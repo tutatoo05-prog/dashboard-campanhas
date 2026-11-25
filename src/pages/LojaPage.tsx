@@ -466,10 +466,27 @@ export default function LojaPage() {
         <Typewriter as="h2" className="section-title mt-1" text={atual.titulo} />
         <p className="mt-2 max-w-2xl text-sm text-zinc-500">{atual.texto}</p>
       </PageHero>
-      <nav className="flex flex-wrap gap-2" aria-label="Seções da loja">
-        {VIEWS.map((v) => (
-          <NavLink key={v.id} to={v.to} end className="chip-btn" aria-pressed={v.id === view}>{v.rotulo}</NavLink>
-        ))}
+      <nav className="overflow-x-auto" aria-label="Seções da loja">
+        <ol className="flex min-w-max items-center gap-1.5">
+          {VIEWS.map((v, i) => {
+            const ativo = v.id === view
+            const feito = i < VIEWS.findIndex((x) => x.id === view)
+            return (
+              <li key={v.id} className="flex items-center gap-1.5">
+                {i > 0 && <span className={`h-px w-5 sm:w-8 ${feito || ativo ? 'bg-amber-400/70' : 'bg-white/15'}`} aria-hidden />}
+                <NavLink
+                  to={v.to}
+                  end
+                  aria-current={ativo ? 'step' : undefined}
+                  className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold transition-colors ${ativo ? 'border-amber-400 bg-amber-400/15 text-amber-200' : 'border-[var(--line)] text-zinc-400 hover:text-zinc-100'}`}
+                >
+                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${ativo ? 'bg-amber-400 text-black' : feito ? 'bg-emerald-500 text-black' : 'border border-white/25'}`}>{feito ? '✓' : i + 1}</span>
+                  {v.rotulo}
+                </NavLink>
+              </li>
+            )
+          })}
+        </ol>
       </nav>
       {view === '' && <Geral onAbrir={setAberto} />}
       {view === 'pedidos' && <Pedidos onAbrir={setAberto} />}
