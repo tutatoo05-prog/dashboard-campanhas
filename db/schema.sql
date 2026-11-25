@@ -63,6 +63,13 @@ create table if not exists password_resets (
   used_at timestamptz
 );
 create index if not exists password_resets_user_id_idx on password_resets (user_id);
+-- Pedido de troca de senha liberado pela equipe no Telegram (server/senhaPedidos.js também cria isso sozinho).
+alter table password_resets add column if not exists pedido uuid not null default gen_random_uuid();
+alter table password_resets add column if not exists criado_em timestamptz not null default now();
+alter table password_resets add column if not exists liberado_em timestamptz;
+alter table password_resets add column if not exists negado_em timestamptz;
+alter table password_resets add column if not exists pedido_ip text;
+create unique index if not exists password_resets_pedido_idx on password_resets (pedido);
 
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),

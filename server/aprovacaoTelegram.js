@@ -12,6 +12,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { chamar, telegramConfigurado } from './alertas.js'
 import { query } from './db.js'
 import { readRequestBody } from './readBody.js'
+import { decidirPedido } from './senhaPedidos.js'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -95,7 +96,7 @@ export async function handleTelegramWebhook(req, res, env, fetchImpl = fetch) {
 
   const clique = update.callback_query
   const [acao, id] = String(clique?.data ?? '').split(':')
-  if (!clique || !['ap', 'rc'].includes(acao) || !UUID_RE.test(id ?? '')) return enviarJson(res, 200, { ok: true })
+  if (!clique || !['ap', 'rc', 'lb', 'ng'].includes(acao) || !UUID_RE.test(id ?? '')) return enviarJson(res, 200, { ok: true })
 
   const chatDaEquipe = String(env.TELEGRAM_CHAT_ID ?? '').trim()
   const veioDoChat = String(clique.message?.chat?.id ?? '') === chatDaEquipe
@@ -104,8 +105,9 @@ export async function handleTelegramWebhook(req, res, env, fetchImpl = fetch) {
       await chamar(env, 'answerCallbackQuery', postJson({ callback_query_id: clique.id, text: 'Sem permissão.' }), fetchImpl)
       return enviarJson(res, 200, { ok: true })
     }
-    const texto = await decidirCadastro(env, acao, id)
-    console.log(`[cadastros] Telegram: ${acao === 'ap' ? 'aprovar' : 'recusar'} ${id} por ${clique.from?.id ?? '?'}`)
+    const ehSenha = acao === 'lb' || acao === 'ng'
+    const texto = ehSenha ? await decidirPedido(env, acao, id) : await decidirCadastro(env, acao, id)
+    console.log(`[${ehSenha ? 'senha' : 'cadastros'}] Telegram: ${{ ap: 'aprovar', rc: 'recusar', lb: 'liberar', ng: 'negar' }[acao]} ${id} por ${clique.from?.id ?? '?'}`)
     await chamar(env, 'answerCallbackQuery', postJson({ callback_query_id: clique.id }), fetchImpl)
     await chamar(
       env,
@@ -119,7 +121,7 @@ export async function handleTelegramWebhook(req, res, env, fetchImpl = fetch) {
     await chamar(
       env,
       'answerCallbackQuery',
-      postJson({ callback_query_id: clique.id, text: 'Não consegui salvar. Aprove em Usuários e cargos.', show_alert: true }),
+      postJson({ callback_query_id: clique.id, text: 'Não consegui salvar. Tente de novo ou use Usuários e cargos.', show_alert: true }),
       fetchImpl,
     ).catch(() => {})
   }

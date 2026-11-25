@@ -10,7 +10,8 @@ import {
   getSessionToken,
   setSessionCookie,
 } from './session.js'
-import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit } from './security.js'
+import { checkLoginRateLimit, resetLoginRateLimit, checkResetRateLimit, getClientIp } from './security.js'
+import { estadoDoPedido, garantirEsquemaPedidos, pedirTrocaDeSenha } from './senhaPedidos.js'
 import { avisarCadastroPendente } from './aprovacaoTelegram.js'
 import { enviarTelegram } from './alertas.js'
 import { emailDomainExists, isValidEmailFormat } from './emailValidation.js'
@@ -215,32 +216,50 @@ export async function handleAuthRequest(req, res, env) {
 
       const email = String(body.email ?? '').trim().toLowerCase()
 
-      // Dash interno (equipe de poucas pessoas): sem e-mail no meio. E-mail certo de um cadastro aprovado já
-      // abre a troca de senha (token de uso único, 30 min). Toda troca avisa a equipe no Telegram, e o limite
-      // de tentativas por IP continua valendo.
+      // Vários cadastros usam e-mail que não existe, então o link não vai por e-mail. O pedido vai para o Telegram da
+      // equipe (Liberar / Negar) e a tela espera a liberação em /api/auth/reset-status. O token só sai depois disso.
       if (!email || !isEmail(email)) {
         return sendJson(res, 400, { error: 'Digite um e-mail válido.' })
       }
 
-      const result = await query(env, 'select id, ativo from users where email = $1', [email])
-      const user = result.rows[0]
-      if (!user) {
-        return sendJson(res, 404, { error: 'Esse e-mail não está cadastrado no dash. Confira se digitou certo.' })
+      try {
+        await garantirEsquemaPedidos(env)
+        const { pedido } = await pedirTrocaDeSenha(env, email, { ip: getClientIp(req) })
+        return sendJson(res, 200, {
+          success: true,
+          pedido,
+          message: 'Pedido enviado para a equipe. Assim que um administrador liberar, esta tela abre a troca de senha.',
+        })
+      } catch (erro) {
+        if (erro?.message === 'SEM_TELEGRAM') {
+          return sendJson(res, 503, { error: 'Não consegui avisar a equipe agora. Peça a um administrador para gerar a sua senha.' })
+        }
+        throw erro
       }
-      if (!user.ativo) {
-        return sendJson(res, 403, { error: 'Esse cadastro ainda não foi aprovado. Peça para um administrador aprovar.' })
-      }
-
-      const token = randomBytes(32).toString('hex')
-      await query(env, 'insert into password_resets (token, user_id, expires_at) values ($1, $2, $3)', [
-        token,
-        user.id,
-        new Date(Date.now() + RESET_TOKEN_TTL_MS),
-      ])
-      return sendJson(res, 200, { success: true, token })
     } catch (error) {
       console.error('Erro ao solicitar redefinição de senha:', error)
       return sendJson(res, 500, { error: 'Erro ao processar a solicitação.' })
+    }
+  }
+
+  if (pathname === '/api/auth/reset-status' && req.method === 'POST') {
+    try {
+      const rawBody = await readRequestBody(req)
+      let body = {}
+      try {
+        body = rawBody ? JSON.parse(rawBody) : {}
+      } catch {
+        return sendJson(res, 400, { error: 'JSON inválido.' })
+      }
+      const pedido = String(body.pedido ?? '').trim()
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pedido)) {
+        return sendJson(res, 400, { error: 'Pedido inválido.' })
+      }
+      await garantirEsquemaPedidos(env)
+      return sendJson(res, 200, await estadoDoPedido(env, pedido))
+    } catch (error) {
+      console.error('Erro ao consultar pedido de senha:', error)
+      return sendJson(res, 500, { error: 'Erro ao consultar o pedido.' })
     }
   }
 
@@ -270,7 +289,8 @@ export async function handleAuthRequest(req, res, env) {
       const result = await query(
         env,
         `select r.user_id, u.nome, u.email from password_resets r join users u on u.id = r.user_id
-          where r.token = $1 and r.used_at is null and r.expires_at > now()`,
+          where r.token = $1 and r.used_at is null and r.liberado_em is not null and r.negado_em is null
+            and r.expires_at > now()`,
         [token],
       )
       const reset = result.rows[0]
@@ -285,7 +305,7 @@ export async function handleAuthRequest(req, res, env) {
       await query(env, 'update password_resets set used_at = now() where token = $1', [token])
       // Invalida sessões ativas — a troca de senha não deve deixar sessões antigas válidas.
       await query(env, 'delete from sessions where user_id = $1', [reset.user_id])
-      // A troca não passa por e-mail: avisa a equipe para que uma troca indevida não passe despercebida.
+      // A liberação foi da equipe, mas avisa também quando a troca termina, para uma troca indevida não passar despercebida.
       enviarTelegram(env, `🔐 Senha do dash trocada pela tela "Esqueci minha senha": ${reset.nome} (${reset.email})`).catch((erro) =>
         console.warn('[senha] não consegui avisar no Telegram:', erro.message || erro),
       )

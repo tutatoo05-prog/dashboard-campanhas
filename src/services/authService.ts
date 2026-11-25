@@ -94,8 +94,8 @@ export interface SimpleResult {
   message: string
 }
 
-/** E-mail cadastrado e aprovado: devolve o token para abrir a troca de senha na hora (sem e-mail). */
-export async function forgotPassword(email: string): Promise<SimpleResult & { token?: string }> {
+/** Pede a troca de senha: a equipe recebe Liberar/Negar no Telegram. Devolve o número do pedido (o token só vem depois). */
+export async function forgotPassword(email: string): Promise<SimpleResult & { pedido?: string }> {
   const response = await fetch('/api/auth/forgot-password', {
     method: 'POST',
     credentials: 'include',
@@ -107,6 +107,26 @@ export async function forgotPassword(email: string): Promise<SimpleResult & { to
 
   if (!response.ok) {
     throw new Error(data.error ?? 'Não foi possível processar a solicitação.')
+  }
+
+  return data
+}
+
+export type EstadoDoPedido = { estado: 'aguardando' | 'negado' | 'expirado' | 'usado' } | { estado: 'liberado'; token: string }
+
+/** Pergunta se a equipe já liberou (ou negou) o pedido de troca de senha. */
+export async function consultarPedidoDeSenha(pedido: string): Promise<EstadoDoPedido> {
+  const response = await fetch('/api/auth/reset-status', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pedido }),
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data.error ?? 'Não foi possível consultar o pedido.')
   }
 
   return data

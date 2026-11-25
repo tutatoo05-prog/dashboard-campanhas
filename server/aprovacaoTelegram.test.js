@@ -109,3 +109,16 @@ test('atualizações que não são o nosso botão são ignoradas com 200', async
   )
   assert.equal(feitas.length, 0)
 })
+
+test('o botão Liberar do pedido de senha chega ao banco e edita a mensagem', async () => {
+  const { feitas, fetchImpl } = chamadasFalsas()
+  const r = await webhook({
+    corpo: { callback_query: { id: 'cb1', data: `lb:${ID}`, from: { id: 7 }, message: { message_id: 5, chat: { id: 99 } } } },
+    fetchImpl,
+    env: { ...ENV, DATABASE_URL: 'postgres://usuario:senha@127.0.0.1:1/x' },
+  })
+  assert.equal(r.status, 200)
+  // Sem banco de verdade a consulta falha: o clique avisa quem tocou em vez de fingir que liberou.
+  assert.equal(feitas.at(-1).metodo, 'answerCallbackQuery')
+  assert.equal(feitas.at(-1).corpo.show_alert, true)
+})

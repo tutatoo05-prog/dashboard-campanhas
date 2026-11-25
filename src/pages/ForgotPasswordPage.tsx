@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { forgotPassword } from '@/services/authService.ts'
+import { consultarPedidoDeSenha, forgotPassword } from '@/services/authService.ts'
 import { AuthBackdrop } from '@/components/auth/AuthBackdrop.tsx'
 import { Tatu } from '@/components/mascot/Tatu.tsx'
 
@@ -9,7 +9,50 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pedido, setPedido] = useState('')
   const navigate = useNavigate()
+
+  // Com o pedido enviado, pergunta a cada 3 s se a equipe já liberou (ou negou) pelo Telegram.
+  useEffect(() => {
+    if (!pedido) return
+    let ativo = true
+    let falhas = 0
+    const verificar = async () => {
+      try {
+        const r = await consultarPedidoDeSenha(pedido)
+        if (!ativo) return
+        falhas = 0
+        if (r.estado === 'liberado') {
+          navigate(`/reset-password?token=${r.token}`, { replace: true })
+          return
+        }
+        if (r.estado !== 'aguardando') {
+          setPedido('')
+          setMessage('')
+          setError(
+            r.estado === 'negado'
+              ? 'A equipe negou o pedido. Fale com um administrador.'
+              : 'O pedido venceu sem ser liberado. Peça de novo e avise a equipe.',
+          )
+          return
+        }
+      } catch {
+        falhas += 1
+        if (falhas >= 5 && ativo) {
+          setPedido('')
+          setMessage('')
+          setError('Perdi a conexão com o servidor. Tente pedir de novo.')
+          return
+        }
+      }
+      if (ativo) timer = window.setTimeout(verificar, 3000)
+    }
+    let timer = window.setTimeout(verificar, 3000)
+    return () => {
+      ativo = false
+      window.clearTimeout(timer)
+    }
+  }, [pedido, navigate])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -19,11 +62,8 @@ export default function ForgotPasswordPage() {
 
     try {
       const result = await forgotPassword(email.trim())
-      if (result.token) {
-        navigate(`/reset-password?token=${result.token}`, { replace: true })
-        return
-      }
       setMessage(result.message ?? '')
+      setPedido(result.pedido ?? '')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível concluir a ação.')
     } finally {
@@ -51,6 +91,11 @@ export default function ForgotPasswordPage() {
           {message && (
             <div className="mb-4 rounded-lg border border-green-500/25 bg-green-500/8 px-4 py-3 text-sm text-green-300">
               {message}
+              {pedido && (
+                <p className="mt-2 text-xs text-green-300/80">
+                  <i className="fa-solid fa-spinner fa-spin mr-1" /> Aguardando um administrador liberar. Avise a equipe e deixe esta tela aberta.
+                </p>
+              )}
             </div>
           )}
 
@@ -78,7 +123,7 @@ export default function ForgotPasswordPage() {
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-key" /> Continuar para nova senha
+                    <i className="fa-solid fa-key" /> Pedir troca de senha
                   </>
                 )}
               </button>
