@@ -470,17 +470,16 @@ export default function LojaPage() {
         <ol className="flex min-w-max items-center gap-1.5">
           {VIEWS.map((v, i) => {
             const ativo = v.id === view
-            const feito = i < VIEWS.findIndex((x) => x.id === view)
             return (
               <li key={v.id} className="flex items-center gap-1.5">
-                {i > 0 && <span className={`h-px w-5 sm:w-8 ${feito || ativo ? 'bg-amber-400/70' : 'bg-white/15'}`} aria-hidden />}
+                {i > 0 && <span className={`h-px w-5 sm:w-8 bg-white/15`} aria-hidden />}
                 <NavLink
                   to={v.to}
                   end
                   aria-current={ativo ? 'step' : undefined}
                   className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold transition-colors ${ativo ? 'border-amber-400 bg-amber-400/15 text-amber-200' : 'border-[var(--line)] text-zinc-400 hover:text-zinc-100'}`}
                 >
-                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${ativo ? 'bg-amber-400 text-black' : feito ? 'bg-emerald-500 text-black' : 'border border-white/25'}`}>{feito ? '✓' : i + 1}</span>
+                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${ativo ? 'bg-amber-400 text-black' : 'border border-white/25'}`}>{i + 1}</span>
                   {v.rotulo}
                 </NavLink>
               </li>

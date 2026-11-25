@@ -48,7 +48,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Tuzinho Store',
     items: [
-      { to: '/loja', label: 'Loja', sticker: 'crown', adminOnly: true },
+      { to: '/loja', label: 'Loja', sticker: 'bag', adminOnly: true },
     ],
   },
 ]
