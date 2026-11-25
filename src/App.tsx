@@ -28,6 +28,7 @@ const FinancasPage = lazy(() => import('@/pages/FinancasPage.tsx'))
 const AccountPage = lazy(() => import('@/pages/AccountPage.tsx'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage.tsx'))
 const MonitorPage = lazy(() => import('@/pages/MonitorPage.tsx'))
+const LojaPage = lazy(() => import('@/pages/LojaPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -215,6 +216,14 @@ function AppRoutes() {
           element={
             <RequireAdmin>
               <FinancasPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="loja/:view?"
+          element={
+            <RequireAdmin>
+              <LojaPage />
             </RequireAdmin>
           }
         />

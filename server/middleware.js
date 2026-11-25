@@ -24,6 +24,7 @@ import { handleFichasRequest } from './fichas.js'
 import { handleSaudeRequest } from './saude.js'
 import { handleDeployRequest } from './deploy.js'
 import { handleFinancasRequest } from './financas/handler.js'
+import { handleLojaRequest } from './loja/handler.js'
 import { requireAuth } from './authHandler.js'
 import { canAccessApi, canWriteAsUser, isAdmin } from './roles.js'
 import { handleRecuperacaoRequest } from './recuperacao.js'
@@ -120,6 +121,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/monitor') ||
       req.url.startsWith('/api/videos') ||
       req.url.startsWith('/api/financas') ||
+      req.url.startsWith('/api/loja') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
     ) {
@@ -236,6 +238,18 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
 
       if (req.url.startsWith('/api/financas')) {
         await handleFinancasRequest(req, res, env)
+        return
+      }
+
+      if (req.url.startsWith('/api/loja')) {
+        // Só administrador (canAccessApi já barra o cargo "usuario"; aqui é a segunda trava).
+        if (!isAdmin(user)) {
+          res.statusCode = 403
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Apenas administradores podem fazer isso.', code: 'FORBIDDEN' }))
+          return
+        }
+        await handleLojaRequest(req, res, env, user)
         return
       }
 

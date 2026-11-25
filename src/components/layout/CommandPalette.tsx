@@ -29,6 +29,10 @@ const PAGES = [
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
   { to: '/videos', label: 'Vídeos', hint: 'Quem assiste à VSL e até onde', icon: 'fa-circle-play' },
   { to: '/financas', label: 'Finanças', hint: 'Receitas, custos e lucro do mês', icon: 'fa-sack-dollar' },
+  { to: '/loja', label: 'Tuzinho Store', hint: 'Visão geral da loja, receita e pedidos a enviar', icon: 'fa-store' },
+  { to: '/loja/pedidos', label: 'Pedidos da loja', hint: 'Registrar envio, rastreio e reembolso', icon: 'fa-box-open' },
+  { to: '/loja/catalogo', label: 'Catálogo da loja', hint: 'Preço, custo, margem e disponibilidade', icon: 'fa-tags' },
+  { to: '/loja/financeiro', label: 'Financeiro da loja', hint: 'Bruto, custo e margem por mês', icon: 'fa-coins' },
   { to: '/config/usuarios', label: 'Usuários', hint: 'Cargos e aprovações', icon: 'fa-users-gear' },
   { to: '/config/seguranca', label: 'Segurança', hint: 'Backup, avisos e sessões', icon: 'fa-shield-halved' },
 ]
