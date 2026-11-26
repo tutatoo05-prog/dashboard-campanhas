@@ -197,8 +197,9 @@ export async function handleCapturaRequest(req, res, env, { consultar = query, e
   if (pathname !== '/api/captura' && !ehExiste) return responder(res, 404, { status: 'error', message: 'Rota não encontrada.' }, cors)
   if (req.method !== 'POST') return responder(res, 405, { status: 'error', message: 'Método não permitido.' }, cors)
 
-  // Quem não vem de um site nosso (curl, robô) não passa. Navegador sempre manda o Origin num POST entre sites.
-  if (origem && !permitidas.has(origem)) return responder(res, 403, { status: 'error', message: 'Origem não permitida.' }, cors)
+  // Quem não vem de um site nosso (curl, robô) não passa. Navegador sempre manda o Origin num POST entre sites,
+  // então pedido SEM Origin também é recusado (antes passava: bastava não mandar o cabeçalho).
+  if (!origem || !permitidas.has(origem)) return responder(res, 403, { status: 'error', message: 'Origem não permitida.' }, cors)
 
   if (!dentroDoLimite(getClientIp(req))) {
     contadores.bloqueados += 1

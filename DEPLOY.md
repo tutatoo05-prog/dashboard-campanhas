@@ -215,3 +215,28 @@ O ambiente em que o Plesk roda as "ações pós-implantação" é uma **jaula** 
 
 ## Venda que o webhook não recebeu (importar pelo dash)
 Se uma venda da Hotmart não chegou ao dash (webhook com erro, endereço errado, app fora do ar), **Admin → Segurança → Importar venda da Hotmart**: na Hotmart, Ferramentas → Webhook → Histórico, clique na lupa da entrega daquela venda e copie o **Corpo de postagem** inteiro; cole na caixa e clique em *Importar e liberar*. O dash grava o evento como se a Hotmart o tivesse mandado (o `hottok` do texto é descartado) e faz a liberação normal (curso, e-mail, WhatsApp, aviso à equipe). É seguro repetir: o mesmo evento não é processado duas vezes (`event_id` único). Só admin (`POST /api/seguranca/hotmart/importar`).
+
+## Headers de segurança na página (nginx do Plesk) — auditoria 26/11/2026
+O nginx do Plesk entrega `index.html` direto, sem passar pelo Node; por isso a tela de login/painel NÃO recebe os headers que
+`server/security.js` põe nas respostas de `/api/*` (conferido com `curl -I https://dash.tuzinho.academy/`). Falta: proteção
+contra clickjacking (`X-Frame-Options`), CSP e HSTS na página. Plesk → Domínios → dash.tuzinho.academy → *Apache & nginx* →
+**Additional nginx directives**. Usar só nesses dois locais (em `/api/*` o Node já manda os mesmos headers e repetir duplica):
+
+```nginx
+location = / {
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; frame-src https://tuzinho.academy; object-src 'none'; base-uri 'self'; form-action 'self'" always;
+}
+```
+Depois de salvar: `curl -sI https://dash.tuzinho.academy/` deve listar os headers, e o painel precisa continuar abrindo (login, Vídeos com a prévia do player).
+Se o `location = /` mudar o comportamento do Passenger, remova o bloco e peça ajuda — o painel continua funcionando sem ele.
+A CSP deve ficar igual à de `server/security.js` (se mudar lá, mude aqui).
+
+## Limites de uso e IP do visitante (26/11/2026)
+`getClientIp` (server/security.js) usa o **último IP público** do `X-Forwarded-For` (pula proxies internos). Antes usava o primeiro,
+que o próprio visitante inventa — o que anulava os limites de login, captura e reset. `POST /api/captura` agora exige o cabeçalho
+`Origin` de um site permitido (antes, pedido sem `Origin` passava). Testes: `server/clientIp.test.js`.

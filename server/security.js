@@ -41,10 +41,31 @@ export function applySecurityHeaders(res, { isProduction = false } = {}) {
   )
 }
 
+/** IP privado, de loopback ou link-local: é o próprio proxy (nginx/Apache), nunca o visitante. */
+export function ipInterno(ip) {
+  const v = String(ip ?? '').trim().toLowerCase().replace(/^::ffff:/, '')
+  if (!v) return true
+  if (v === '::1' || v.startsWith('fe80:') || /^f[cd][0-9a-f]{2}:/.test(v)) return true
+  const m = v.match(/^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/)
+  if (!m) return false
+  const [a, b] = [Number(m[1]), Number(m[2])]
+  return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)
+}
+
+/**
+ * IP do visitante para os limites de uso (login, captura, reset).
+ *
+ * O cliente controla o COMEÇO do X-Forwarded-For (basta mandar o cabeçalho com um IP inventado), e cada proxy
+ * confiável ACRESCENTA o IP que viu no FIM. Por isso vale o último IP público lido da direita para a esquerda
+ * (pula os proxies internos); pegar o primeiro deixava qualquer um trocar de "IP" a cada pedido e anular os limites.
+ * Só com endereços internos (dev/testes) usa o último da lista; sem cabeçalho, o endereço da conexão.
+ */
 export function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for']
   if (typeof forwarded === 'string' && forwarded.length) {
-    return forwarded.split(',')[0].trim()
+    const lista = forwarded.split(',').map((p) => p.trim()).filter(Boolean).slice(-10)
+    for (let i = lista.length - 1; i >= 0; i -= 1) if (!ipInterno(lista[i])) return lista[i]
+    if (lista.length) return lista.at(-1)
   }
   return req.socket?.remoteAddress ?? 'unknown'
 }
