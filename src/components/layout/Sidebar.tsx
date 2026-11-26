@@ -24,26 +24,26 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Visão geral',
     items: [
-      { to: '/', label: 'Dashboard', sticker: 'star', end: true },
-      { to: '/acoes', label: 'Central de Ações', sticker: 'bolt' },
+      { to: '/', label: 'Dashboard', sticker: 'chart', end: true },
+      { to: '/acoes', label: 'Central de Ações', sticker: 'tasks' },
       { to: '/compare', label: 'Comparar', sticker: 'scales' },
     ],
   },
   {
     title: 'Dados',
     items: [
-      { to: '/leads', label: 'Leads', sticker: 'rose' },
-      { to: '/recuperacao', label: 'Recuperação', sticker: 'swallow' },
-      { to: '/registros', label: 'Registros', sticker: 'scroll' },
-      { to: '/purchases', label: 'Compras', sticker: 'coin' },
+      { to: '/leads', label: 'Leads', sticker: 'person' },
+      { to: '/recuperacao', label: 'Recuperação', sticker: 'buoy' },
+      { to: '/registros', label: 'Registros', sticker: 'notebook' },
+      { to: '/purchases', label: 'Compras', sticker: 'cart' },
     ],
   },
   {
     title: 'Operação',
     items: [
-      { to: '/monitoramento', label: 'Monitoramento', sticker: 'lighthouse', adminOnly: true },
-      { to: '/financas', label: 'Finanças', sticker: 'crown', adminOnly: true },
-      { to: '/clube', label: 'Clube', sticker: 'heart', adminOnly: true },
+      { to: '/monitoramento', label: 'Monitoramento', sticker: 'pulse', adminOnly: true },
+      { to: '/financas', label: 'Finanças', sticker: 'cash', adminOnly: true },
+      { to: '/clube', label: 'Clube', sticker: 'group', adminOnly: true },
     ],
   },
   {
