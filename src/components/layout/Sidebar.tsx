@@ -33,7 +33,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Dados',
     items: [
       { to: '/leads', label: 'Leads', sticker: 'person' },
-      { to: '/recuperacao', label: 'Recuperação', sticker: 'buoy' },
+      { to: '/recuperacao', label: 'Recuperação', sticker: 'cartback' },
       { to: '/registros', label: 'Registros', sticker: 'notebook' },
       { to: '/purchases', label: 'Compras', sticker: 'cart' },
     ],
