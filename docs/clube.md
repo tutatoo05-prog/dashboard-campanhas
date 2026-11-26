@@ -16,39 +16,16 @@ Tela **Clube** (só admin, menu Operação) e página pública **`/discord`** (r
 
 Nada disso liga sozinho: sem as variáveis abaixo, o painel mostra exatamente quais faltam, o resgate responde "indisponível" e a sincronização pula a parte sem credencial.
 
-## O que falta para ligar (passo a passo)
+## O que falta para ligar
 
-### 1. Banco
-Rode `db/clube.sql` no SQL Editor do Supabase (schema `dash`). É idempotente. Ele já passa o dono das tabelas para `dash_app` antes de ligar o RLS (o dash conecta como `dash_app`; sem isso o app seria bloqueado).
+O passo a passo **detalhado** (com onde clicar em cada painel, o que copiar e os erros comuns) está em **[docs/clube-tutorial.md](clube-tutorial.md)**. Resumo:
 
-### 2. Google (membros do canal @tuzinhoacademy)
-1. No Google Cloud, **redefina o `client_secret`** (o antigo circulou em chat) e use o novo só no `.env`.
-2. Ative as APIs **YouTube Data API v3** e **YouTube Analytics API** no projeto.
-3. Tela de consentimento OAuth em **"Em produção"** (em "Teste" o refresh token vence em 7 dias e a lista para de atualizar sozinha).
-4. Cadastre em "URIs de redirecionamento": `https://dash.tuzinho.academy/api/clube/resgate/google/callback` (o painel mostra o endereço exato).
-5. Gere um **refresh token novo, com a conta dona do canal**, com o escopo `https://www.googleapis.com/auth/youtube.channel-memberships.creator` (OAuth Playground, "usar suas próprias credenciais"). Ele vai em `YOUTUBE_MEMBROS_REFRESH_TOKEN`. O `YOUTUBE_REFRESH_TOKEN` das Finanças é outro (só receita) e continua como está.
-6. `YOUTUBE_CLIENT_ID` e `YOUTUBE_CLIENT_SECRET` são os mesmos das Finanças. Hoje as 3 variáveis das Finanças também **não estão no servidor** (por isso a tela Finanças mostra "YouTube não configurado").
-
-### 3. Discord
-1. Developer Portal → New Application. Anote **Client ID** e **Client Secret** (OAuth2).
-2. OAuth2 → Redirects: `https://dash.tuzinho.academy/api/clube/resgate/discord/callback`.
-3. Bot → crie o bot, copie o **token**. Não precisa ligar "intents" privilegiadas.
-4. Convide o bot ao servidor com a permissão **Gerenciar cargos** (e "Criar convite").
-5. No servidor, arraste o cargo do bot para **cima** dos cargos de membro. Sem isso o Discord recusa dar o cargo (o erro aparece como "cargo do bot está acima dele?").
-6. Crie os cargos (um para membros do YouTube, outro para a Essentials) e copie os IDs (modo desenvolvedor → botão direito no cargo → copiar ID).
-7. Variáveis: `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_ROLE_YOUTUBE`, `DISCORD_ROLE_ESSENTIALS`.
-
-### 4. E-mail do resgate
-Já usa a Brevo (`BREVO_API_KEY`, `BREVO_REMETENTE_EMAIL`) e o `TELWAY_V2_TOKEN` como segredo dos links, que já existem em produção. Opcional: `CLUBE_SEGREDO` próprio.
-
-### 5. Verificação do app do Google (membros do YouTube pelo login Google)
-O login do membro usa o escopo `youtube.readonly`, que o Google classifica como **sensível**: para o público geral o app precisa passar pela **verificação do Google** (leva dias ou semanas). Até lá, só contas cadastradas como "usuários de teste" conseguem entrar. Alternativa se a verificação for um problema: o próprio Discord já lê a conexão do YouTube, mas isso obriga o membro a conectar a conta (justamente o que queremos evitar).
-
-### 6. Teste de ponta a ponta (depois de configurar)
-1. Tela Clube → "Sincronizar agora": os 3 blocos devem ficar sem erro.
-2. Abra `/discord` numa janela anônima e teste o caminho da Essentials com um e-mail de aluno de verdade (use a sua conta de teste).
-3. Confira no Discord se a pessoa entrou e recebeu o cargo; na tela Clube, o membro aparece como "no Discord".
-4. Bloqueie o acesso de teste em `acessos`, sincronize, e confira que o cargo saiu.
+1. **Banco:** `db/clube.sql` (já aplicado na produção em 26/11/2026).
+2. **Google, canal:** refresh token com `youtube.channel-memberships.creator` + `yt-analytics-monetary.readonly` em `YOUTUBE_REFRESH_TOKEN` e `YOUTUBE_MEMBROS_REFRESH_TOKEN` (liga também a receita das Finanças), mais `YOUTUBE_CLIENT_ID/SECRET`. App do Google **Em produção**.
+3. **Google, login público do membro:** projeto separado só com `youtube.readonly` → `CLUBE_GOOGLE_CLIENT_ID/SECRET`. Enquanto não for verificado pelo Google: aviso "app não verificado" e limite de 100 usuários. Pedir a verificação no mesmo dia (checklist na Parte 2.5 do tutorial).
+4. **Discord:** app + bot, redirect cadastrado, cargo do bot **acima** dos cargos de membro, 2 cargos criados → 6 variáveis `DISCORD_*`.
+5. **E-mail do resgate:** já usa a Brevo (`BREVO_*`) e o `TELWAY_V2_TOKEN` como segredo dos links; `CLUBE_SEGREDO` é opcional.
+6. **Teste de ponta a ponta** (Parte 4 do tutorial).
 
 ## Decisões de segurança (não mudar sem pensar)
 

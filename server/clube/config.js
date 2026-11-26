@@ -23,6 +23,12 @@ export function segredoDoClube(env) {
 
 const tem = (env, nomes) => nomes.filter((n) => !String(env[n] ?? '').trim())
 
+/** O login público do Google usa CLUBE_GOOGLE_* (se algum dos dois existir, exige os dois) ou, sem eles, YOUTUBE_CLIENT_ID/SECRET. */
+function faltaDoLoginGoogle(env) {
+  const proprio = String(env.CLUBE_GOOGLE_CLIENT_ID ?? '').trim() || String(env.CLUBE_GOOGLE_CLIENT_SECRET ?? '').trim()
+  return proprio ? tem(env, ['CLUBE_GOOGLE_CLIENT_ID', 'CLUBE_GOOGLE_CLIENT_SECRET']) : tem(env, ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'])
+}
+
 /** Cargo do Discord para cada plataforma. */
 export function cargoDe(env, plataforma) {
   const id = String((plataforma === 'youtube' ? env.DISCORD_ROLE_YOUTUBE : env.DISCORD_ROLE_ESSENTIALS) ?? '').trim()
@@ -63,8 +69,8 @@ export function statusDaConfiguracao(env) {
     {
       id: 'resgate-youtube',
       titulo: 'Resgate com a conta Google (YouTube)',
-      dica: 'O membro entra com o Google para provarmos qual canal é o dele (escopo youtube.readonly; o Google exige verificação do app para o público geral).',
-      faltando: [...tem(env, ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET']), ...segredoFalta],
+      dica: 'O membro entra com o Google para provarmos qual canal é o dele (escopo youtube.readonly; o Google exige verificação do app para o público geral). Ideal: credenciais próprias CLUBE_GOOGLE_CLIENT_ID/SECRET, de um projeto separado.',
+      faltando: [...faltaDoLoginGoogle(env), ...segredoFalta],
     },
   ]
   return blocos.map((b) => ({ ...b, pronto: b.faltando.length === 0 }))

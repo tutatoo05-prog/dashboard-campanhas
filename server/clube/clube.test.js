@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { Readable } from 'node:stream'
 import { criarToken, lerToken } from './token.js'
 import { cargoDe, cursosEssentials, statusDaConfiguracao } from './config.js'
-import { listarMembrosYoutube, canalDoMembro, urlLoginGoogle } from './youtube.js'
+import { listarMembrosYoutube, canalDoMembro, urlLoginGoogle, credenciaisDoLogin } from './youtube.js'
 import { adicionarAoServidor, darCargo, tirarCargo, urlAutorizar } from './discord.js'
 import { sincronizarClube } from './sync.js'
 import { handleResgateRequest, zerarLimitesDoResgate } from './resgate.js'
@@ -430,4 +430,33 @@ test('painel: devolve o que falta, os endereços para cadastrar e os números; s
   const res3 = { headers: {}, statusCode: 0, setHeader() {}, end(b) { this.corpo = JSON.parse(b) } }
   await handleClubeRequest({ method: 'POST', url: '/api/clube/sincronizar' }, res3, {}, { sincronizar: async () => ({ essentials: { ativos: 1 } }) })
   assert.equal(res3.corpo.resultado.essentials.ativos, 1)
+})
+
+// ───────────────────────────── login Google com credenciais próprias
+test('login Google: usa CLUBE_GOOGLE_* quando existe e cai nas do canal quando não', async () => {
+  assert.deepEqual(credenciaisDoLogin(ENV), { id: 'cid', segredo: 'csecret' })
+  const proprio = { ...ENV, CLUBE_GOOGLE_CLIENT_ID: 'pub-id', CLUBE_GOOGLE_CLIENT_SECRET: 'pub-secret' }
+  assert.deepEqual(credenciaisDoLogin(proprio), { id: 'pub-id', segredo: 'pub-secret' })
+  assert.equal(new URL(urlLoginGoogle(proprio, 'E')).searchParams.get('client_id'), 'pub-id')
+
+  const corpos = []
+  const fetchFalso = async (url, opcoes) => {
+    if (String(url).includes('oauth2.googleapis.com/token')) { corpos.push(String(opcoes.body)); return respostaJson({ access_token: 'a' }) }
+    return respostaJson({ items: [{ id: 'UC9' }] })
+  }
+  assert.equal(await canalDoMembro(proprio, 'codigo', fetchFalso), 'UC9')
+  assert.match(corpos[0], /client_id=pub-id/)
+  assert.match(corpos[0], /client_secret=pub-secret/)
+  assert.doesNotMatch(corpos[0], /csecret/, 'o segredo do canal não é usado no login público')
+})
+
+test('config: o par próprio do login precisa vir completo; sem ele vale o do canal', () => {
+  const bloco = (env) => statusDaConfiguracao(env).find((b) => b.id === 'resgate-youtube')
+  const base = { ...ENV }
+  delete base.YOUTUBE_CLIENT_ID
+  delete base.YOUTUBE_CLIENT_SECRET
+  assert.deepEqual(bloco(base).faltando, ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'])
+  assert.equal(bloco({ ...base, CLUBE_GOOGLE_CLIENT_ID: 'a', CLUBE_GOOGLE_CLIENT_SECRET: 'b' }).pronto, true)
+  assert.deepEqual(bloco({ ...base, CLUBE_GOOGLE_CLIENT_ID: 'a' }).faltando, ['CLUBE_GOOGLE_CLIENT_SECRET'])
+  assert.equal(bloco(ENV).pronto, true, 'o par do canal continua servindo')
 })

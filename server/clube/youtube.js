@@ -69,12 +69,24 @@ export async function listarMembrosYoutube(env, fetchImpl = fetch) {
   return [...membros.values()]
 }
 
+/**
+ * Credenciais do LOGIN PÚBLICO do membro. Podem (e é melhor) ser de um projeto do Google Cloud separado do das Finanças e da
+ * lista de membros: a verificação do Google olha todos os escopos do projeto, e o projeto público só precisa de youtube.readonly.
+ * CLUBE_GOOGLE_CLIENT_ID/SECRET mandam; sem eles vale YOUTUBE_CLIENT_ID/SECRET (o par do canal).
+ */
+export function credenciaisDoLogin(env) {
+  const proprio = Boolean(String(env.CLUBE_GOOGLE_CLIENT_ID ?? '').trim() || String(env.CLUBE_GOOGLE_CLIENT_SECRET ?? '').trim())
+  return proprio
+    ? { id: env.CLUBE_GOOGLE_CLIENT_ID, segredo: env.CLUBE_GOOGLE_CLIENT_SECRET }
+    : { id: env.YOUTUBE_CLIENT_ID, segredo: env.YOUTUBE_CLIENT_SECRET }
+}
+
 export const redirectGoogle = (env) => `${appUrl(env)}/api/clube/resgate/google/callback`
 
 /** Endereço do login Google do membro. `state` é um token assinado (token.js). */
 export function urlLoginGoogle(env, state) {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
-  url.searchParams.set('client_id', env.YOUTUBE_CLIENT_ID)
+  url.searchParams.set('client_id', credenciaisDoLogin(env).id)
   url.searchParams.set('redirect_uri', redirectGoogle(env))
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', ESCOPO_LOGIN)
@@ -85,13 +97,14 @@ export function urlLoginGoogle(env, state) {
 
 /** Troca o código do login pelo ID do canal da PESSOA que entrou. Não guarda token nenhum. */
 export async function canalDoMembro(env, codigo, fetchImpl = fetch) {
+  const credenciais = credenciaisDoLogin(env)
   const { resposta, corpo } = await pedirJson(fetchImpl, TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code: codigo,
-      client_id: env.YOUTUBE_CLIENT_ID,
-      client_secret: env.YOUTUBE_CLIENT_SECRET,
+      client_id: credenciais.id,
+      client_secret: credenciais.segredo,
       redirect_uri: redirectGoogle(env),
       grant_type: 'authorization_code',
     }),
