@@ -118,6 +118,13 @@ test('origem de fora é recusada', async () => {
   assert.equal(r.headers['Access-Control-Allow-Origin'], undefined)
 })
 
+test('pedido SEM Origin (curl, robô) é recusado e não grava', async () => {
+  let gravou = false
+  const r = await chamar({}, { origem: null, corpo: corpoValido(), consultar: async () => { gravou = true; return { rowCount: 0 } } })
+  assert.equal(r.status, 403)
+  assert.equal(gravou, false)
+})
+
 test('CAPTURA_ORIGENS libera mais um site', async () => {
   const r = await chamar({ CAPTURA_ORIGENS: 'https://novo.exemplo.com' }, { origem: 'https://novo.exemplo.com', corpo: corpoValido(), consultar: async () => ({ rowCount: 0 }) })
   assert.equal(r.status, 200)
