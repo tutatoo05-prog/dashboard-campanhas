@@ -43,6 +43,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/monitoramento', label: 'Monitoramento', sticker: 'lighthouse', adminOnly: true },
       { to: '/financas', label: 'Finanças', sticker: 'crown', adminOnly: true },
+      { to: '/clube', label: 'Clube', sticker: 'heart', adminOnly: true },
     ],
   },
   {

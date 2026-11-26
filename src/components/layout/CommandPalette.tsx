@@ -29,6 +29,7 @@ const PAGES = [
   { to: '/live', label: 'Live do Essentials', hint: 'Ligar ou desligar a página', icon: 'fa-tower-broadcast' },
   { to: '/videos', label: 'Vídeos', hint: 'Quem assiste à VSL e até onde', icon: 'fa-circle-play' },
   { to: '/financas', label: 'Finanças', hint: 'Receitas, custos e lucro do mês', icon: 'fa-sack-dollar' },
+  { to: '/clube', label: 'Clube', hint: 'Membros do YouTube e da Essentials e o Discord', icon: 'fa-users' },
   { to: '/loja', label: 'Tuzinho Store', hint: 'Visão geral da loja, receita e pedidos a enviar', icon: 'fa-store' },
   { to: '/loja/pedidos', label: 'Pedidos da loja', hint: 'Registrar envio, rastreio e reembolso', icon: 'fa-box-open' },
   { to: '/loja/catalogo', label: 'Catálogo da loja', hint: 'Preço, custo, margem e disponibilidade', icon: 'fa-tags' },

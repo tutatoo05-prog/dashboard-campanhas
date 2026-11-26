@@ -29,6 +29,8 @@ const AccountPage = lazy(() => import('@/pages/AccountPage.tsx'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage.tsx'))
 const MonitorPage = lazy(() => import('@/pages/MonitorPage.tsx'))
 const LojaPage = lazy(() => import('@/pages/LojaPage.tsx'))
+const ClubePage = lazy(() => import('@/pages/ClubePage.tsx'))
+const DiscordPage = lazy(() => import('@/pages/DiscordPage.tsx'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -163,6 +165,8 @@ function AppRoutes() {
       {/* Pública: botão "Receber outro link" do e-mail de boas-vindas do aluno (não exige login e não redireciona quem está logado) */}
       <Route path="/novo-link" element={<NovoLinkPage />} />
       <Route path="/criar-senha" element={<CriarSenhaPage />} />
+      {/* Pública: membros do clube entram no Discord e ganham o cargo (não exige login) */}
+      <Route path="/discord" element={<DiscordPage />} />
       <Route
         path="/reset-password"
         element={
@@ -216,6 +220,14 @@ function AppRoutes() {
           element={
             <RequireAdmin>
               <FinancasPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="clube"
+          element={
+            <RequireAdmin>
+              <ClubePage />
             </RequireAdmin>
           }
         />

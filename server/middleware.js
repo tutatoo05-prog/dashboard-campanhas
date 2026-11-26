@@ -13,6 +13,8 @@ import { handleLiveRequest } from './liveHandler.js'
 import { handleVideosRequest } from './videosHandler.js'
 import { handlePaginaConfigRequest, handlePlayerConfigRequest } from './playerConfig.js'
 import { handleVideoTrackRequest } from './videosRetencao.js'
+import { handleResgateRequest } from './clube/resgate.js'
+import { handleClubeRequest } from './clube/handler.js'
 import { handleCapturaRequest } from './capturaHandler.js'
 import { handleMonitorRequest } from './monitor/handler.js'
 import { handleUsersRequest } from './usersHandler.js'
@@ -60,6 +62,13 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // sem login). Só grava contagem anônima por sessão; ver server/videosRetencao.js.
     if (req.url.startsWith('/api/video-track')) {
       await handleVideoTrackRequest(req, res, env)
+      return
+    }
+
+    // Resgate do Discord do clube (membros YouTube e Essentials): público de propósito, a pessoa ainda não tem login. Protegido por
+    // links assinados de validade curta, "state" nos logins do Google/Discord e limite de pedidos (ver server/clube/resgate.js).
+    if (req.url.startsWith('/api/clube/resgate')) {
+      await handleResgateRequest(req, res, env)
       return
     }
 
@@ -137,6 +146,7 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
       req.url.startsWith('/api/videos') ||
       req.url.startsWith('/api/financas') ||
       req.url.startsWith('/api/loja') ||
+      req.url.startsWith('/api/clube') ||
       req.url.startsWith('/api/actions') ||
       req.url.startsWith('/api/users')
     ) {
@@ -178,6 +188,17 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
           return
         }
         await handleMonitorRequest(req, res, env)
+        return
+      }
+
+      if (req.url.startsWith('/api/clube')) {
+        if (!isAdmin(user)) {
+          res.statusCode = 403
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Apenas administradores podem fazer isso.', code: 'FORBIDDEN' }))
+          return
+        }
+        await handleClubeRequest(req, res, env)
         return
       }
 

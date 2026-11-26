@@ -22,6 +22,7 @@ import { startVerificacaoAcesso } from './acesso/verificacaoAcesso.js'
 import { aplicarNomesAntigos } from './nomesAntigosDeVariaveis.js'
 import { startBackupScheduler } from './backup.js'
 import { startFinancasSync } from './financas/sync.js'
+import { startClubeSync } from './clube/sync.js'
 import { garantirEsquemaFinancas } from './financas/esquema.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -174,6 +175,7 @@ server.listen(port, '0.0.0.0', () => {
   startVerificacaoAcesso(env)
   startBackupScheduler(env)
   startFinancasSync(env, garantirEsquemaFinancas)
+  startClubeSync(env)
   void aquecerConexoes(env)
   if (env.DATABASE_URL) {
     // Mantém umas conexões abertas: o pooler do banco derruba as paradas e a próxima tela pagaria para reabrir.
