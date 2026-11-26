@@ -164,3 +164,19 @@ test('track: corpo grande e JSON inválido levam 400; GET leva 405', async () =>
   assert.equal((await chamar({ corpo: 'nao-json' })).status, 400)
   assert.equal((await chamar({ metodo: 'GET' })).status, 405)
 })
+
+test('montarDiff entre vídeos diferentes rotula cada versão com o vídeo (v1 × v3 não dizem de qual VSL são)', () => {
+  const a = { video: 'vsl', versao: 'v1', notas: '', curva: calcularCurva(linhas) }
+  const b = { video: 'vsl-mentoria', versao: 'v3', notas: 'VSL nova da mentoria', curva: calcularCurva(linhas) }
+  const md = montarDiff({ a, b })
+  assert.match(md, /Comparação de retenção entre VSLs: vsl v1 → vsl-mentoria v3/)
+  assert.match(md, /## vsl v1/)
+  assert.match(md, /## vsl-mentoria v3/)
+  assert.match(md, /\| Trecho \| vsl v1 \| vsl-mentoria v3 \|/)
+})
+
+test('montarDiff no mesmo vídeo continua só com as versões no título', () => {
+  const a = { video: 'vsl', versao: 'v1', notas: '', curva: calcularCurva(linhas) }
+  const b = { video: 'vsl', versao: 'v1.1', notas: '', curva: calcularCurva(linhas) }
+  assert.match(montarDiff({ a, b }), /Comparação de retenção da VSL "vsl": v1 → v1\.1/)
+})

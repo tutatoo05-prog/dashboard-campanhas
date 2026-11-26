@@ -186,6 +186,8 @@ export interface RetencaoPonto {
 }
 
 export interface RetencaoVersao {
+  /** Id do vídeo (`vsl`, `vsl-mentoria`...): a mesma versão (`v1`) pode existir em vídeos diferentes. */
+  video: string
   versao: string
   notas: string
   criadoEm: string | null
@@ -207,13 +209,14 @@ async function readJson<T>(response: Response, mensagem: string): Promise<T> {
   return data as T
 }
 
-export async function fetchRetencao(video: string): Promise<RetencaoState> {
+/** Sem `video`, traz as versões de TODOS os vídeos juntas (é o que a tela usa para comparar v1 × v3 no mesmo gráfico). */
+export async function fetchRetencao(video = 'todos'): Promise<RetencaoState> {
   const response = await fetch(`/api/videos/retencao?video=${encodeURIComponent(video)}`, { credentials: 'include', headers: { Accept: 'application/json' } })
   return readJson<RetencaoState>(response, 'Não foi possível carregar a retenção por segundo.')
 }
 
 export async function saveVersaoNotas(video: string, versao: string, notas: string): Promise<RetencaoState> {
-  const response = await fetch(`/api/videos/versoes?video=${encodeURIComponent(video)}`, {
+  const response = await fetch('/api/videos/versoes?video=todos', {
     method: 'PUT',
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -222,8 +225,8 @@ export async function saveVersaoNotas(video: string, versao: string, notas: stri
   return readJson<RetencaoState>(response, 'Não foi possível salvar a anotação.')
 }
 
-export async function fetchRetencaoDiff(video: string, a: string, b: string): Promise<string> {
-  const params = new URLSearchParams({ video, a, b })
+export async function fetchRetencaoDiff(a: { video: string; versao: string }, b: { video: string; versao: string }): Promise<string> {
+  const params = new URLSearchParams({ video: 'todos', a: `${a.video}:${a.versao}`, b: `${b.video}:${b.versao}` })
   const response = await fetch(`/api/videos/retencao/diff?${params}`, { credentials: 'include', headers: { Accept: 'application/json' } })
   return (await readJson<{ markdown: string }>(response, 'Não foi possível montar a comparação.')).markdown
 }

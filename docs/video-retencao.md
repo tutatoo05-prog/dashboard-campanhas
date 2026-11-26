@@ -17,28 +17,17 @@ Corpo JSON:
 ```
 
 - `video`: um id de `VIDEOS_CONHECIDOS` (`server/playerConfig.js`): `vsl`, `vsl-vertical`, `vsl-mentoria`.
-- `versao`: rótulo da edição do vídeo (`v1`, `v1.1`, `v1.2-gancho`; começa por letra ou número, até 20 caracteres). Sem ele vale `v1`. **Ao trocar o arquivo por uma edição nova, mude este rótulo no player.**
-- `sessao`: 8 a 64 caracteres (`[A-Za-z0-9_-]`). Use o `visitor_id` que o player já tem (só mede quem aceitou cookies, como o resto).
+- `versao`: rótulo da edição do vídeo (`v1`, `v1.1`, `v1.2-gancho`; começa por letra ou número, até 20 caracteres). Sem ele vale `v1`.
+- `sessao`: 8 a 64 caracteres (`[A-Za-z0-9_-]`).
 - `segundos`: até 30 por envio, só números inteiros (`null`, `"7"`, `true` são recusados). Repetir um segundo conta como replay (gera os picos).
 
-Trecho para o player (projeto produtos, `pages/player`): junta o segundo atual a cada `timeupdate` enquanto toca e manda a cada 5 s.
+## Quem envia (já implementado no projeto produtos, D-137)
 
-```js
-const fila = []
-let ultimo = -1
-video.addEventListener('timeupdate', () => {
-  const s = Math.floor(video.currentTime)
-  if (!video.paused && s !== ultimo) { fila.push(s); ultimo = s }
-})
-function enviar() {
-  if (!fila.length) return
-  const corpo = JSON.stringify({ video: VIDEO_ID, versao: VERSAO, sessao: VISITOR_ID, segundos: fila.splice(0, 30) })
-  navigator.sendBeacon(`${DASH}/api/video-track`, corpo) // string = text/plain: sem pré-voo de CORS
-}
-setInterval(enviar, 5000)
-addEventListener('pagehide', enviar)
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') enviar() })
-```
+O envio **não** é feito pelo player: o player vive num `<iframe>` e não tem o consentimento de cookies. Ele conta os segundos e avisa a página por `postMessage` (`segundos { lista, versao }`). A **página** (`shared/lib/video-retencao.js`) manda ao dash, e só se a pessoa aceitou os cookies de análise (robôs e páginas sem rastreio não enviam). Em dev só aparece no console.
+
+- `sessao`: id aleatório da aba (`tuzinho_sid_v1`, some ao fechar). Recarregar a página na mesma aba continua a mesma sessão.
+- `versao`: sai do nome do arquivo que o player toca. `vsl-v1-720.mp4` → `v1`, `vsl-v1.2-gancho-480.mp4` → `v1.2-gancho`. Para medir uma edição nova, suba o arquivo com `-v1.1-` no nome. **Cadastre a versão no dash antes** (Vídeos → Retenção por segundo → Cadastrar versão), senão os dados são ignorados em silêncio.
+- Cada vídeo tem a sua versão atual: `vsl` = `v1` (já vale), `vsl-mentoria` = `v3` (cadastrar), `vsl-vertical` = `v2` (fora de uso).
 
 ## Como ler
 

@@ -206,11 +206,17 @@ export function montarDiff({ video, a, b }) {
   }
   const pa = parte(a)
   const pb = parte(b)
-  const linhas = [`# Comparação de retenção da VSL "${video}": ${a.versao} → ${b.versao}`, '']
-  for (const [v, p] of [[a, pa], [b, pb]]) {
-    linhas.push(`## ${v.versao}`, `- O que mudou: ${v.notas || '(sem anotação)'}`, `- Pessoas na base: ${v.curva.base} · duração medida: ${mmss(v.curva.duracao)}`, `- Maiores quedas (janelas de 10 s): ${p.quedas}`, `- Picos de replay: ${p.picos}`, '')
+  // Entre vídeos diferentes (ex.: Essentials v1 × Live v3) o rótulo leva o id do vídeo, senão "v1" e "v3" não dizem de qual VSL são.
+  const va = a.video ?? video
+  const vb = b.video ?? video
+  const mesmo = va === vb
+  const na = mesmo ? a.versao : `${va} ${a.versao}`
+  const nb = mesmo ? b.versao : `${vb} ${b.versao}`
+  const linhas = [mesmo ? `# Comparação de retenção da VSL "${va}": ${na} → ${nb}` : `# Comparação de retenção entre VSLs: ${na} → ${nb}`, '']
+  for (const [v, p, nome] of [[a, pa, na], [b, pb, nb]]) {
+    linhas.push(`## ${nome}`, `- O que mudou: ${v.notas || '(sem anotação)'}`, `- Pessoas na base: ${v.curva.base} · duração medida: ${mmss(v.curva.duracao)}`, `- Maiores quedas (janelas de 10 s): ${p.quedas}`, `- Picos de replay: ${p.picos}`, '')
   }
-  linhas.push('## Retenção (% da base ainda assistindo)', '', `| Trecho | ${a.versao} | ${b.versao} |`, '|---|---|---|')
+  linhas.push('## Retenção (% da base ainda assistindo)', '', `| Trecho | ${na} | ${nb} |`, '|---|---|---|')
   for (const f of [0.1, 0.25, 0.5, 0.75, 0.9, 1]) linhas.push(`| ${Math.round(f * 100)}% do vídeo | ${pa.pct(f)} | ${pb.pct(f)} |`)
   linhas.push('', 'Pergunta: considerando o que mudou, a alteração melhorou ou piorou a retenção? Em quais trechos, e o que ajustar a seguir?')
   return linhas.join('\n')
@@ -230,6 +236,7 @@ async function lerCurvas(env, video) {
     const notasPorVersao = new Map(notas.map((n) => [n.versao, n]))
     const nomes = new Set([...porVersao.keys(), ...notasPorVersao.keys()])
     const versoes = [...nomes].map((versao) => ({
+      video,
       versao,
       notas: notasPorVersao.get(versao)?.notas ?? '',
       criadoEm: notasPorVersao.get(versao)?.criado_em ? new Date(notasPorVersao.get(versao).criado_em).toISOString() : null,
@@ -240,15 +247,23 @@ async function lerCurvas(env, video) {
   })
 }
 
+const TODOS = 'todos'
+
+/** Versões de todos os vídeos juntas (na ordem de VIDEOS_CONHECIDOS, depois por versão): cada uma sabe de que vídeo é. */
+async function lerTodas(env) {
+  return (await Promise.all(VIDEOS_CONHECIDOS.map((v) => lerCurvas(env, v)))).flat()
+}
+
 /**
- * GET /api/videos/retencao?video=vsl — curvas de todas as versões do vídeo.
- * GET /api/videos/retencao/diff?video=vsl&a=v1&b=v1.1 — Markdown comparando duas versões.
+ * GET /api/videos/retencao[?video=vsl] — curvas das versões (sem `video` ou `todos`: de todos os vídeos juntas).
+ * GET /api/videos/retencao/diff?a=vsl:v1&b=vsl-mentoria:v3 — Markdown comparando duas versões (também vale ?video=vsl&a=v1&b=v1.1).
  * PUT /api/videos/versoes { video, versao, notas } — anota o que mudou numa versão (só admin: trava no middleware).
  * Devolve `precisaMigracao: true` se as tabelas ainda não existem.
  */
 export async function handleRetencaoRequest(req, res, env, user, url, { lerCorpo = readRequestBody } = {}) {
-  const video = url.searchParams.get('video') ?? 'vsl'
-  if (!VIDEOS_CONHECIDOS.includes(video)) return enviar(res, 400, { error: 'Vídeo inválido.' })
+  const video = url.searchParams.get('video') ?? TODOS
+  if (video !== TODOS && !VIDEOS_CONHECIDOS.includes(video)) return enviar(res, 400, { error: 'Vídeo inválido.' })
+  const ler = () => (video === TODOS ? lerTodas(env) : lerCurvas(env, video))
 
   try {
     if (url.pathname === '/api/videos/versoes' && req.method === 'PUT') {
@@ -258,7 +273,7 @@ export async function handleRetencaoRequest(req, res, env, user, url, { lerCorpo
       } catch {
         return enviar(res, 400, { error: 'Corpo inválido.' })
       }
-      const videoCorpo = corpo?.video ?? video
+      const videoCorpo = corpo?.video ?? (video === TODOS ? '' : video)
       const versao = typeof corpo?.versao === 'string' ? corpo.versao.trim() : ''
       const notas = typeof corpo?.notas === 'string' ? corpo.notas.trim() : ''
       if (!VIDEOS_CONHECIDOS.includes(videoCorpo)) return enviar(res, 400, { error: 'Vídeo inválido.' })
@@ -271,15 +286,22 @@ export async function handleRetencaoRequest(req, res, env, user, url, { lerCorpo
         [videoCorpo, versao, notas, user?.email ?? null],
       )
       limparCache('retencao|')
-      return enviar(res, 200, { success: true, versoes: await lerCurvas(env, videoCorpo), precisaMigracao: false })
+      return enviar(res, 200, { success: true, video, versoes: await ler(), precisaMigracao: false })
     }
 
     if (req.method !== 'GET') return enviar(res, 405, { error: 'Método não permitido.' })
-    const versoes = await lerCurvas(env, video)
+    const versoes = await ler()
 
     if (url.pathname === '/api/videos/retencao/diff') {
-      const a = versoes.find((v) => v.versao === url.searchParams.get('a'))
-      const b = versoes.find((v) => v.versao === url.searchParams.get('b'))
+      // a e b aceitam "video:versao" (para comparar vídeos diferentes) ou só "versao" (vale o `video` da consulta)
+      const achar = (ref) => {
+        const texto = String(ref ?? '')
+        const corte = texto.indexOf(':')
+        const [v, ver] = corte >= 0 ? [texto.slice(0, corte), texto.slice(corte + 1)] : [video, texto]
+        return versoes.find((x) => x.video === v && x.versao === ver)
+      }
+      const a = achar(url.searchParams.get('a'))
+      const b = achar(url.searchParams.get('b'))
       if (!a || !b) return enviar(res, 404, { error: 'Escolha duas versões que tenham dados.' })
       return enviar(res, 200, { success: true, markdown: montarDiff({ video, a, b }) })
     }

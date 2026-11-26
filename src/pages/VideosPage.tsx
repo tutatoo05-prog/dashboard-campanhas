@@ -272,7 +272,7 @@ export default function VideosPage() {
 
       {data && !error && <Content data={data} />}
 
-      <RetencaoSegundos key={`ret-${VIDEO}`} video={VIDEO} />
+      <RetencaoSegundos />
 
       <PlayerControl key={VIDEO} video={VIDEO} ratio={escolhido.ratio} />
 
