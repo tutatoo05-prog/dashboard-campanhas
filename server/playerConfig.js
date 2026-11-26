@@ -31,6 +31,9 @@ const PADROES_POR_VIDEO = {
   'vsl-vertical': { arquivos: { hd: 'vsl-v2-720.mp4', leve: 'vsl-v2-480.mp4' } },
 }
 
+/** Ids de vídeo que o player hospedado realmente usa (o tracking por segundo só aceita estes). */
+export const VIDEOS_CONHECIDOS = ['vsl', ...Object.keys(PADROES_POR_VIDEO)]
+
 /** Configuração padrão do vídeo: o PADRAO com os arquivos dele, quando forem diferentes. */
 export function padraoDe(video) {
   return { ...PADRAO, ...(PADROES_POR_VIDEO[video] ?? {}) }

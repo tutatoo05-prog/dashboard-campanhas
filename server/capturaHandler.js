@@ -162,7 +162,7 @@ export async function registrarLead(env, lead, consultar = query) {
   return { status: 'ok' }
 }
 
-function origensPermitidas(env) {
+export function origensPermitidas(env) {
   const extras = String(env.CAPTURA_ORIGENS || '').split(',').map((o) => o.trim()).filter(Boolean)
   return new Set([...ORIGENS_PADRAO, ...extras])
 }

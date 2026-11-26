@@ -12,6 +12,7 @@ import { handleHotmartEventsRequest } from './hotmartEvents.js'
 import { handleLiveRequest } from './liveHandler.js'
 import { handleVideosRequest } from './videosHandler.js'
 import { handlePaginaConfigRequest, handlePlayerConfigRequest } from './playerConfig.js'
+import { handleVideoTrackRequest } from './videosRetencao.js'
 import { handleCapturaRequest } from './capturaHandler.js'
 import { handleMonitorRequest } from './monitor/handler.js'
 import { handleUsersRequest } from './usersHandler.js'
@@ -52,6 +53,13 @@ export function createApiMiddleware(env, { isProduction = false } = {}) {
     // devolve opções de exibição. Fica antes da autenticação.
     if (req.url.startsWith('/api/player-config')) {
       await handlePlayerConfigRequest(req, res, env)
+      return
+    }
+
+    // Segundos assistidos da VSL (retenção por segundo): público de propósito (o player roda nas páginas de venda,
+    // sem login). Só grava contagem anônima por sessão; ver server/videosRetencao.js.
+    if (req.url.startsWith('/api/video-track')) {
+      await handleVideoTrackRequest(req, res, env)
       return
     }
 

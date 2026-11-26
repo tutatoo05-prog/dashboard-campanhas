@@ -444,3 +444,33 @@ create table if not exists monitor_checagens (
   checado_em timestamptz not null default now()
 );
 create index if not exists monitor_checagens_alvo_idx on monitor_checagens (projeto, alvo, checado_em desc);
+
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Central de vídeos: retenção segundo a segundo (server/videosRetencao.js, tela Vídeos → "Retenção por segundo").
+-- O player envia, em lote, os segundos que a pessoa assistiu (POST /api/video-track). Guardamos UMA linha por
+-- sessão e segundo (com `vezes` = quantas vezes aquele segundo foi visto), nunca uma linha por evento:
+--   espectadores no segundo X = count(*)      (cada pessoa conta uma vez → curva de abandono)
+--   visualizações no segundo X = sum(vezes)   (replay passa de 100% → picos)
+-- versao: rótulo da edição do vídeo ('v1', 'v1.1'...). video_versoes guarda o que mudou em cada uma (vai para o diff da IA).
+-- Rode este bloco uma vez no SQL Editor do Supabase (schema dash). Sem as tabelas, o player segue normal e a tela avisa.
+-- ───────────────────────────────────────────────────────────────────────────────
+create table if not exists video_versoes (
+  video text not null,
+  versao text not null,
+  notas text not null default '',
+  criado_em timestamptz not null default now(),
+  atualizado_por text,
+  primary key (video, versao)
+);
+
+create table if not exists video_retencao (
+  video text not null,
+  versao text not null default 'v1',
+  sessao text not null,
+  segundo integer not null,
+  vezes integer not null default 1,
+  atualizado_em timestamptz not null default now(),
+  primary key (video, versao, sessao, segundo)
+);
+create index if not exists video_retencao_curva on video_retencao (video, versao, segundo);
+create index if not exists video_retencao_atualizado on video_retencao (atualizado_em);

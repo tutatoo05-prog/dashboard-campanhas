@@ -175,6 +175,59 @@ export async function fetchPaginas(): Promise<PaginasState> {
   return readPaginasResponse(await fetch('/api/videos/paginas', { credentials: 'include', headers: { Accept: 'application/json' } }))
 }
 
+// ── Retenção segundo a segundo (várias versões do mesmo vídeo) ──
+
+export interface RetencaoPonto {
+  s: number
+  /** % da base ainda assistindo (cada pessoa conta uma vez: só cai). */
+  unica: number
+  /** % de visualizações sobre a base (passa de `unica` onde há replay: são os picos). */
+  retencao: number
+}
+
+export interface RetencaoVersao {
+  versao: string
+  notas: string
+  criadoEm: string | null
+  curva: { base: number; duracao: number; pontos: RetencaoPonto[] }
+}
+
+export interface RetencaoState {
+  success: boolean
+  video: string
+  versoes: RetencaoVersao[]
+  /** true = faltam as tabelas video_retencao/video_versoes no banco (db/schema.sql). */
+  precisaMigracao: boolean
+}
+
+async function readJson<T>(response: Response, mensagem: string): Promise<T> {
+  if (response.status === 401) throw new Error('SESSION_EXPIRED')
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error((data as { error?: string }).error ?? mensagem)
+  return data as T
+}
+
+export async function fetchRetencao(video: string): Promise<RetencaoState> {
+  const response = await fetch(`/api/videos/retencao?video=${encodeURIComponent(video)}`, { credentials: 'include', headers: { Accept: 'application/json' } })
+  return readJson<RetencaoState>(response, 'Não foi possível carregar a retenção por segundo.')
+}
+
+export async function saveVersaoNotas(video: string, versao: string, notas: string): Promise<RetencaoState> {
+  const response = await fetch(`/api/videos/versoes?video=${encodeURIComponent(video)}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ video, versao, notas }),
+  })
+  return readJson<RetencaoState>(response, 'Não foi possível salvar a anotação.')
+}
+
+export async function fetchRetencaoDiff(video: string, a: string, b: string): Promise<string> {
+  const params = new URLSearchParams({ video, a, b })
+  const response = await fetch(`/api/videos/retencao/diff?${params}`, { credentials: 'include', headers: { Accept: 'application/json' } })
+  return (await readJson<{ markdown: string }>(response, 'Não foi possível montar a comparação.')).markdown
+}
+
 export async function savePaginas(trava: Record<PaginaId, number>): Promise<PaginasState> {
   const paginas = Object.fromEntries(Object.entries(trava).map(([pagina, travaSegundos]) => [pagina, { travaSegundos }]))
   return readPaginasResponse(

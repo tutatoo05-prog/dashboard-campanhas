@@ -17,6 +17,7 @@ import {
   videoValido,
 } from './playerConfig.js'
 import { readRequestBody } from './readBody.js'
+import { handleRetencaoRequest } from './videosRetencao.js'
 
 // Só as linhas de vídeo e de visita da aba "Eventos (todos)" (coluna B = evento): o Google filtra do lado dele,
 // em vez de baixar as ~5.500 linhas e 61 colunas a cada leitura.
@@ -112,6 +113,9 @@ export async function handleVideosRequest(req, res, env, user) {
   const url = new URL(req.url, 'http://localhost')
   if (url.pathname === '/api/videos/config') return handleConfigRequest(req, res, env, user, url)
   if (url.pathname === '/api/videos/paginas') return handlePaginasRequest(req, res, env, user)
+  if (url.pathname === '/api/videos/retencao' || url.pathname === '/api/videos/retencao/diff' || url.pathname === '/api/videos/versoes') {
+    return handleRetencaoRequest(req, res, env, user, url)
+  }
   if (url.pathname !== '/api/videos') return sendJson(res, 404, { error: 'Rota não encontrada.' })
   if (req.method !== 'GET') return sendJson(res, 405, { error: 'Método não permitido.' })
 
