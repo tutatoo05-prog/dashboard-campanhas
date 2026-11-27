@@ -58,7 +58,7 @@ test('config: diz o que falta sem mostrar valores', () => {
 })
 
 test('config: cursos da Essentials e cargos', () => {
-  assert.deepEqual(cursosEssentials({}), ['Essentials'])
+  assert.deepEqual(cursosEssentials({}), ['Essentials', 'Mentoria Essentials'])
   assert.deepEqual(cursosEssentials({ CLUBE_ESSENTIALS_CURSOS: ' Essentials , Essentials 7 ' }), ['Essentials', 'Essentials 7'])
   assert.equal(cargoDe(ENV, 'youtube'), '222222222222')
   assert.equal(cargoDe(ENV, 'essentials'), '333333333333')

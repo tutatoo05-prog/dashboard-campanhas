@@ -9,7 +9,7 @@ export function cursosEssentials(env) {
     .split(',')
     .map((c) => c.trim())
     .filter(Boolean)
-  return lista.length ? lista : ['Essentials']
+  return lista.length ? lista : ['Essentials', 'Mentoria Essentials']
 }
 
 export function appUrl(env) {

@@ -6,8 +6,8 @@ Tela **Clube** (só admin, menu Operação) e página pública **`/discord`** (r
 
 | Parte | Onde | Estado |
 |---|---|---|
-| Tabelas `clube_membros`, `clube_snapshots`, `clube_estado` (RLS ligado) | `db/clube.sql` | Pronto e testado em Postgres real. **Ainda não rodado na produção.** |
-| Membros da Essentials (vem da tabela `acessos`: ativo e vigente, um por e-mail) | `server/clube/repo.js` | Pronto, funciona sem nenhuma credencial nova |
+| Tabelas `clube_membros`, `clube_snapshots`, `clube_estado` (RLS ligado) | `db/clube.sql` | Pronto e aplicado na produção (26/11/2026). |
+| Membros da Essentials (vem da tabela `acessos`, cursos "Essentials" e "Mentoria Essentials": ativo e vigente, um por e-mail) | `server/clube/repo.js` | Pronto, funciona sem nenhuma credencial nova |
 | Lista de membros do canal (`members.list`, todas as páginas) | `server/clube/youtube.js` | Pronto, testado com Google simulado. Falta a autorização |
 | Sincronização a cada 6 h (+ botão "Sincronizar agora"), com **trava**: fonte vazia nunca cancela ninguém | `server/clube/sync.js` | Pronto, ligada no `production.js` |
 | Resgate: Essentials por e-mail com link de confirmação; YouTube por login Google; depois login Discord, entrada no servidor e cargo | `server/clube/resgate.js`, `discord.js` | Pronto, testado com Google/Discord/Brevo simulados |
